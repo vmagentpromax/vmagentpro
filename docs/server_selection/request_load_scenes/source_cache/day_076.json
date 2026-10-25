@@ -1,0 +1,126 @@
+{
+  "day": 76,
+  "files": [
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=00\\part-000.parquet",
+      "bytes": 81371829,
+      "mtime_ns": 1780288740000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=01\\part-000.parquet",
+      "bytes": 85451083,
+      "mtime_ns": 1780288774000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=02\\part-000.parquet",
+      "bytes": 79206006,
+      "mtime_ns": 1780288816000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=03\\part-000.parquet",
+      "bytes": 76331324,
+      "mtime_ns": 1780288882000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=04\\part-000.parquet",
+      "bytes": 77038303,
+      "mtime_ns": 1780288968000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=05\\part-000.parquet",
+      "bytes": 76146809,
+      "mtime_ns": 1780289042000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=06\\part-000.parquet",
+      "bytes": 79362835,
+      "mtime_ns": 1780289104000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=07\\part-000.parquet",
+      "bytes": 82626483,
+      "mtime_ns": 1780289194000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=08\\part-000.parquet",
+      "bytes": 86271643,
+      "mtime_ns": 1780289190000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=09\\part-000.parquet",
+      "bytes": 84410603,
+      "mtime_ns": 1780289270000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=10\\part-000.parquet",
+      "bytes": 86906586,
+      "mtime_ns": 1780289306000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=11\\part-000.parquet",
+      "bytes": 85298646,
+      "mtime_ns": 1780289432000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=12\\part-000.parquet",
+      "bytes": 83361836,
+      "mtime_ns": 1780289338000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=13\\part-000.parquet",
+      "bytes": 82688797,
+      "mtime_ns": 1780289452000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=14\\part-000.parquet",
+      "bytes": 90625242,
+      "mtime_ns": 1780289468000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=15\\part-000.parquet",
+      "bytes": 81512224,
+      "mtime_ns": 1780289586000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=16\\part-000.parquet",
+      "bytes": 80412963,
+      "mtime_ns": 1780289528000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=17\\part-000.parquet",
+      "bytes": 79522441,
+      "mtime_ns": 1780289648000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=18\\part-000.parquet",
+      "bytes": 78818799,
+      "mtime_ns": 1780289684000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=19\\part-000.parquet",
+      "bytes": 78316651,
+      "mtime_ns": 1780289794000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=20\\part-000.parquet",
+      "bytes": 80160572,
+      "mtime_ns": 1780289904000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=21\\part-000.parquet",
+      "bytes": 79641366,
+      "mtime_ns": 1780290146000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=22\\part-000.parquet",
+      "bytes": 81253795,
+      "mtime_ns": 1780290238000000000
+    },
+    {
+      "path": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=76\\hour=23\\part-000.parquet",
+      "bytes": 84226790,
+      "mtime_ns": 1780290254000000000
+    }
+  ],
+  "missing_hours": []
+}

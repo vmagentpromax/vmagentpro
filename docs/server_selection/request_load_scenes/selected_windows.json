@@ -1,0 +1,35 @@
+{
+  "selection_rule": "longest window, then closest GPU-Pod count to 100, then earliest start; reject resource-changing Pods and invalid inventory; no durations or scheduler results used",
+  "natural_windows": {
+    "low": {
+      "status": "missing",
+      "candidates_checked": 0,
+      "threshold_candidates": 0,
+      "count_qualified_candidates": 0,
+      "substitute_constructed": false
+    },
+    "high": {
+      "status": "selected",
+      "start_hour": 3456,
+      "end_hour_exclusive": 3480,
+      "hours": 24,
+      "mean_rho_gpu": 0.94996875,
+      "mean_rho_cpu": 1.0148003472222222,
+      "mean_used_gpu_ratio": 0.9474817708333334,
+      "unique_gpu_pods": 100,
+      "retained_stable_gpu_pods": 100,
+      "excluded_pods": 0,
+      "candidates_checked": 1,
+      "inventory_all_hours_verified": true,
+      "shape_fractions": {
+        "fractional": 0.26,
+        "single": 0.53,
+        "multi": 0.21
+      },
+      "gpu_pod_cpu_share_of_source_window": 0.6596809375133655
+    }
+  },
+  "cross_class_shape_comparison": "unavailable: a natural class is missing",
+  "low_threshold_relaxed": false,
+  "synthetic_substitute_allowed": false
+}

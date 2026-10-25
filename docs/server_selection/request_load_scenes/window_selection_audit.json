@@ -1,0 +1,36 @@
+{
+  "window_count": 84094,
+  "lengths_hours": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24
+  ],
+  "high_threshold": "mean rho_gpu >= 0.8 and mean rho_cpu >= 0.6",
+  "low_threshold": "mean rho_gpu <= 0.35 and mean rho_cpu <= 0.35",
+  "task_count_range": [
+    50,
+    150
+  ],
+  "high_candidates": 8583,
+  "low_candidates": 0,
+  "minimum_window_mean_rho_gpu": 0.8541666666666666,
+  "high_threshold_window_count": 84094,
+  "low_threshold_window_count": 0,
+  "durations_used_in_window_selection": false
+}

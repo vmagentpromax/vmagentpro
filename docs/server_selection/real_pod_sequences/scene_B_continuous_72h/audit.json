@@ -1,0 +1,67 @@
+{
+  "window": "day109/00 through day111/23",
+  "window_hours": 72,
+  "servers": [
+    "354e4630cdf58d2d9e7ccfa85812710f",
+    "76a0f9bec274fd650d33dc7417c1744b",
+    "42a8b1bb68c60d49d5798660cb261b01",
+    "2f96cb8c6ee727230144bad1d36d49a9",
+    "e2785a67d59a1cd4be4b33539eea907c",
+    "7433199953e925e824cc950993ee1436",
+    "55bb5cebedc73512b05c41f2a6332952",
+    "8334355ea3aea726e79f7e74f46f0969",
+    "6dff5e60737501616ac831f691e697a8",
+    "a308863c5ad552c6e01a2a8f45be40a4",
+    "1a814ffbe85e788d4d7585f944e5fb8c",
+    "ac8d9b621554350e214b4cbf79c85b6a",
+    "0f015c5eebb3c516ce315861245a03d7",
+    "8afeb195e240e14d27f4bd44d15bca40",
+    "29b905f218f56f12ee06d5cc67b29d72",
+    "9928c55765cd768c6f7718cfd4d691de",
+    "fd7abfa6e5ab202d766c56e76b93b9a5",
+    "c84bfdb0553e49a4c0e479966e765675",
+    "fed3f20894aaca5a7ed2761f20d2dfc9",
+    "815f73e882e1816487f956e3582e9a61"
+  ],
+  "gpu_capacity": 160,
+  "cpu_capacity_cores": 3840,
+  "all_pods_preserved": true,
+  "exact_duplicate_source_rows_removed": 0,
+  "unique_pods": 19774,
+  "unique_gpu_positive_pods": 1101,
+  "pod_hour_observations": 56154,
+  "tasks_with_variable_requests": 777,
+  "tasks_with_observation_gaps": 12,
+  "gpu_hours_proxy": 12882.399999999998,
+  "cpu_core_hours_proxy": 289223.0,
+  "gpu_ratio_proxy": 1.1182638888888887,
+  "cpu_ratio_proxy": 1.046090133101852,
+  "gpu_positive_pods_cpu_core_hours_proxy": 210246.25,
+  "gpu_positive_pods_cpu_ratio_proxy": 0.7604392722800926,
+  "target_gpu_hours": 10368,
+  "target_cpu_core_hours": 82944,
+  "exact_target_satisfied": false,
+  "high_gpu_low_cpu_range_satisfied": false,
+  "duration_method": "count distinct observed hours per Pod; one hour exposure proxy for each observation",
+  "exact_execution_times_available": false,
+  "exact_arrival_times_available": false,
+  "overlaps_with_other_scene_pods": {
+    "A": [
+      "7c03d81409840b316bf02a49221cdde5"
+    ],
+    "C": [
+      "07897bdfec3e50d8a0e9e4065be2c9ca",
+      "92574b6f81f1ee27121821f7f69c3d3f"
+    ],
+    "D": [
+      "3887c9c4fe418b2796ea5d117c09da70",
+      "78217d46d55d980812c777f4619188bc"
+    ],
+    "E": [
+      "30be79f16e1f84b41359cc43ee306e1f",
+      "c0624af0de92fee83d82a2f171ef7ab8",
+      "f79850c6ceac2360e468ca4763abad75"
+    ]
+  },
+  "interpretation": "Hourly request exposure estimate; snapshot presence is not proof of full-hour running. Values above capacity can occur because same-hour observations need not be simultaneous. No simulator-ready arrivals or service durations are fabricated."
+}

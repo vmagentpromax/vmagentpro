@@ -1,0 +1,389 @@
+{
+  "scenes": [
+    {
+      "scene": "A",
+      "description": "GPU低_CPU低",
+      "status": "real_request_subset_found",
+      "selection_scope": "subset_of_one_hourly_snapshot",
+      "source_day": 109,
+      "source_hour": 0,
+      "earliest_source_day": 109,
+      "latest_source_day": 109,
+      "pod_count": 50,
+      "gpu_request_sum": 48.0,
+      "cpu_request_cores_sum": 1152.0,
+      "gpu_request_capacity_ratio": 0.3,
+      "cpu_request_capacity_ratio": 0.3,
+      "fits20_empty_nodes_simultaneously_under_fractional_resource_model": true,
+      "time_integrated_offered_load_confirmed": false,
+      "synthetic_cpu_background": false,
+      "shapes": [
+        {
+          "gpu_request": 0.07,
+          "cpu_request_cores": 2.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.16,
+          "cpu_request_cores": 8.0,
+          "pods": 4
+        },
+        {
+          "gpu_request": 0.19,
+          "cpu_request_cores": 5.0,
+          "pods": 32
+        },
+        {
+          "gpu_request": 0.21,
+          "cpu_request_cores": 5.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.5,
+          "cpu_request_cores": 64.0,
+          "pods": 4
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 25.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 49.0,
+          "pods": 2
+        },
+        {
+          "gpu_request": 4.0,
+          "cpu_request_cores": 94.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 8.0,
+          "cpu_request_cores": 48.0,
+          "pods": 2
+        },
+        {
+          "gpu_request": 8.0,
+          "cpu_request_cores": 192.0,
+          "pods": 2
+        }
+      ]
+    },
+    {
+      "scene": "B",
+      "description": "GPU高_CPU低",
+      "status": "real_request_subset_found",
+      "selection_scope": "subset_of_one_hourly_snapshot",
+      "source_day": 109,
+      "source_hour": 1,
+      "earliest_source_day": 109,
+      "latest_source_day": 109,
+      "pod_count": 50,
+      "gpu_request_sum": 144.0,
+      "cpu_request_cores_sum": 1152.0,
+      "gpu_request_capacity_ratio": 0.9,
+      "cpu_request_capacity_ratio": 0.3,
+      "fits20_empty_nodes_simultaneously_under_fractional_resource_model": true,
+      "time_integrated_offered_load_confirmed": false,
+      "synthetic_cpu_background": false,
+      "shapes": [
+        {
+          "gpu_request": 0.07,
+          "cpu_request_cores": 2.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.21,
+          "cpu_request_cores": 4.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.24,
+          "cpu_request_cores": 4.0,
+          "pods": 3
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 4.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 6.0,
+          "pods": 28
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 23.0,
+          "pods": 2
+        },
+        {
+          "gpu_request": 8.0,
+          "cpu_request_cores": 24.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 8.0,
+          "cpu_request_cores": 32.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 8.0,
+          "cpu_request_cores": 48.0,
+          "pods": 10
+        },
+        {
+          "gpu_request": 8.0,
+          "cpu_request_cores": 190.0,
+          "pods": 2
+        }
+      ]
+    },
+    {
+      "scene": "C",
+      "description": "GPU低_CPU高",
+      "status": "real_request_subset_found",
+      "selection_scope": "subset_of_one_hourly_snapshot",
+      "source_day": 109,
+      "source_hour": 14,
+      "earliest_source_day": 109,
+      "latest_source_day": 109,
+      "pod_count": 70,
+      "gpu_request_sum": 48.0,
+      "cpu_request_cores_sum": 3456.0,
+      "gpu_request_capacity_ratio": 0.3,
+      "cpu_request_capacity_ratio": 0.9,
+      "fits20_empty_nodes_simultaneously_under_fractional_resource_model": true,
+      "time_integrated_offered_load_confirmed": false,
+      "synthetic_cpu_background": false,
+      "shapes": [
+        {
+          "gpu_request": 0.04,
+          "cpu_request_cores": 8.0,
+          "pods": 9
+        },
+        {
+          "gpu_request": 0.07,
+          "cpu_request_cores": 16.0,
+          "pods": 2
+        },
+        {
+          "gpu_request": 0.5,
+          "cpu_request_cores": 64.0,
+          "pods": 23
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 48.0,
+          "pods": 23
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 49.0,
+          "pods": 8
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 64.0,
+          "pods": 2
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 80.0,
+          "pods": 2
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 96.0,
+          "pods": 1
+        }
+      ]
+    },
+    {
+      "scene": "D",
+      "description": "GPU高_CPU高",
+      "status": "real_request_subset_found",
+      "selection_scope": "subset_of_one_hourly_snapshot",
+      "source_day": 110,
+      "source_hour": 1,
+      "earliest_source_day": 110,
+      "latest_source_day": 110,
+      "pod_count": 50,
+      "gpu_request_sum": 144.0,
+      "cpu_request_cores_sum": 3456.0,
+      "gpu_request_capacity_ratio": 0.9,
+      "cpu_request_capacity_ratio": 0.9,
+      "fits20_empty_nodes_simultaneously_under_fractional_resource_model": true,
+      "time_integrated_offered_load_confirmed": false,
+      "synthetic_cpu_background": false,
+      "shapes": [
+        {
+          "gpu_request": 0.03,
+          "cpu_request_cores": 4.0,
+          "pods": 3
+        },
+        {
+          "gpu_request": 0.04,
+          "cpu_request_cores": 4.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.07,
+          "cpu_request_cores": 2.0,
+          "pods": 14
+        },
+        {
+          "gpu_request": 0.19,
+          "cpu_request_cores": 2.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.21,
+          "cpu_request_cores": 3.0,
+          "pods": 7
+        },
+        {
+          "gpu_request": 0.23,
+          "cpu_request_cores": 3.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.5,
+          "cpu_request_cores": 2.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.5,
+          "cpu_request_cores": 64.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 4.0,
+          "pods": 2
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 24.0,
+          "pods": 2
+        },
+        {
+          "gpu_request": 8.0,
+          "cpu_request_cores": 192.0,
+          "pods": 17
+        }
+      ]
+    },
+    {
+      "scene": "E",
+      "description": "GPU中_CPU中",
+      "status": "real_request_subset_found",
+      "selection_scope": "subset_of_one_hourly_snapshot",
+      "source_day": 111,
+      "source_hour": 0,
+      "earliest_source_day": 111,
+      "latest_source_day": 111,
+      "pod_count": 50,
+      "gpu_request_sum": 96.0,
+      "cpu_request_cores_sum": 2304.0,
+      "gpu_request_capacity_ratio": 0.6,
+      "cpu_request_capacity_ratio": 0.6,
+      "fits20_empty_nodes_simultaneously_under_fractional_resource_model": true,
+      "time_integrated_offered_load_confirmed": false,
+      "synthetic_cpu_background": false,
+      "shapes": [
+        {
+          "gpu_request": 0.04,
+          "cpu_request_cores": 4.0,
+          "pods": 3
+        },
+        {
+          "gpu_request": 0.07,
+          "cpu_request_cores": 2.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.19,
+          "cpu_request_cores": 2.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.19,
+          "cpu_request_cores": 5.0,
+          "pods": 9
+        },
+        {
+          "gpu_request": 0.21,
+          "cpu_request_cores": 4.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.3,
+          "cpu_request_cores": 4.0,
+          "pods": 14
+        },
+        {
+          "gpu_request": 0.5,
+          "cpu_request_cores": 8.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 0.5,
+          "cpu_request_cores": 64.0,
+          "pods": 2
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 5.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 8.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 12.0,
+          "pods": 2
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 25.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 48.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 49.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 1.0,
+          "cpu_request_cores": 96.0,
+          "pods": 1
+        },
+        {
+          "gpu_request": 8.0,
+          "cpu_request_cores": 160.0,
+          "pods": 4
+        },
+        {
+          "gpu_request": 8.0,
+          "cpu_request_cores": 192.0,
+          "pods": 6
+        }
+      ]
+    }
+  ],
+  "total_unique_pods": 270,
+  "duplicate_pod_ids_across_scenes": 0,
+  "original_resource_pairs_preserved": true,
+  "ordering": "first observation within day109-111, tie-break pod_id; NOT actual submission order",
+  "interpretation": "Selected real Pod REQUEST GROUPS. Request/capacity ratios do not establish the document's time-integrated offered-load targets. No arrival/service/background values were synthesized."
+}

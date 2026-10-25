@@ -6,6 +6,8 @@
 [![GitHub stars](https://img.shields.io/github/stars/mail-ecnu/VMAgent)](https://github.com/mail-ecnu/VMAgent/stargazers)
 
 **VMAgent** is a platform for exploiting Reinforcement Learning (RL) on Virtual Machine (VM) scheduling tasks.
+
+**Alibaba H20 / CPU trace adaptation:** see [GPU scheduling setup and usage (中文)](README_GPU.md) for the new timed environment, local upload/dashboard, command-line runs, and implementation steps. Quick start from this repository root: `python -m vmagent.gpu.dashboard`, then open `http://127.0.0.1:8765/`.
 It is developed by the [Multi-Agent Artificial Intelligence Lab (MAIL)](https://mail-ecnu.cn) in East China Normal University and [Algorithm Innovation Lab](https://www.huaweicloud.com/lab/algorithm/home.html) in [**HUAWEI Cloud**](https://www.huaweicloud.com).
 VMAgent is constructed based on one month real VM scheduling dataset called [*Huawei-East-1*](https://vmagent.readthedocs.io/en/latest/simulator/dataset.html) from HUAWEI Cloud and it contains multiple practicle VM scheduling scenarios (such as Fading, Rcovering, etc).
 These scenarios also correspond to the challanges in the RL.

@@ -1,0 +1,16 @@
+{
+  "hours_scanned": 4440,
+  "day_min": 0,
+  "day_max": 184,
+  "missing_hours": [],
+  "cohort": "original 20 H20 servers; all Pods for hourly sums",
+  "gpu_capacity": 160.0,
+  "cpu_capacity_cores": 3840.0,
+  "gpu_request_ratio_min": 0.0,
+  "gpu_request_ratio_max": 2.16125,
+  "cpu_request_ratio_min": 0.0,
+  "observed_server_count_min": 19,
+  "zero_observed_pod_hours_are_not_imputed": true,
+  "classification_uses_duration": false,
+  "hourly_csv_sha256": "fd9e76b85c9240a4a52921ba73eabd807d4ba8963c63d65fb8650154c089b459"
+}

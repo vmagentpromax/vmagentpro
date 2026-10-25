@@ -1,0 +1,15 @@
+{
+  "nodes_sha256": "9322d4a1ca1bc3f9f746e08b4655d502d3eaf03b10d72bd53fc96b4ff102666a",
+  "source_root": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_pod_hourly\\asi_opensource_pod_hourly",
+  "columns": [
+    "pod_id",
+    "server_id",
+    "cluster_id",
+    "gpu_spec_public",
+    "gpu_request",
+    "cpu_request_cores",
+    "used_gpu_hours",
+    "avg_gpu_sm_util"
+  ],
+  "version": 1
+}

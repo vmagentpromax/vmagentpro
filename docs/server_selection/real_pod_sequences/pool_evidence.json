@@ -1,0 +1,65 @@
+{
+  "cluster_id": "1f28e063c4e5e1bc48ff55269617dd2f",
+  "days": [
+    109,
+    110,
+    111
+  ],
+  "hours": 72,
+  "raw_gpu_positive_pod_hour_rows": 429168,
+  "unique_gpu_positive_pods": 78538,
+  "resource_changed_pods": 181,
+  "eligible_unique_pods": 78357,
+  "excluded_unique_pods": 181,
+  "gpu_request_counts": {
+    "0.03": 76,
+    "0.04": 36,
+    "0.07": 40,
+    "0.1": 1,
+    "0.16": 82,
+    "0.19": 421,
+    "0.21": 606,
+    "0.23": 57,
+    "0.24": 54,
+    "0.25": 49,
+    "0.29": 338,
+    "0.3": 83,
+    "0.5": 1526,
+    "1.0": 68149,
+    "2.0": 2543,
+    "3.0": 3,
+    "4.0": 719,
+    "5.0": 3,
+    "6.0": 5,
+    "8.0": 3566
+  },
+  "cpu_request_quantiles": {
+    "0.0": 0.25,
+    "0.25": 4.0,
+    "0.5": 4.0,
+    "0.75": 8.0,
+    "0.95": 48.0,
+    "1.0": 192.0
+  },
+  "cpu_gpu_ratio_quantiles": {
+    "0.0": 0.5,
+    "0.25": 4.0,
+    "0.5": 4.0,
+    "0.75": 8.0,
+    "0.95": 24.0,
+    "1.0": 228.57142857142856
+  },
+  "job_type_counts": {
+    "dev": 791,
+    "offline_inference": 65330,
+    "online_inference": 4361,
+    "other": 467,
+    "training": 5320,
+    "unknown": 2088
+  },
+  "notes": [
+    "first/last observed hours are NOT submission/completion timestamps",
+    "pool includes H20 pods from the selected cluster, not only the selected 20 servers",
+    "no synthesized resource requests, arrivals, durations, or CPU background"
+  ]
+}

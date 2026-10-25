@@ -1,0 +1,14 @@
+{
+  "source": "E:\\cluster-trace-gpu-v2026\\data\\asi_opensource_job_execution_summary\\asi_opensource_job_execution_summary\\part-000.parquet",
+  "summary_rows_scanned": 40522321,
+  "source_bytes": 1188294827,
+  "source_mtime_ns": 1780331234000000000,
+  "templates_before_match": 100,
+  "matched_templates": 100,
+  "unmatched_templates": 0,
+  "multiple_compatible_span_pods": 84,
+  "policy": "longest positive finite span matching pod_id, H20, exact GPU request and any server observed for this Pod in the selected window",
+  "cpu_verified_from_hourly_pair": true,
+  "exact_historical_execution_instance_identified": false,
+  "single_matching_row_is_also_a_proxy": true
+}

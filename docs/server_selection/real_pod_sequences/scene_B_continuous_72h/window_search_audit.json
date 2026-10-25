@@ -1,0 +1,26 @@
+{
+  "windows_checked": 2628,
+  "window_duration_hours_range": [
+    1,
+    72
+  ],
+  "exact_90_30_matches": 0,
+  "high_gpu_low_cpu_range_matches": 0,
+  "minimum_hourly_gpu_ratio": 0.9791875,
+  "minimum_hourly_cpu_ratio": 0.73515625,
+  "closest_by_squared_ratio_distance": {
+    "start_day": 110,
+    "start_hour": 7,
+    "last_included_day": 110,
+    "last_included_hour": 7,
+    "window_hours": 1,
+    "gpu_hours_proxy": 168.67000000000007,
+    "cpu_core_hours_proxy": 2823.0,
+    "gpu_ratio_proxy": 1.0541875000000005,
+    "cpu_ratio_proxy": 0.73515625,
+    "exact_target_satisfied": false,
+    "high_gpu_low_cpu_range_satisfied": false,
+    "squared_target_distance": 0.2131347470703126
+  },
+  "conclusion": "No qualifying window within days109-111. Every contiguous hourly average is a weighted average of its hourly values; changing duration cannot reduce GPU below the minimum hourly GPU ratio, or CPU below its corresponding hourly minimum. Sub-hour boundaries cannot be recovered from hourly observations."
+}

@@ -1,0 +1,56 @@
+{
+  "source_pod_csv_sha256": "5cc2c35252f8dc515adf070dc014b28a32fb380ff0e141ac85a80c6024cdd57a",
+  "matched_raw_spans_csv_sha256": "4f9abe69ff995f3085bdeadd8689489816bae46bb6c63bf018a676fddd7bf472",
+  "output_csv_sha256": "0a49ab8bb48f7bdb50f8a680c57b4508dba77c8cff77a421b44efcd179f9b2c2",
+  "pod_count": 50,
+  "unique_pod_ids": 50,
+  "original_ids_and_resource_pairs_preserved": true,
+  "matched_real_execution_rows": 74,
+  "pods_with_single_matching_span": 26,
+  "pods_with_ambiguous_multiple_matching_spans": 24,
+  "duration_selection_policy": "longest matching real execution span; no summing, averaging, clipping or arbitrary row-order choice",
+  "exact_execution_instance_matching_confirmed": false,
+  "time_scale_factor": 36480,
+  "seed": 42,
+  "mean_interarrival_sec_configured": 0.3,
+  "arrival_rate_per_sec_configured": 3.3333333333333335,
+  "actual_mean_of_49_gaps_sec": 0.33131518777110186,
+  "last_arrival_sec": 16.23444420078399,
+  "service_time_sec_quantiles": {
+    "0.0": 0.0005482456140350877,
+    "0.25": 2.1640625,
+    "0.5": 66.31140350877193,
+    "0.75": 66.31469298245614,
+    "0.95": 68.21387061403509,
+    "1.0": 89.99945175438596
+  },
+  "ideal_last_completion_sec_no_queue": 105.74080476059278,
+  "measurement_window_sec": [
+    0,
+    120.0
+  ],
+  "offered_gpu_ratio_over_measurement_window": 0.057416131556103804,
+  "offered_cpu_ratio_over_measurement_window": 0.03829189962346187,
+  "ideal_peak_gpu_request": 22.96000000000001,
+  "ideal_peak_cpu_request_cores": 489.0,
+  "ideal_peak_gpu_ratio": 0.14350000000000007,
+  "ideal_peak_cpu_ratio": 0.12734375,
+  "low_gpu_low_cpu_range_confirmed": true,
+  "exact_30percent_30percent_confirmed": false,
+  "arrival_times_are_synthetic": true,
+  "durations_uniformly_rescaled_from_real_spans": true,
+  "actual_scheduler_or_wallclock_runtime_tested": false,
+  "cpu_background_cores": 0,
+  "sources": [
+    "https://github.com/alibaba/clusterdata/issues/259#issuecomment-5494018728",
+    "https://github.com/alibaba/clusterdata/blob/master/cluster-trace-gpu-v2026/docs/schema.md"
+  ],
+  "notes": [
+    "Time scaling changes units; original real arrivals are unavailable and cannot be proportionally recovered.",
+    "Poisson timing is a new synthetic experiment, not an equivalent scaling of historical traffic.",
+    "Service time starts when a task is actually scheduled, not at submission.",
+    "Ideal finish times assume immediate starts; actual completion depends on the scheduler.",
+    "Sub-millisecond service times are retained without flooring or stretching.",
+    "Single matching summary row does not prove a uniquely identified historical execution instance."
+  ]
+}

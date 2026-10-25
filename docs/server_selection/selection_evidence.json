@@ -1,0 +1,427 @@
+{
+  "cluster_id": "1f28e063c4e5e1bc48ff55269617dd2f",
+  "gpu_spec_public": "H20",
+  "snapshot": {
+    "day": 109,
+    "hour": "00"
+  },
+  "verified_window": {
+    "first": "109/00",
+    "last": "111/23",
+    "hours": 72
+  },
+  "snapshot_candidates": 1186,
+  "stable_candidates": 1181,
+  "selection_method": "First 20 ascending SHA256('42:' + server_id), tie-break server_id; no load-based selection",
+  "total_servers": 20,
+  "total_gpus": 160,
+  "total_cpu_cores": 3840,
+  "asw_domains": 10,
+  "snapshot_duplicate_pod_rows_removed": 1,
+  "cluster_H20_gpu_positive_pods": 5441,
+  "cluster_H20_cpu_only_positive_pods": 12331,
+  "cluster_H20_gpu_request_counts": {
+    "0.03": 65,
+    "0.04": 31,
+    "0.07": 29,
+    "0.1": 1,
+    "0.16": 20,
+    "0.19": 99,
+    "0.21": 76,
+    "0.23": 6,
+    "0.24": 36,
+    "0.29": 69,
+    "0.3": 23,
+    "0.5": 29,
+    "1.0": 3914,
+    "2.0": 224,
+    "3.0": 3,
+    "4.0": 186,
+    "5.0": 1,
+    "6.0": 2,
+    "8.0": 627
+  },
+  "cluster_H20_job_type_counts": {
+    "dev": 430,
+    "offline_inference": 1947,
+    "online_inference": 2360,
+    "other": 51,
+    "training": 519,
+    "unknown": 134
+  },
+  "selected_servers_snapshot_pods": 458,
+  "selected_servers_snapshot_gpu_positive_pods": 118,
+  "checks": [
+    {
+      "day": 109,
+      "hour": "00",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "01",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "02",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "03",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "04",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "05",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "06",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "07",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "08",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "09",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "10",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "11",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "12",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "13",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "14",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "15",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "16",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "17",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "18",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "19",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "20",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "21",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "22",
+      "matching_servers": 20
+    },
+    {
+      "day": 109,
+      "hour": "23",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "00",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "01",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "02",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "03",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "04",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "05",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "06",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "07",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "08",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "09",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "10",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "11",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "12",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "13",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "14",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "15",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "16",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "17",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "18",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "19",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "20",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "21",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "22",
+      "matching_servers": 20
+    },
+    {
+      "day": 110,
+      "hour": "23",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "00",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "01",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "02",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "03",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "04",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "05",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "06",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "07",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "08",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "09",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "10",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "11",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "12",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "13",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "14",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "15",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "16",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "17",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "18",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "19",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "20",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "21",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "22",
+      "matching_servers": 20
+    },
+    {
+      "day": 111,
+      "hour": "23",
+      "matching_servers": 20
+    }
+  ],
+  "sources": [
+    "https://chatgpt.com/share/6adcaa27-8234-83ec-9346-462744d200bc",
+    "https://www.usenix.org/conference/osdi26/presentation/li-suyi",
+    "https://github.com/alibaba/clusterdata/blob/master/cluster-trace-gpu-v2026/docs/schema.md"
+  ],
+  "limitations": [
+    "Presence is observed inventory, not proof of health or free capacity.",
+    "Window verification covers 72 hours only, not the entire six-month trace.",
+    "GPU model bucket is not an exposed pod affinity specification.",
+    "No same-ASW requirement was imposed; multi-node topology is outside this selection."
+  ]
+}

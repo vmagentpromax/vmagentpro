@@ -1,0 +1,39 @@
+{
+  "checked_against": "original Parquet files, not extracted cache",
+  "total_verified_pods": 270,
+  "unique_pod_ids": 270,
+  "all_gpu_model_H20": true,
+  "all_cluster_id": "1f28e063c4e5e1bc48ff55269617dd2f",
+  "checks": [
+    {
+      "day": 109,
+      "hour": 0,
+      "verified_pods": 50,
+      "all_exported_source_fields_equal_original": true
+    },
+    {
+      "day": 109,
+      "hour": 1,
+      "verified_pods": 50,
+      "all_exported_source_fields_equal_original": true
+    },
+    {
+      "day": 109,
+      "hour": 14,
+      "verified_pods": 70,
+      "all_exported_source_fields_equal_original": true
+    },
+    {
+      "day": 110,
+      "hour": 1,
+      "verified_pods": 50,
+      "all_exported_source_fields_equal_original": true
+    },
+    {
+      "day": 111,
+      "hour": 0,
+      "verified_pods": 50,
+      "all_exported_source_fields_equal_original": true
+    }
+  ]
+}

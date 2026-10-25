@@ -1,0 +1,1 @@
+pod_id,gpu_spec_public,gpu_request,cpu_request_cores,cluster_id,source_day,source_hour,source_server_id,source_first_absolute_hour,source_last_absolute_hour,source_observed_hours,source_server_ids,duration_hours,summary_row_index_0based,workload_id

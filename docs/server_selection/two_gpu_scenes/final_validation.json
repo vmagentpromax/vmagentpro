@@ -1,0 +1,21 @@
+{
+  "relative_low": {
+    "unique_pods": 24171,
+    "all_continuous_window_pod_ids_preserved": true,
+    "initial_resource_pairs_equal_source": true,
+    "time_units_uniformly_scaled": true,
+    "source_observed_hour_count": 54,
+    "json_bytes": 6738508,
+    "both_policies_completed_all_tasks": true
+  },
+  "relative_high": {
+    "unique_pods": 4307,
+    "all_continuous_window_pod_ids_preserved": true,
+    "initial_resource_pairs_equal_source": true,
+    "time_units_uniformly_scaled": true,
+    "source_observed_hour_count": 54,
+    "json_bytes": 1203612,
+    "both_policies_completed_all_tasks": true
+  },
+  "cross_scene_shared_pod_ids": 207
+}

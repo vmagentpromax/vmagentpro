@@ -1,0 +1,34 @@
+{
+  "scenario": "relative_high",
+  "classification": "relative GPU resource-time load; not absolute low/high threshold",
+  "source_measurement_window": "day110/00 through day110/23",
+  "source_measurement_hours": 24,
+  "source_warmup_hours": 6,
+  "source_lookahead_hours": 24,
+  "time_scale_factor": 900.0,
+  "gpu_capacity": 160,
+  "cpu_capacity_cores": 3840,
+  "measurement_window_sec": [
+    24,
+    120
+  ],
+  "warmup_window_sec": [
+    0,
+    24
+  ],
+  "default_max_sim_time_sec": 600,
+  "source_gpu_resource_time_ratio": 0.9929574363425926,
+  "replay_offered_gpu_ratio": 1.1907708333333331,
+  "replay_offered_cpu_ratio": 1.0645643446180555,
+  "synthetic_cpu_background_cores": 0,
+  "initial_state": "empty at warmup start; all prefix Pods scheduled by tested policy",
+  "arrival_policy": "first hourly presence mapped to hour boundary; ties by pod_id; no random jitter",
+  "service_policy": "last observed hour end minus first observed hour start, including gaps; 24h lookahead; boundary-censored spans are estimates",
+  "task_count": 4307,
+  "warmup_task_count": 613,
+  "measurement_task_count": 3694,
+  "gpu_positive_task_count": 638,
+  "request_changed_task_count": 285,
+  "right_censored_task_count": 388,
+  "observation_gap_task_count": 10
+}
