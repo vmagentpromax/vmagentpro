@@ -1,43 +1,306 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VMAgent · GPU 调度实验</title><link rel="stylesheet" href="/style.css"></head>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VMAgent · GPU / CPU 调度实验台</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
 <body>
-<header><div><strong>VMAgent</strong><span>GPU / CPU 调度实验</span></div><span id="status" class="status">尚未运行</span></header>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">V</div>
+    <div class="brand-copy">
+      <strong>VMAgent</strong>
+      <span>GPU / CPU 调度实验台</span>
+    </div>
+  </div>
+  <div class="topbar-meta">
+    <span class="local-badge">本地运行 · 数据不离开本机</span>
+    <span id="status" class="status neutral">尚未运行</span>
+  </div>
+</header>
+
 <div class="layout">
-<aside>
- <h1>运行实验</h1><p class="muted">导入节点与任务，查看到达、排队、分配和释放。</p>
- <h2>1. 选择数据</h2>
- <button id="defaults" class="secondary">使用内置场景 A 数据</button>
- <p id="nodes-source" class="source">服务器：内置 20 台 H20</p>
- <label>上传服务器表（CSV / JSON）<input type="file" id="nodes-file" accept=".csv,.json"></label>
- <p id="tasks-source" class="source">任务：内置场景 A，50 个 Pod</p>
- <label>上传任务表（CSV / JSON）<input type="file" id="tasks-file" accept=".csv,.json"></label>
- <p class="muted small">只在本机读取和保存文件。任务表须含到达时间与服务时间；同一 pod_id 不能重复。</p>
- <h2>2. 设置运行方式</h2>
- <label>节点放置策略<select id="policy"><option value="first_fit">First Fit · 第一个可用节点</option><option value="best_fit">Best Fit · 剩余资源最小</option><option value="worst_fit">Worst Fit · 剩余资源最大</option><option value="random">Random · 可用节点随机选择</option></select></label>
- <label>时间模式<select id="clock"><option value="realtime">真实时间节奏 · 1 秒对应 1 秒</option><option value="fast">快速模式 · 用于检查与批量对比</option></select></label>
- <label>队列规则<select id="queue-policy"><option value="backfill">允许后续可放任务先运行</option><option value="fcfs">严格 FCFS · 等待队首</option></select></label>
- <details><summary>高级设置</summary>
- <label>随机种子<input id="seed" type="number" value="42" step="1"></label>
- <label>测量开始时间（秒，之前为预热）<input id="measurement-start" type="number" value="0" min="0" step="1"></label>
- <label>测量窗口长度（秒）<input id="measurement" type="number" value="120" min="0.001" step="1"></label>
- <label>模拟时间上限（秒）<input id="max-time" type="number" value="600" min="0.001" step="1"></label>
- <label>固定 CPU 背景比例（人为预留）<input id="background" type="number" value="0" min="0" max="1" step="0.05"></label>
- </details>
- <h2>3. 启动与导出</h2>
- <div class="actions"><button id="run">开始实验</button><button id="stop" class="secondary" disabled>停止</button></div>
- <p id="message" role="status" aria-live="polite"></p>
- <div id="downloads" hidden><h3>下载本次结果</h3><div id="download-links"></div><p id="output-folder" class="source"></p></div>
- <details><summary>第一次使用</summary><ol class="help"><li>先点“使用内置场景 A 数据”。</li><li>保留默认设置，点击“开始实验”。</li><li>真实时间模式预计约两分钟；快速模式会很快结束。</li><li>结束后下载任务明细、汇总和资源曲线。</li></ol></details>
-</aside>
-<main>
- <section class="intro"><div><h1>调度运行状态</h1><p id="run-label" class="muted">准备就绪 · 默认 20 台 H20 / 160 GPU / 3,840 核 CPU</p></div><p id="clock-label">模拟时间 0.00 s</p></section>
- <section class="metrics" aria-label="运行指标">
-  <div><span>已完成 / 总任务</span><strong id="completed">—</strong></div><div><span>运行中</span><strong id="running">—</strong></div><div><span>等待中</span><strong id="waiting">—</strong></div><div><span>永久不可满足</span><strong id="rejected">—</strong></div>
- </section>
- <p class="muted small" id="metric-caption">以下曲线表示 GPU / CPU 资源预留，不表示 SM 或 CPU 执行利用率。</p>
- <section class="charts"><div><h2>节点池资源预留率</h2><div class="legend"><span class="gpu-key">GPU</span><span class="cpu-key">CPU（含固定背景）</span></div><svg id="resource-chart" viewBox="0 0 640 220" role="img" aria-label="GPU 与 CPU 资源预留率，横轴模拟秒，纵轴百分比"></svg></div><div><h2>等待队列长度</h2><p class="muted small">源：本次调度事件 · 单位：Pod</p><svg id="queue-chart" viewBox="0 0 640 220" role="img" aria-label="等待队列长度，横轴模拟秒，纵轴Pod数"></svg></div></section>
- <section class="section"><div class="section-title"><h2>服务器资源</h2><span id="capacity-label" class="muted">等待实验启动</span></div><div class="table-wrap"><table><thead><tr><th>服务器 ID</th><th>型号</th><th>剩余 GPU / 总量</th><th>剩余 CPU 核 / 总量</th><th>固定 CPU 背景核数</th></tr></thead><tbody id="nodes-body"><tr><td colspan="5" class="muted">启动后显示每台服务器的资源状态。</td></tr></tbody></table></div></section>
- <section class="section"><div class="section-title"><h2>任务明细</h2><label class="inline">状态筛选<select id="task-filter"><option value="all">全部</option><option value="waiting">等待中</option><option value="running">运行中</option><option value="completed">已完成</option><option value="rejected">已拒绝</option><option value="not_arrived">尚未到达</option></select></label></div><p class="muted small">服务时间从实际开始运行时计时。多执行段时长代理会在“时长来源”列标明。</p><div class="table-wrap"><table><thead><tr><th>Pod ID</th><th>GPU</th><th>CPU 核</th><th>到达 s</th><th>服务 s</th><th>开始 s</th><th>结束 s</th><th>等待 s</th><th>状态</th><th>时长来源</th></tr></thead><tbody id="tasks-body"><tr><td colspan="10" class="muted">任务输入及状态将在启动后显示。</td></tr></tbody></table></div></section>
- <section class="section"><h2>最近事件</h2><div class="table-wrap events"><table><thead><tr><th>模拟时间 s</th><th>事件</th><th>Pod ID</th><th>排队</th><th>运行</th><th>完成</th></tr></thead><tbody id="events-body"></tbody></table></div></section>
- <footer>资源模型：整机 CPU 核 + GPU 等价份额；不包含显存、主机 RAM、NUMA 或 ASW 约束。此界面模拟资源分配，不在 GPU 上执行真实训练或推理。</footer>
-</main></div><script src="/app.js"></script></body></html>
+  <aside class="sidebar">
+    <div class="sidebar-intro">
+      <p class="eyebrow">实验配置</p>
+      <h1>运行实验</h1>
+      <p class="muted">选择节点与任务，设置策略，启动后观察资源如何被占用、排队和释放。</p>
+    </div>
+
+    <ol class="steps" aria-label="实验步骤">
+      <li class="active"><span>1</span>选择数据</li>
+      <li><span>2</span>设置策略</li>
+      <li><span>3</span>启动实验</li>
+    </ol>
+
+    <section class="panel">
+      <div class="panel-head">
+        <span class="step-badge">1</span>
+        <div><h2>选择数据</h2><p>服务器表 + 任务表</p></div>
+      </div>
+      <button id="defaults" class="btn ghost wide">使用内置场景 A 数据</button>
+
+      <div class="data-card">
+        <div class="data-head">
+          <span class="data-icon" aria-hidden="true">▦</span>
+          <div><strong>服务器表</strong><p id="nodes-source" class="source">内置 20 台 H20</p></div>
+        </div>
+        <label class="file-box">
+          <span>上传服务器表 CSV / JSON</span>
+          <input type="file" id="nodes-file" accept=".csv,.json">
+        </label>
+      </div>
+
+      <div class="data-card">
+        <div class="data-head">
+          <span class="data-icon" aria-hidden="true">▤</span>
+          <div><strong>任务表</strong><p id="tasks-source" class="source">内置场景 A，50 个 Pod</p></div>
+        </div>
+        <label class="file-box">
+          <span>上传任务表 CSV / JSON</span>
+          <input type="file" id="tasks-file" accept=".csv,.json">
+        </label>
+      </div>
+
+      <p class="hint">文件只在本机读取。任务表必须含 <code>submit_time_sec</code> 和 <code>service_sec</code>；同一 <code>pod_id</code> 不能重复。</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <span class="step-badge">2</span>
+        <div><h2>设置运行方式</h2><p>策略、时钟与队列</p></div>
+      </div>
+
+      <label class="field">节点放置策略
+        <select id="policy">
+          <option value="first_fit">First Fit · 第一个可用节点</option>
+          <option value="best_fit">Best Fit · 分配后剩余最少</option>
+          <option value="worst_fit">Worst Fit · 分配后剩余最多</option>
+          <option value="random">Random · 可用节点随机</option>
+        </select>
+        <small>决定每个任务放到哪台服务器。</small>
+      </label>
+
+      <label class="field">时间模式
+        <select id="clock">
+          <option value="realtime">真实节奏 · 1 秒对应 1 秒</option>
+          <option value="fast">快速模式 · 立即推进模拟时间</option>
+        </select>
+        <small>快速模式适合检查与批量对比；真实节奏适合观察过程。</small>
+      </label>
+
+      <label class="field">队列规则
+        <select id="queue-policy">
+          <option value="backfill">回填 · 后面的小任务可先运行</option>
+          <option value="fcfs">严格 FCFS · 等待队首</option>
+        </select>
+        <small>资源不足时，是否允许后面的小任务越过队首。</small>
+      </label>
+
+      <details class="advanced">
+        <summary><span>高级设置</span><small>测量窗口、模拟上限、CPU 背景</small></summary>
+        <label class="field">随机种子
+          <input id="seed" type="number" value="42" step="1">
+          <small>Random 策略和重复实验使用。</small>
+        </label>
+        <label class="field">测量开始时间（秒）
+          <input id="measurement-start" type="number" value="0" min="0" step="1">
+          <small>这个时刻之前算预热，不计入测量窗口。</small>
+        </label>
+        <label class="field">测量窗口长度（秒）
+          <input id="measurement" type="number" value="120" min="0.001" step="1">
+          <small>统计提供负载和资源预留率的区间。</small>
+        </label>
+        <label class="field">模拟时间上限（秒）
+          <input id="max-time" type="number" value="600" min="0.001" step="1">
+          <small>到达上限会停止；不代表任务全部完成。</small>
+        </label>
+        <label class="field">固定 CPU 背景比例
+          <input id="background" type="number" value="0" min="0" max="1" step="0.05">
+          <small>人为预留的 CPU 比例，用来构造 CPU 紧张场景。</small>
+        </label>
+      </details>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <span class="step-badge">3</span>
+        <div><h2>启动与导出</h2><p>运行、停止、下载结果</p></div>
+      </div>
+      <div class="actions">
+        <button id="run" class="btn primary">开始实验</button>
+        <button id="stop" class="btn secondary" disabled>停止</button>
+      </div>
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+      <div id="downloads" class="downloads" hidden>
+        <h3>下载本次结果</h3>
+        <div id="download-links"></div>
+        <p id="output-folder" class="source"></p>
+      </div>
+    </section>
+
+    <details class="help-card">
+      <summary>第一次使用 / 名词解释</summary>
+      <div class="help-body">
+        <h3>第一次使用</h3>
+        <ol>
+          <li>点“使用内置场景 A 数据”。</li>
+          <li>时间模式选“快速模式”，点“开始实验”。</li>
+          <li>右侧观察完成数、资源曲线、服务器和任务状态。</li>
+          <li>结束后在左侧下载汇总、任务明细和资源曲线。</li>
+        </ol>
+        <h3>三个容易混淆的概念</h3>
+        <p><strong>提供负载</strong>：假设任务提交后立即运行，理想需求占容量的比例；可能超过 100%。</p>
+        <p><strong>资源预留</strong>：实际分配和释放随时间的积分；不是 GPU SM 或 CPU 执行利用率。</p>
+        <p><strong>等待 / 拒绝</strong>：等待是暂时没有足够资源；拒绝是单个任务在空节点上也永远放不下。</p>
+        <h3>数据格式</h3>
+        <p>服务器表：<code>server_id, cluster_id, gpu_spec_public, gpu_count, cpu_capacity_cores</code>。</p>
+        <p>任务表：<code>pod_id, gpu_spec_public, gpu_request, cpu_request_cores, submit_time_sec, service_sec</code>。</p>
+      </div>
+    </details>
+  </aside>
+
+  <main>
+    <section class="hero card">
+      <div>
+        <p class="eyebrow">运行状态</p>
+        <h1>调度运行状态</h1>
+        <p id="run-label" class="muted">准备就绪 · 默认 20 台 H20 / 160 GPU / 3,840 核 CPU</p>
+      </div>
+      <div class="hero-side">
+        <span id="clock-label" class="clock">模拟时间 0.00 s</span>
+        <span class="model-chip">资源预留模型</span>
+      </div>
+    </section>
+
+    <section class="explain card" aria-label="页面说明">
+      <div class="explain-icon" aria-hidden="true">?</div>
+      <div class="explain-copy">
+        <h2>这张页面在做什么？</h2>
+        <p>左侧配置一次实验，右侧观察结果。调度器按任务的到达时间和服务时间，把每个 Pod 放到同时满足 GPU 与 CPU 请求的服务器上；放不下就等待，永远放不下就拒绝。</p>
+        <div class="explain-grid">
+          <div><strong>提供负载</strong><span>任务提交后立即运行的理论需求，可能超过 100%。</span></div>
+          <div><strong>资源预留</strong><span>实际分配随时间的占比，不是执行利用率。</span></div>
+          <div><strong>等待 / 拒绝</strong><span>等待是暂时没资源；拒绝是单节点永远放不下。</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="运行指标">
+      <article class="metric metric-done">
+        <div class="metric-top"><span>已完成 / 总任务</span><span class="metric-icon" aria-hidden="true">✓</span></div>
+        <strong id="completed">—</strong>
+        <div class="progress"><i id="progress-fill"></i></div>
+        <small id="progress-text">等待实验启动</small>
+      </article>
+      <article class="metric metric-running">
+        <div class="metric-top"><span>运行中</span><span class="metric-icon" aria-hidden="true">▶</span></div>
+        <strong id="running">—</strong>
+        <small>已占资源、尚未结束</small>
+      </article>
+      <article class="metric metric-waiting">
+        <div class="metric-top"><span>等待中</span><span class="metric-icon" aria-hidden="true">…</span></div>
+        <strong id="waiting">—</strong>
+        <small>已到达、暂时没资源</small>
+      </article>
+      <article class="metric metric-rejected">
+        <div class="metric-top"><span>永久不可满足</span><span class="metric-icon" aria-hidden="true">!</span></div>
+        <strong id="rejected">—</strong>
+        <small>单节点永远放不下</small>
+      </article>
+    </section>
+
+    <section class="load-card card">
+      <div class="load-head">
+        <div><p class="eyebrow">本次测量窗口</p><h2>提供负载与资源预留</h2></div>
+        <span id="measurement-window" class="pill neutral">—</span>
+      </div>
+      <div class="load-grid">
+        <div class="load-item"><span>提供负载 · GPU</span><strong id="offered-gpu">—</strong><small>理想需求 / 容量</small></div>
+        <div class="load-item"><span>提供负载 · CPU</span><strong id="offered-cpu">—</strong><small>理想需求 / 容量</small></div>
+        <div class="load-item"><span>资源预留 · GPU</span><strong id="reserved-gpu">—</strong><small>实际分配 / 容量</small></div>
+        <div class="load-item"><span>资源预留 · CPU</span><strong id="reserved-cpu">—</strong><small>实际分配 / 容量</small></div>
+      </div>
+      <p class="hint" id="metric-caption">提供负载按理想运行区间积分，可能超过 100%；资源预留按实际分配/释放事件积分。两者都不是 SM 或 CPU 执行利用率。</p>
+    </section>
+
+    <section class="charts" aria-label="资源与队列曲线">
+      <article class="card chart-card">
+        <div class="chart-head">
+          <div><p class="eyebrow">随时间变化</p><h2>节点池资源预留率</h2></div>
+          <div class="legend">
+            <span class="legend-item"><i class="dot gpu"></i>GPU <b id="gpu-current">—</b></span>
+            <span class="legend-item"><i class="dot cpu"></i>CPU <b id="cpu-current">—</b></span>
+          </div>
+        </div>
+        <p class="hint">已分配 GPU / CPU 占节点池容量的比例，不是执行利用率。</p>
+        <svg id="resource-chart" viewBox="0 0 640 220" role="img" aria-label="GPU 与 CPU 资源预留率，横轴模拟秒，纵轴百分比"></svg>
+      </article>
+      <article class="card chart-card">
+        <div class="chart-head">
+          <div><p class="eyebrow">排队情况</p><h2>等待队列长度</h2></div>
+          <div class="legend"><span class="legend-item"><i class="dot queue"></i>等待 <b id="queue-current">—</b></span></div>
+        </div>
+        <p class="hint">已到达但尚未开始的任务数；同一时刻批量到达会产生瞬时峰值。</p>
+        <svg id="queue-chart" viewBox="0 0 640 220" role="img" aria-label="等待队列长度，横轴模拟秒，纵轴Pod数"></svg>
+      </article>
+    </section>
+
+    <section class="card section">
+      <div class="section-title">
+        <div><p class="eyebrow">节点</p><h2>服务器资源</h2></div>
+        <span id="capacity-label" class="pill neutral">等待实验启动</span>
+      </div>
+      <p class="hint">每格显示“剩余 / 总量”；下方条形表示已占用比例。背景是人为预留的 CPU，不是真实利用率。</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>服务器 ID</th><th>型号</th><th>剩余 GPU / 总量</th><th>剩余 CPU 核 / 总量</th><th>固定 CPU 背景核数</th></tr></thead>
+          <tbody id="nodes-body"><tr><td colspan="5" class="empty-cell">启动后显示每台服务器的资源状态。</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card section">
+      <div class="section-title">
+        <div><p class="eyebrow">任务</p><h2>任务明细</h2></div>
+        <label class="inline">状态筛选
+          <select id="task-filter">
+            <option value="all">全部</option>
+            <option value="waiting">等待中</option>
+            <option value="running">运行中</option>
+            <option value="completed">已完成</option>
+            <option value="rejected">已拒绝</option>
+            <option value="not_arrived">尚未到达</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint">服务时间从实际开始运行时计时；“时长来源”列标明服务时长是执行汇总、观测时段还是预热剩余时长。</p>
+      <div class="table-wrap table-tasks">
+        <table>
+          <thead><tr><th>Pod ID</th><th>GPU</th><th>CPU 核</th><th>到达 s</th><th>服务 s</th><th>开始 s</th><th>结束 s</th><th>等待 s</th><th>状态</th><th>时长来源</th></tr></thead>
+          <tbody id="tasks-body"><tr><td colspan="10" class="empty-cell">任务输入及状态将在启动后显示。</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card section">
+      <div class="section-title"><div><p class="eyebrow">事件</p><h2>最近事件</h2></div><span class="pill neutral">按模拟时间倒序</span></div>
+      <p class="hint">用于核对任务是否按时到达、开始、完成或拒绝。</p>
+      <div class="table-wrap table-events">
+        <table>
+          <thead><tr><th>模拟时间 s</th><th>事件</th><th>Pod ID</th><th>排队</th><th>运行</th><th>完成</th></tr></thead>
+          <tbody id="events-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      资源模型：整机 CPU 核 + GPU 等价份额；不包含显存、主机 RAM、NUMA 或 ASW 约束。此界面模拟资源分配，不在 GPU 上执行真实训练或推理。
+    </footer>
+  </main>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{
+  "source": "vmagent_scenarios_warmup_allpods",
+  "nodes": 20,
+  "cluster": "9089d80baea5f56a3c169801052daa1f",
+  "capacity_gpu": 160,
+  "capacity_cpu": 4480,
+  "scenarios": {
+    "A": {
+      "tasks": 78,
+      "gpu_tasks": 56,
+      "cpu_only_tasks": 22,
+      "max_submit_sec": 17895.126,
+      "max_finish_sec": 40853.748,
+      "max_gpu": 8.0,
+      "max_cpu": 48.0
+    },
+    "B": {
+      "tasks": 223,
+      "gpu_tasks": 164,
+      "cpu_only_tasks": 59,
+      "max_submit_sec": 20018.925,
+      "max_finish_sec": 101760.043,
+      "max_gpu": 8.0,
+      "max_cpu": 184.0
+    },
+    "C": {
+      "tasks": 533,
+      "gpu_tasks": 127,
+      "cpu_only_tasks": 406,
+      "max_submit_sec": 21586.37,
+      "max_finish_sec": 59004.937,
+      "max_gpu": 8.0,
+      "max_cpu": 184.0
+    },
+    "D": {
+      "tasks": 505,
+      "gpu_tasks": 124,
+      "cpu_only_tasks": 381,
+      "max_submit_sec": 21500.355,
+      "max_finish_sec": 54472.484,
+      "max_gpu": 8.0,
+      "max_cpu": 184.0
+    },
+    "E": {
+      "tasks": 115,
+      "gpu_tasks": 90,
+      "cpu_only_tasks": 25,
+      "max_submit_sec": 10497.657,
+      "max_finish_sec": 34083.368,
+      "max_gpu": 8.0,
+      "max_cpu": 184.0
+    }
+  }
+}
