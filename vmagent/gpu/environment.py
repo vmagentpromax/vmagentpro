@@ -102,7 +102,13 @@ def load_workload(path):
         gpu = number(row.get("gpu_request"), "gpu_request")
         allowed = row.get("allowed_gpu_types", row.get("gpu_spec_public", []))
         if isinstance(allowed, str):
-            allowed = json.loads(allowed) if allowed.startswith("[") else [allowed]
+            stripped = allowed.strip()
+            if stripped.startswith("["):
+                allowed = json.loads(stripped)
+            elif stripped.lower() in ("", "nan", "none", "null"):
+                allowed = []
+            else:
+                allowed = [stripped]
         if not isinstance(allowed, (list, tuple)) or any(not isinstance(x, str) or not x.strip() for x in allowed):
             raise ValueError("allowed_gpu_types must be a list of nonempty model labels")
         if gpu > 0 and not allowed:
@@ -197,7 +203,13 @@ class GpuSchedEnv:
                 self._push(task.submit_time, 1, "arrival", task.pod_id)
             self.gpu_area = self.cpu_area = self.queue_area = 0.
             self.peak_gpu = self.peak_cpu = self.peak_queue = 0.
+            self.model_nodes = {}
+            for j, node in enumerate(self.nodes):
+                self.model_nodes.setdefault(node.gpu_type, []).append(j)
+            self.model_gpu_area = {m: 0. for m in self.model_nodes}
+            self.model_cpu_area = {m: 0. for m in self.model_nodes}
             self.pending_id = None
+            self._scan_cursor = 0
             self.rng = random.Random(self.seed)
             self.wall_start = time.monotonic()
             self.wall_end = None
@@ -237,6 +249,9 @@ class GpuSchedEnv:
         overlap = max(0., min(target, self.measure_end)-max(self.current_time, self.measure_start))
         self.gpu_area += (self.total_gpu-sum(self.free_gpu))*overlap
         self.cpu_area += (self.total_cpu*(1-self.background)-sum(self.free_cpu))*overlap
+        for model, idxs in self.model_nodes.items():
+            self.model_gpu_area[model] += sum(self.nodes[j].gpu_capacity-self.free_gpu[j] for j in idxs)*overlap
+            self.model_cpu_area[model] += sum(self.nodes[j].cpu_capacity*(1-self.background)-self.free_cpu[j] for j in idxs)*overlap
         self.queue_area += len(self.waiting)*overlap
         self.current_time = target
 
@@ -266,6 +281,8 @@ class GpuSchedEnv:
                 self.free_gpu[index] = min(self.nodes[index].gpu_capacity, self.free_gpu[index])
                 self.free_cpu[index] = min(self.nodes[index].cpu_capacity*(1-self.background), self.free_cpu[index])
                 record.update(status="completed", finish_time_sec=self.current_time)
+                # Free resources may now satisfy tasks earlier in the waiting queue.
+                self._scan_cursor = 0
             elif not any(self._fits(task, j, empty=True) for j in range(len(self.nodes))):
                 record.update(status="rejected", rejection_reason=self._rejection_reason(task))
                 kind = "reject"
@@ -276,10 +293,24 @@ class GpuSchedEnv:
         self._check_resources()
 
     def _next_ready(self):
-        candidates = self.waiting if self.queue_policy == "backfill" else self.waiting[:1]
-        for pid in candidates:
-            if any(self._fits(self.by_id[pid], j) for j in range(len(self.nodes))):
+        if self.queue_policy == "fcfs":
+            pid = self.waiting[0] if self.waiting else None
+            if pid is not None and any(self._fits(self.by_id[pid], j) for j in range(len(self.nodes))):
                 return pid
+            return None
+        # Backfill: resume scanning where the previous pass stopped. Between two
+        # scans resources can only shrink (placements, rejections) or grow via
+        # completions, and completions reset the cursor in _process_due; new
+        # arrivals append at the queue tail. First-fit order is therefore
+        # identical to a full rescan, but each queued task is tested O(1) times
+        # amortized instead of once per placement decision.
+        start = min(self._scan_cursor, len(self.waiting))
+        for i in range(start, len(self.waiting)):
+            pid = self.waiting[i]
+            if any(self._fits(self.by_id[pid], j) for j in range(len(self.nodes))):
+                self._scan_cursor = i
+                return pid
+        self._scan_cursor = len(self.waiting)
         return None
 
     def _advance_until_ready(self):
@@ -420,6 +451,20 @@ class GpuSchedEnv:
             measurement_covered = max(0., min(end, self.measure_end)-self.measure_start)
             # Completed runs have zero foreground after draining; incomplete runs are partial.
             denominator_sec = duration if self.end_reason == "drained" else measurement_covered
+            per_model = {}
+            for model, idxs in self.model_nodes.items():
+                cap_g = sum(self.nodes[j].gpu_capacity for j in idxs)
+                cap_c = sum(self.nodes[j].cpu_capacity for j in idxs)
+                offered = sum(t.gpu*max(0., min(self.measure_end, t.submit_time+t.service_time)
+                                        - max(self.measure_start, t.submit_time))
+                              for t in self.tasks if t.gpu > 0 and t.allowed_gpu_types == (model,))
+                per_model[model] = {
+                    "gpu_capacity": cap_g, "cpu_capacity_cores": cap_c,
+                    "offered_gpu_ratio": offered/(cap_g*duration) if cap_g else 0.,
+                    "reserved_gpu_ratio": (self.model_gpu_area.get(model, 0.)/(cap_g*denominator_sec)
+                                           if cap_g*denominator_sec else 0.),
+                    "reserved_cpu_ratio": (self.model_cpu_area.get(model, 0.)/(cap_c*denominator_sec)+self.background
+                                           if cap_c*denominator_sec else 0.)}
             return {"task_count": len(self.tasks), "node_count": len(self.nodes), "gpu_capacity": self.total_gpu,
                     "cpu_capacity_cores": self.total_cpu, **counts,
                     "unfinished": counts["not_arrived"]+counts["waiting"]+counts["running"],
@@ -431,6 +476,7 @@ class GpuSchedEnv:
                     "offered_cpu_ratio": offered_cpu/(self.total_cpu*duration)+self.background,
                     "reserved_gpu_ratio": gpu_area/(self.total_gpu*denominator_sec) if denominator_sec else 0.,
                     "reserved_cpu_ratio": cpu_area/(self.total_cpu*denominator_sec)+self.background if denominator_sec else 0.,
+                    "per_model": per_model,
                     "mean_wait_sec_started": sum(waits)/len(waits) if waits else 0.,
                     "p95_wait_sec_started": waits[max(0, math.ceil(.95*len(waits))-1)] if waits else 0.,
                     "peak_queue_length": int(self.peak_queue),
@@ -440,11 +486,14 @@ class GpuSchedEnv:
 
     def snapshot(self):
         with self.lock:
+            records = list(self.records.values())
+            truncated = len(records) > 2000
             return {"summary": self.summary(), "nodes": [
                 {"server_id": n.server_id, "gpu_type": n.gpu_type, "gpu_capacity": n.gpu_capacity,
                  "cpu_capacity_cores": n.cpu_capacity, "free_gpu": max(0., self.free_gpu[j]),
                  "free_cpu_cores": max(0., self.free_cpu[j]), "cpu_background_cores": n.cpu_capacity*self.background}
-                for j, n in enumerate(self.nodes)], "tasks": [dict(r) for r in self.records.values()],
+                for j, n in enumerate(self.nodes)], "tasks": records[-2000:] if truncated else records,
+                "tasks_truncated": truncated, "tasks_total": len(records),
                 "history": [dict(row) for row in self.history[-2000:]], "events": [dict(e) for e in self.events[-300:]]}
 
     def export(self, folder):

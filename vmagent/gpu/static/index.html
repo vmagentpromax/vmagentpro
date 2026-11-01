@@ -41,6 +41,7 @@
         <div><h2>选择数据</h2><p>服务器表 + 任务表</p></div>
       </div>
       <button id="defaults" class="btn ghost wide">使用内置场景 A 数据</button>
+      <button id="preset-8d" class="btn ghost wide">异构 8 天场景 F 参数（691200s / 4,000,000s）</button>
 
       <div class="data-card">
         <div class="data-head">
@@ -110,17 +111,18 @@
           <small>这个时刻之前算预热，不计入测量窗口。</small>
         </label>
         <label class="field">测量窗口长度（秒）
-          <input id="measurement" type="number" value="120" min="0.001" step="1">
-          <small>统计提供负载和资源预留率的区间。</small>
+          <input id="measurement" type="number" value="21600" min="0.001" step="1">
+          <small>统计提供负载和资源预留率的区间；默认按 6 小时场景设为 21600。</small>
         </label>
         <label class="field">模拟时间上限（秒）
-          <input id="max-time" type="number" value="600" min="0.001" step="1">
-          <small>到达上限会停止；不代表任务全部完成。</small>
+          <input id="max-time" type="number" value="150000" min="0.001" step="1">
+          <small>到达上限会停止；默认 150000，可覆盖约 41 小时的完成时刻。</small>
         </label>
         <label class="field">固定 CPU 背景比例
           <input id="background" type="number" value="0" min="0" max="1" step="0.05">
           <small>人为预留的 CPU 比例，用来构造 CPU 紧张场景。</small>
         </label>
+        <p class="hint">当前默认：测量窗口 21600 秒、模拟上限 150000 秒。若任务有数百小时的长尾，请继续调大模拟上限（例如 5000000）。</p>
       </details>
     </section>
 
@@ -146,18 +148,19 @@
       <div class="help-body">
         <h3>第一次使用</h3>
         <ol>
-          <li>点“使用内置场景 A 数据”。</li>
+          <li>点“使用内置场景 A 数据”；它会把测量窗切成 120 秒（模拟上限保留当前值）。</li>
           <li>时间模式选“快速模式”，点“开始实验”。</li>
-          <li>右侧观察完成数、资源曲线、服务器和任务状态。</li>
-          <li>结束后在左侧下载汇总、任务明细和资源曲线。</li>
+          <li>跑自己的 6 小时数据时，在“高级设置”里用测量窗口 21600、模拟上限 150000。</li>
+          <li>跑异构 8 天场景（30 台 H20+XPU-A、约 12 万任务）时，先点“异构 8 天场景 F 参数”，再上传 <code>sim_inputs/nodes.csv</code> 与 <code>sim_inputs/jobs_F.csv</code>（任务表约 16 MB，上限 64 MiB）。</li>
+          <li>右侧观察完成数、资源曲线、分机型负载、服务器和任务状态；结束后在左侧下载结果。</li>
         </ol>
         <h3>三个容易混淆的概念</h3>
         <p><strong>提供负载</strong>：假设任务提交后立即运行，理想需求占容量的比例；可能超过 100%。</p>
         <p><strong>资源预留</strong>：实际分配和释放随时间的积分；不是 GPU SM 或 CPU 执行利用率。</p>
-        <p><strong>等待 / 拒绝</strong>：等待是暂时没有足够资源；拒绝是单个任务在空节点上也永远放不下。</p>
+        <p><strong>等待 / 拒绝</strong>：等待是暂时没有足够资源；拒绝是单个任务在空节点上也永远放不下（含机型不匹配 <code>gpu_model_unavailable</code>）。</p>
         <h3>数据格式</h3>
-        <p>服务器表：<code>server_id, cluster_id, gpu_spec_public, gpu_count, cpu_capacity_cores</code>。</p>
-        <p>任务表：<code>pod_id, gpu_spec_public, gpu_request, cpu_request_cores, submit_time_sec, service_sec</code>。</p>
+        <p>服务器表：<code>server_id, cluster_id, gpu_spec_public, gpu_count, cpu_capacity_cores</code>；异构池可混用多种 <code>gpu_spec_public</code>。</p>
+        <p>任务表：<code>pod_id, gpu_spec_public, gpu_request, cpu_request_cores, submit_time_sec, service_sec</code>；异构场景建议改用 <code>allowed_gpu_types</code>（JSON 数组，如 <code>["H20"]</code>），CPU-only 任务写 <code>[]</code>（空值、<code>nan</code> 也会被当作空列表接受）。</p>
       </div>
     </details>
   </aside>
@@ -222,6 +225,15 @@
         <div class="load-item"><span>提供负载 · CPU</span><strong id="offered-cpu">—</strong><small>理想需求 / 容量</small></div>
         <div class="load-item"><span>资源预留 · GPU</span><strong id="reserved-gpu">—</strong><small>实际分配 / 容量</small></div>
         <div class="load-item"><span>资源预留 · CPU</span><strong id="reserved-cpu">—</strong><small>实际分配 / 容量</small></div>
+      </div>
+      <div class="per-model">
+        <p class="eyebrow">分 GPU 机型</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>机型</th><th>GPU 卡数</th><th>提供负载 GPU</th><th>预留 GPU</th><th>预留 CPU</th></tr></thead>
+            <tbody id="per-model"><tr><td colspan="5" class="empty-cell">启动后显示每种机型的容量与负载。</td></tr></tbody>
+          </table>
+        </div>
       </div>
       <p class="hint" id="metric-caption">提供负载按理想运行区间积分，可能超过 100%；资源预留按实际分配/释放事件积分。两者都不是 SM 或 CPU 执行利用率。</p>
     </section>

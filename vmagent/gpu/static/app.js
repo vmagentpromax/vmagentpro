@@ -41,7 +41,7 @@ async function upload(kind) {
   $("run").disabled = true;
   message("正在导入并校验 " + file.name + "…");
   try {
-    if (file.size > 10 * 1024 * 1024) throw new Error("文件不能超过 10 MiB");
+    if (file.size > 64 * 1024 * 1024) throw new Error("文件不能超过 64 MiB");
     const content = await file.text();
     const result = await api("/api/upload", {kind, filename:file.name, content});
     if (kind === "nodes") nodesUpload = result.upload_id; else tasksUpload = result.upload_id;
@@ -71,7 +71,16 @@ $("defaults").onclick = () => {
   $("nodes-file").value = $("tasks-file").value = "";
   $("nodes-source").textContent = "内置 20 台 H20";
   $("tasks-source").textContent = "内置场景 A，50 个 Pod";
-  message("已选择内置数据。");
+  message("已选择内置数据（演示测量窗 120 秒；模拟上限保留当前值）。");
+};
+
+$("preset-8d").onclick = () => {
+  $("measurement-start").value = 0;
+  $("measurement").value = 691200;
+  $("max-time").value = 4000000;
+  $("background").value = 0;
+  $("clock").value = "fast";
+  message("已按异构 8 天场景 F 设置：测量窗 691200 秒（8 天）、模拟上限 4,000,000 秒、快速模式。请上传 30 台异构服务器表与 12 万任务表。");
 };
 
 $("run").onclick = async () => {
@@ -173,8 +182,16 @@ function renderTasks(tasks) {
       <td><span class="duration-tag">${duration}</span></td>
     </tr>`;
   }).join("") : `<tr><td colspan="10" class="empty-cell">当前筛选条件下没有任务。</td></tr>`;
+  const notes = [];
   if (allFiltered.length > 200) {
-    $("tasks-body").insertAdjacentHTML("afterbegin", `<tr><td colspan="10" class="empty-cell">当前筛选共 ${allFiltered.length} 条，页面显示前 200 条；完整任务请下载任务明细。</td></tr>`);
+    notes.push(`当前筛选共 ${allFiltered.length} 条，页面显示前 200 条；完整任务请下载任务明细。`);
+  }
+  if (lastState?.tasks_truncated) {
+    notes.push(`任务量大：页面只接收最近 2,000 条（共 ${lastState.tasks_total} 条），完整明细运行结束后下载。`);
+  }
+  if (notes.length) {
+    $("tasks-body").insertAdjacentHTML("afterbegin",
+      `<tr><td colspan="10" class="empty-cell">${notes.map(n => esc(n)).join("<br>")}</td></tr>`);
   }
 }
 
@@ -220,6 +237,18 @@ function render(state) {
   $("offered-cpu").textContent = fmt(s.offered_cpu_ratio * 100, 2) + "%";
   $("reserved-gpu").textContent = fmt(s.reserved_gpu_ratio * 100, 2) + "%";
   $("reserved-cpu").textContent = fmt(s.reserved_cpu_ratio * 100, 2) + "%";
+
+  const perModel = s.per_model || {};
+  const perModelEl = $("per-model");
+  if (perModelEl) {
+    const rows = Object.entries(perModel).map(([model, m]) => {
+      const offered = fmt(m.offered_gpu_ratio * 100, 1) + "%";
+      const reserved = fmt(m.reserved_gpu_ratio * 100, 1) + "%";
+      const cpu = fmt(m.reserved_cpu_ratio * 100, 1) + "%";
+      return `<tr><td><span class="model-tag">${esc(model)}</span></td><td>${fmt(m.gpu_capacity, 0)}</td><td>${offered}</td><td>${reserved}</td><td>${cpu}</td></tr>`;
+    }).join("");
+    perModelEl.innerHTML = rows || `<tr><td colspan="5" class="empty-cell">—</td></tr>`;
+  }
   $("measurement-window").textContent = `测量窗 ${fmt(s.measurement_window_sec[0], 0)}–${fmt(s.measurement_window_sec[1], 0)} s`;
   $("gpu-current").textContent = fmt(s.reserved_gpu_ratio * 100, 1) + "%";
   $("cpu-current").textContent = fmt(s.reserved_cpu_ratio * 100, 1) + "%";

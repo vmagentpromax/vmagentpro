@@ -268,7 +268,7 @@ python -m vmagent.gpu.run \
 B–E 只需把 `jobs_A.csv` / `A-first_fit` 换成对应场景。
 
 - `--measurement-seconds 21600`：这五个场景的测量窗口都是 6 小时（21,600 秒）；
-- `--max-sim-time 150000`：任务最长完成时刻约 101,760 秒（B 场景），默认 600 秒会截断，必须放大；
+- `--max-sim-time 150000`：任务最长完成时刻约 101,760 秒（B 场景），命令行默认 600 秒会截断，必须放大；网页端默认已是 150000 秒。
 - `--clock fast`：功能验证用快速时钟；`realtime` 在 `--speed 1` 下 B 场景约需 28 小时墙钟。
 
 ### 3. 本机运行结果
@@ -319,8 +319,8 @@ B–E 只需把 `jobs_A.csv` / `A-first_fit` 换成对应场景。
 **No module named vmagent**
 请从仓库根目录运行 `python -m vmagent.gpu.run ...`，不要进入 `vmagent/` 子目录运行。
 
-**默认 600 秒不够**
-这批场景的完成时刻远超 600 秒；用 `--max-sim-time 150000` 或按最长 `submit+service` 设置。
+**命令行默认 600 秒不够**
+这批场景的完成时刻远超 600 秒；命令行用 `--max-sim-time 150000` 或按最长 `submit+service` 设置。网页端默认已改为 150000 秒。
 
 **网页打不开**
 确认启动终端仍在运行，端口与 URL 一致；默认 `http://127.0.0.1:8765/`。如果端口被占用，换 `--port 8766`。

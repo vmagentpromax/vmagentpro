@@ -151,8 +151,8 @@ def handler_class(state):
                 if origin and urlparse(origin).netloc != self.headers.get("Host"):
                     return self.send_json({"error": "Foreign origin rejected"}, 403)
                 length = int(self.headers.get("Content-Length", "0"))
-                if length <= 0 or length > 12*1024*1024:
-                    return self.send_json({"error": "Request must be between 1 byte and 12 MiB"}, 413)
+                if length <= 0 or length > 64*1024*1024:
+                    return self.send_json({"error": "Request must be between 1 byte and 64 MiB"}, 413)
                 config = json.loads(self.rfile.read(length))
                 if not isinstance(config, dict):
                     raise ValueError("Request must contain a JSON object")
