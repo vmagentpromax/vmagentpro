@@ -1,0 +1,33 @@
+{
+  "task_count": 533,
+  "node_count": 20,
+  "gpu_capacity": 160.0,
+  "cpu_capacity_cores": 4480.0,
+  "not_arrived": 0,
+  "waiting": 0,
+  "running": 0,
+  "completed": 533,
+  "rejected": 0,
+  "unfinished": 0,
+  "sim_time_sec": 59004.937,
+  "wall_time_sec": 0.3279999999795109,
+  "clock": "fast",
+  "speed": 1.0,
+  "end_reason": "drained",
+  "measurement_window_sec": [
+    0.0,
+    21600.0
+  ],
+  "measurement_denominator_sec": 21600.0,
+  "offered_gpu_ratio": 0.2840462876157407,
+  "offered_cpu_ratio": 0.41253283220951137,
+  "reserved_gpu_ratio": 0.2840462876157406,
+  "reserved_cpu_ratio": 0.4125328322095117,
+  "mean_wait_sec_started": 0.0,
+  "p95_wait_sec_started": 0.0,
+  "peak_queue_length": 24,
+  "peak_gpu_reserved": 99.6,
+  "peak_cpu_reserved_cores": 3114.25,
+  "cpu_background_fraction": 0.0,
+  "reservation_metrics_are_not_SM_or_CPU_execution_utilization": true
+}

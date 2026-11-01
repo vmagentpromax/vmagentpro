@@ -1,0 +1,18 @@
+{
+  "policy": "first_fit",
+  "queue_policy": "backfill",
+  "seed": 42,
+  "clock": "fast",
+  "measurement_seconds": 21600,
+  "max_sim_time": 150000,
+  "metric_window": "first submit to last completion",
+  "afr_definition": "positive-duration intervals with a pending task whose aggregate compatible GPU and CPU resources suffice but no single node jointly fits, divided by makespan",
+  "input_sha256": {
+    "jobs_A.csv": "e97dc64fb25f73c1128b68a7ec90d4135dcd7dfe43e34f7ff65233ad8db27748",
+    "jobs_B.csv": "c494c4b87e60c2619360e19f4233c748b065dcd1a1de71fe76a11160660ada17",
+    "jobs_C.csv": "9f5f43e1802c5a873ac5ae39fbe768f68b1e35ca105959a8a6aeafced88ae557",
+    "jobs_D.csv": "66fa1f9c4d769d86368c0cf82a16baff9733e8a24d9cd0adb21f0ee25b03739c",
+    "jobs_E.csv": "5576e2da628973e22558af25f8fb9afec53df15710837477d8febe354ac23596",
+    "nodes.csv": "2b3d3bccd5e1e10c2b6f78ff6ab620424f53cfa2cff220f6373fea4197ae1731"
+  }
+}
