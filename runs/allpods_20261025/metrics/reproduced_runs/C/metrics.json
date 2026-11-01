@@ -1,0 +1,17 @@
+{
+  "scene": "C",
+  "policy": "first_fit",
+  "task_count": 533,
+  "mean_jct_sec": 9281.500938086305,
+  "makespan_sec": 59004.937,
+  "mean_wait_sec": 0.0,
+  "agu_reserved": 0.13461691349657745,
+  "afr_joint": 0.0,
+  "throughput_tasks_per_sec": 0.009033142430098689,
+  "throughput_tasks_per_hour": 32.519312748355276,
+  "gpu_work_gpu_sec": 1270890.0,
+  "fragment_time_sec": 0.0,
+  "first_submit_sec": 0.0,
+  "final_finish_sec": 59004.937,
+  "agu_first_6h": 0.2840462876157406
+}
