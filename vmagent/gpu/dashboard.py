@@ -55,11 +55,12 @@ class DashboardState:
                     raise ValueError("Invalid upload ID for " + kind)
                 paths[kind] = upload["path"] if upload else default
             policy = config.get("policy", "first_fit")
-            if policy not in ("first_fit", "best_fit", "worst_fit", "random"):
+            if policy not in ("first_fit", "best_fit", "worst_fit", "random", "spotgpu"):
                 raise ValueError("Unknown scheduling policy")
             options = {key: config.get(key, default) for key, default in
                        [("clock", "realtime"), ("speed", 1.), ("queue_policy", "backfill"),
-                        ("max_sim_time", 600.), ("cpu_background_fraction", 0.), ("seed", 42)]}
+                        ("max_sim_time", 600.), ("cpu_background_fraction", 0.),
+                        ("checkpoint_interval", 3600.), ("seed", 42)]}
             if "measurement_seconds" in config:
                 start = float(config.get("measurement_start_seconds", 0.))
                 options["measurement_window"] = [start, start+float(config["measurement_seconds"])]

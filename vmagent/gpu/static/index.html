@@ -80,8 +80,9 @@
           <option value="best_fit">Best Fit · 分配后剩余最少</option>
           <option value="worst_fit">Worst Fit · 分配后剩余最多</option>
           <option value="random">Random · 可用节点随机</option>
+          <option value="spotgpu">SpotGPU · 阿里抢占成本感知（HP 抢占 LP）</option>
         </select>
-        <small>决定每个任务放到哪台服务器。</small>
+        <small>决定每个任务放到哪台服务器。SpotGPU 按论文三级排序并允许 HP 抢占 LP。</small>
       </label>
 
       <label class="field">时间模式
@@ -121,6 +122,10 @@
         <label class="field">固定 CPU 背景比例
           <input id="background" type="number" value="0" min="0" max="1" step="0.05">
           <small>人为预留的 CPU 比例，用来构造 CPU 紧张场景。</small>
+        </label>
+        <label class="field">SpotGPU 检查点间隔（秒）
+          <input id="checkpoint-interval" type="number" value="3600" min="1" step="60">
+          <small>抢占成本 C=占卡数×距上次检查点时长；被抢占任务从最近检查点恢复（数据无检查点字段，此为假设）。</small>
         </label>
         <p class="hint">当前默认：测量窗口 21600 秒、模拟上限 150000 秒。若任务有数百小时的长尾，请继续调大模拟上限（例如 5000000）。</p>
       </details>

@@ -55,6 +55,56 @@ class GpuEnvironmentTests(unittest.TestCase):
         self.assertEqual(strict.records["c"]["start_time_sec"], 5.)
         self.assertEqual(backfill.records["b"]["finish_time_sec"], 7.)
 
+    def test_backfill_keeps_gpu_waiters_in_order_with_identical_demands(self):
+        tasks = [task("blocker", 8, 8, service=5),
+                 task("first", 5, 5, arrival=1), task("second", 5, 5, arrival=2)]
+        env = self.env(tasks)
+        env.run()
+        self.assertEqual(env.records["first"]["start_time_sec"], 5.)
+        self.assertEqual(env.records["second"]["start_time_sec"], 6.)
+
+    def test_spotgpu_preempts_lp_and_resumes_after_checkpoint(self):
+        spot = task("spot", 8, 8, service=10)
+        spot = TaskSpec(spot.pod_id, spot.gpu, spot.cpu, spot.allowed_gpu_types,
+                        spot.submit_time, spot.service_time, "LP")
+        urgent = task("urgent", 8, 8, arrival=1, service=1)
+        urgent = TaskSpec(urgent.pod_id, urgent.gpu, urgent.cpu, urgent.allowed_gpu_types,
+                          urgent.submit_time, urgent.service_time, "HP")
+        env = self.env([spot, urgent])
+        result = env.run("spotgpu")
+        self.assertEqual(result["completed"], 2)
+        self.assertEqual(result["preemptions"], 1)
+        self.assertEqual(env.records["spot"]["preemption_count"], 1)
+        self.assertEqual(env.records["urgent"]["start_time_sec"], 1.)
+        self.assertEqual(env.records["spot"]["finish_time_sec"], 12.)
+
+    def test_spotgpu_fcfs_queue_still_indexes_hp_preemption_candidates(self):
+        spot = task("spot", 8, 8, service=10)
+        spot = TaskSpec(spot.pod_id, spot.gpu, spot.cpu, spot.allowed_gpu_types,
+                        spot.submit_time, spot.service_time, "LP")
+        urgent = task("urgent", 8, 8, arrival=1, service=1)
+        urgent = TaskSpec(urgent.pod_id, urgent.gpu, urgent.cpu, urgent.allowed_gpu_types,
+                          urgent.submit_time, urgent.service_time, "HP")
+        env = self.env([spot, urgent], queue_policy="fcfs")
+        result = env.run("spotgpu")
+        self.assertEqual(result["preemptions"], 1)
+        self.assertEqual(env.records["urgent"]["start_time_sec"], 1.)
+        self.assertEqual(env.records["spot"]["finish_time_sec"], 12.)
+
+    def test_spotgpu_retries_preemption_when_resources_are_released(self):
+        blocker = task("blocker", 4, 4, service=2)
+        spot = task("spot", 4, 4, service=10)
+        spot = TaskSpec(spot.pod_id, spot.gpu, spot.cpu, spot.allowed_gpu_types,
+                        spot.submit_time, spot.service_time, "LP")
+        urgent = task("urgent", 8, 8, arrival=1, service=1)
+        urgent = TaskSpec(urgent.pod_id, urgent.gpu, urgent.cpu, urgent.allowed_gpu_types,
+                          urgent.submit_time, urgent.service_time, "HP")
+        env = self.env([blocker, spot, urgent])
+        result = env.run("spotgpu")
+        self.assertEqual(result["preemptions"], 1)
+        self.assertEqual(env.records["urgent"]["start_time_sec"], 2.)
+        self.assertEqual(env.records["spot"]["finish_time_sec"], 13.)
+
     def test_completion_precedes_arrival_at_same_time(self):
         env = self.env([task("a", 8, 8, service=1), task("b", 8, 8, arrival=1)])
         env.run()

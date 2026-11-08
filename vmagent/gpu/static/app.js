@@ -8,8 +8,8 @@ const statusNames = {idle:"尚未运行", starting:"正在准备", running:"运�
 const statusTone = {idle:"neutral", starting:"info", running:"active", stopping:"warn", completed:"success", cancelled:"warn", failed:"danger"};
 const taskNames = {not_arrived:"尚未到达", waiting:"等待中", running:"运行中", completed:"已完成", rejected:"永久不可满足"};
 const taskTone = {not_arrived:"neutral", waiting:"warn", running:"active", completed:"success", rejected:"danger"};
-const eventNames = {reset:"初始化", arrival:"任务到达", start:"开始运行", complete:"完成释放", reject:"拒绝", drained:"全部处理结束", cancelled:"停止", max_sim_time:"达到时间上限", blocked:"无法继续"};
-const eventTone = {reset:"neutral", arrival:"info", start:"active", complete:"success", reject:"danger", drained:"success", cancelled:"warn", max_sim_time:"warn", blocked:"warn"};
+const eventNames = {reset:"初始化", arrival:"任务到达", start:"开始运行", complete:"完成释放", reject:"拒绝", drained:"全部处理结束", cancelled:"停止", max_sim_time:"达到时间上限", blocked:"无法继续", preempt:"抢占驱逐"};
+const eventTone = {reset:"neutral", arrival:"info", start:"active", complete:"success", reject:"danger", drained:"success", cancelled:"warn", max_sim_time:"warn", blocked:"warn", preempt:"danger"};
 const durationNames = {
   job_median_duration: "执行汇总中位数",
   observed_presence_span: "观测出现时段",
@@ -98,7 +98,8 @@ $("run").onclick = async () => {
       measurement_start_seconds:Number($("measurement-start").value),
       measurement_seconds:Number($("measurement").value),
       max_sim_time:Number($("max-time").value),
-      cpu_background_fraction:Number($("background").value)
+      cpu_background_fraction:Number($("background").value),
+      checkpoint_interval:Number($("checkpoint-interval").value)
     });
     message("实验已启动。资源状态每 0.5 秒刷新。");
     await poll();

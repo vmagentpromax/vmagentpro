@@ -23,18 +23,21 @@ def main():
     parser = argparse.ArgumentParser(description="Timed H20/CPU resource scheduling")
     parser.add_argument("--nodes", type=Path, default=DEFAULT_NODES)
     parser.add_argument("--tasks", type=Path, default=DEFAULT_TASKS)
-    parser.add_argument("--policy", choices=["first_fit", "best_fit", "worst_fit", "random"], default="first_fit")
+    parser.add_argument("--policy", choices=["first_fit", "best_fit", "worst_fit", "random", "spotgpu"], default="first_fit")
     parser.add_argument("--clock", choices=["realtime", "fast"], default="realtime")
     parser.add_argument("--speed", type=float, default=1., help="realtime simulated seconds per wall-clock second")
     parser.add_argument("--queue-policy", choices=["backfill", "fcfs"], default="backfill")
     parser.add_argument("--measurement-seconds", type=float, help="override measurement window to [0, seconds]")
     parser.add_argument("--max-sim-time", type=float, default=600.)
     parser.add_argument("--cpu-background-fraction", type=float, default=0.)
+    parser.add_argument("--checkpoint-interval", type=float, default=3600.,
+                        help="SpotGPU checkpoint interval in simulated seconds (default 3600)")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output", type=Path, default=ROOT/"outputs/gpu/latest")
     args = parser.parse_args()
     options = dict(clock=args.clock, speed=args.speed, queue_policy=args.queue_policy,
-                   max_sim_time=args.max_sim_time, cpu_background_fraction=args.cpu_background_fraction, seed=args.seed)
+                   max_sim_time=args.max_sim_time, cpu_background_fraction=args.cpu_background_fraction,
+                   checkpoint_interval=args.checkpoint_interval, seed=args.seed)
     if args.measurement_seconds is not None:
         options["measurement_window"] = [0., args.measurement_seconds]
     try:
