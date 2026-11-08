@@ -1,0 +1,73 @@
+{
+  "source_root": "E:\\cluster-trace-gpu-v2026\\data",
+  "snapshot": {
+    "day": 0,
+    "hour": "00",
+    "time_semantics": "trace-relative hour; not a wall-clock timestamp"
+  },
+  "files": {
+    "server_hourly": {
+      "path": "asi_opensource_server_hourly\\asi_opensource_server_hourly\\day=0\\hour=00\\part-000.parquet",
+      "bytes": 572863,
+      "rows": 28036,
+      "sha256": "28531a51347b2c4c57baed8c57ee24f8d7a4fe593170da94027116a5e738e02d"
+    },
+    "pod_hourly": {
+      "path": "asi_opensource_pod_hourly\\asi_opensource_pod_hourly\\day=0\\hour=00\\part-000.parquet",
+      "bytes": 63791770,
+      "rows": 1179029,
+      "sha256": "6cf28932b3080a51da494dace4b288de678f31b597f3d7cfd00a554ca24cba1e"
+    },
+    "job_execution_summary": {
+      "path": "asi_opensource_job_execution_summary\\asi_opensource_job_execution_summary\\part-000.parquet",
+      "bytes": 1188294827,
+      "rows": 40522321,
+      "sha256": "acd868090a64c8852ee2586510a0384111aed0378905f5405d2be6779062e963"
+    }
+  },
+  "schemas": {
+    "server_hourly": "server_id: string\ncluster_id: string\nasw_id: null\ngpu_spec_public: string\ngpu_count: int64\ncpu_capacity_cores: int64",
+    "pod_hourly": "pod_id: string\nworkload_id: string\nserver_id: string\ncluster_id: string\nstate_public: string\ngpu_spec_public: string\nserver_gpu_count: int64\nserver_cpu_capacity_cores: int64\npriority_class: string\njob_type_public: string\nmodel_type_public: string\nis_genai_request: bool\ngpu_request: double\ngpu_mem_request: int64\ncpu_request_cores: double\nused_gpu_hours: double\navg_gpu_sm_util: double\navg_gpu_mem_gib: double\navg_cpu_request_util: double\navg_memory_util: double\nready_status: bool\nschedule_delay_sec: int64\nready_delay_sec: int64",
+    "job_execution_summary": "pod_id: string\nworkload_id: string\nserver_id: string\ngpu_spec_public: string\npriority_class: string\njob_type_public: string\nmodel_type_public: string\nis_genai_request: bool\ngpu_request: double\nduration_hours: double\nschedule_delay_sec: int64\nready_delay_sec: int64\nready_status: bool\nschedule_status: bool"
+  },
+  "screening": {
+    "snapshot_rows": 1179029,
+    "snapshot_positive_gpu_rows": 88167,
+    "snapshot_fractional_positive_rows": 9897,
+    "scope_positive_gpu_rows": 5460,
+    "scope_fractional_positive_rows": 282,
+    "after_integer_gpu": 5178,
+    "after_ready_and_positive_gpu_activity": 4188,
+    "after_valid_cpu_and_single_host_fit": 4188,
+    "after_source_server_consistency": 4188,
+    "summary_matching_rows": 270,
+    "summary_matching_unique_pods": 149,
+    "summary_multiple_records_pods": 82,
+    "after_s2_gpu_size_strata": 4185,
+    "snapshot_fractional_exclusion_ratio": 0.11225288373200858,
+    "scope_fractional_exclusion_ratio": 0.051648351648351645,
+    "eligible_gpu_distribution": {
+      "1": 3179,
+      "2": 372,
+      "4": 110,
+      "8": 524
+    },
+    "eligible_job_type_distribution": {
+      "dev": 286,
+      "offline_inference": 1560,
+      "online_inference": 1822,
+      "training": 513,
+      "unknown": 4
+    },
+    "eligible_priority_distribution": {
+      "HP": 2787,
+      "LP": 1398
+    }
+  },
+  "libraries": {
+    "python": "3.11.5",
+    "numpy": "1.24.3",
+    "pandas": "2.0.3",
+    "pyarrow": "11.0.0"
+  }
+}

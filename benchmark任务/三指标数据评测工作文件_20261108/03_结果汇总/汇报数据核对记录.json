@@ -1,0 +1,11 @@
+{
+  "slides": 17,
+  "scenario_result_rows_verified": 32,
+  "stratified_rows_verified": 4,
+  "budget_rows_verified": 4,
+  "chart_points_verified": 8,
+  "native_text_overflow": 0,
+  "source_inputs_unchanged": true,
+  "original_ppt_unchanged": true,
+  "ppt_sha256": "7291056abf3993f5a1e82f3d19106bd90eda0ff27fb038fa45513d941b6142dc"
+}

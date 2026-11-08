@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "scenario": "S4",
+  "seed": 20261108,
+  "rng": "numpy.PCG64",
+  "horizon_sec": 10800.0,
+  "allocation_window_sec": 3600.0,
+  "start_deadline_sec": 300.0,
+  "decision_interval_sec": 30.0,
+  "arrival_mean_interval_sec_S1_S3": 16.0,
+  "S4_duration_global_scale": 0.5815346211801177,
+  "migration": {
+    "base_sec": 20.0,
+    "per_gpu_sec": 8.0,
+    "per_cpu_core_sec": 0.1,
+    "max_plan_moves": 6,
+    "max_total_moves": 80,
+    "synthetic": true,
+    "destination_reserved_before_source_release": true,
+    "pause_service": true,
+    "serial_engine": true,
+    "admission_paused_during_plan": true
+  },
+  "duration": {
+    "trace_summary_scale": 0.01,
+    "base_floor_sec": 1800.0,
+    "base_ceiling_sec": 7200.0,
+    "initial_remaining_uniform": [
+      0.4,
+      0.9
+    ],
+    "synthetic": true
+  },
+  "semantics": {
+    "single_host_independent_pod": true,
+    "gpu_model": "exact",
+    "gpu_cards": "whole, exclusive",
+    "queue": "FIFO scan with backfill",
+    "completion_before_arrival": true,
+    "preemption": false,
+    "gang": false,
+    "initial_layout_is_synthetic": true,
+    "all_pods_assumed_migratable": true,
+    "p95": "all requests; unstarted wait lower-bound H-arrival; right-censored",
+    "effective_gpu": "integral of computing allocated GPU (excluding paused migration) over [0,3600] / (800*3600); full-horizon metric also saved",
+    "deadline_denominator": "all arrivals; all arrive before H-300"
+  },
+  "policy_observation": "engine.public_observation allowlist; currently running Pods and arrived queue only; no future or evaluator files",
+  "limitations": [
+    "No memory/NUMA/network/topology constraints",
+    "No gang or application dependencies",
+    "No true checkpoint measurements",
+    "Single H20 cluster, engineered development suite; not held-out generalization evidence"
+  ]
+}

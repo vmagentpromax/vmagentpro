@@ -1,0 +1,14 @@
+{
+  "scenario": "S4",
+  "seed": 20261109,
+  "interval_sec": 10.0,
+  "path": "candidates\\seed20261109_interval10\\S4",
+  "passed": true,
+  "reasons": [],
+  "differences": {
+    "deadline_rate_range": 0.1166666666666667,
+    "p95_wait_range_sec": 1682.0904570991952,
+    "nonzero_migration_cost_range_sec": 5005.299999999996,
+    "low_fragment_control_deadline_gain": 0.14166666666666672
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "scenario": "S3",
+  "seed": 20261109,
+  "interval_sec": 10.0,
+  "path": "candidates\\seed20261109_interval10\\S3",
+  "passed": true,
+  "reasons": [],
+  "differences": {
+    "deadline_rate_range": 0.08124999999999993,
+    "p95_wait_range_sec": 2765.8158971699477,
+    "nonzero_migration_cost_range_sec": 4000.4000000000024,
+    "low_fragment_control_deadline_gain": 0.1499999999999999
+  }
+}

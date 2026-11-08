@@ -1,0 +1,9 @@
+placement,migration,requests,started,completed,unstarted,p95_wait_censored_sec,mean_wait_censored_sec,start_within_deadline_rate,gpu_effective_allocation_rate,gpu_reserved_allocation_rate,gpu_effective_allocation_full_horizon_rate,migration_count,migration_completed_count,gpu_units_moved,migration_gpu_pause_sec,migration_gpu_pause_accrued_sec,migration_inflight_at_horizon,all_resource_checks_passed
+first_fit,none,160,160,133,0,0.0,0.0,1.0,0.6546410245619511,0.6546410245619511,0.4355761169810779,0,0,0,0.0,0.0,False,True
+first_fit,one_move,160,160,133,0,0.0,0.0,1.0,0.6546410245619511,0.6546410245619511,0.4355761169810779,0,0,0,0.0,0.0,False,True
+first_fit,cheap_multi,160,160,133,0,0.0,0.0,1.0,0.6546410245619511,0.6546410245619511,0.4355761169810779,0,0,0,0.0,0.0,False,True
+first_fit,first_multi,160,160,133,0,0.0,0.0,1.0,0.6546410245619511,0.6546410245619511,0.4355761169810779,0,0,0,0.0,0.0,False,True
+best_fit,none,160,160,133,0,0.0,0.0,1.0,0.6546410245619511,0.6546410245619511,0.4355761169810779,0,0,0,0.0,0.0,False,True
+best_fit,one_move,160,160,133,0,0.0,0.0,1.0,0.6546410245619511,0.6546410245619511,0.4355761169810779,0,0,0,0.0,0.0,False,True
+best_fit,cheap_multi,160,160,133,0,0.0,0.0,1.0,0.6546410245619511,0.6546410245619511,0.4355761169810779,0,0,0,0.0,0.0,False,True
+best_fit,first_multi,160,160,133,0,0.0,0.0,1.0,0.6546410245619511,0.6546410245619511,0.4355761169810779,0,0,0,0.0,0.0,False,True

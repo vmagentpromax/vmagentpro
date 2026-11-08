@@ -1,0 +1,451 @@
+{
+  "fixed_grid": [
+    [
+      20261107,
+      10.0
+    ],
+    [
+      20261108,
+      10.0
+    ],
+    [
+      20261109,
+      10.0
+    ],
+    [
+      20261107,
+      16.0
+    ],
+    [
+      20261108,
+      16.0
+    ],
+    [
+      20261109,
+      16.0
+    ],
+    [
+      20261107,
+      40.0
+    ]
+  ],
+  "candidates": [
+    {
+      "scenario": "S1",
+      "seed": 20261107,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261107_interval10\\S1",
+      "passed": false,
+      "reasons": [
+        "no measurable prevention choice between placements"
+      ],
+      "differences": {
+        "deadline_rate_range": 0.025000000000000022,
+        "p95_wait_range_sec": 1114.8430657498368,
+        "nonzero_migration_cost_range_sec": 2425.2000000000016,
+        "low_fragment_control_deadline_gain": 0.0
+      }
+    },
+    {
+      "scenario": "S2",
+      "seed": 20261107,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261107_interval10\\S2",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.11250000000000004,
+        "p95_wait_range_sec": 2016.121110378235,
+        "nonzero_migration_cost_range_sec": 3631.8999999999955,
+        "low_fragment_control_deadline_gain": 0.08750000000000002
+      }
+    },
+    {
+      "scenario": "S3",
+      "seed": 20261107,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261107_interval10\\S3",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.06874999999999998,
+        "p95_wait_range_sec": 2127.188574011148,
+        "nonzero_migration_cost_range_sec": 4491.799999999997,
+        "low_fragment_control_deadline_gain": 0.14375000000000004
+      }
+    },
+    {
+      "scenario": "S4",
+      "seed": 20261107,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261107_interval10\\S4",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.15000000000000002,
+        "p95_wait_range_sec": 1323.065130973089,
+        "nonzero_migration_cost_range_sec": 5961.199999999988,
+        "low_fragment_control_deadline_gain": 0.1333333333333333
+      }
+    },
+    {
+      "scenario": "S1",
+      "seed": 20261108,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261108_interval10\\S1",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.03749999999999998,
+        "p95_wait_range_sec": 358.6479477675663,
+        "nonzero_migration_cost_range_sec": 1729.6000000000004,
+        "low_fragment_control_deadline_gain": 0.0
+      }
+    },
+    {
+      "scenario": "S2",
+      "seed": 20261108,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261108_interval10\\S2",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.14375000000000004,
+        "p95_wait_range_sec": 2025.3350932550532,
+        "nonzero_migration_cost_range_sec": 3825.800000000001,
+        "low_fragment_control_deadline_gain": 0.11250000000000004
+      }
+    },
+    {
+      "scenario": "S3",
+      "seed": 20261108,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261108_interval10\\S3",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.04999999999999993,
+        "p95_wait_range_sec": 2575.505362077526,
+        "nonzero_migration_cost_range_sec": 4119.4,
+        "low_fragment_control_deadline_gain": 0.16249999999999998
+      }
+    },
+    {
+      "scenario": "S4",
+      "seed": 20261108,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261108_interval10\\S4",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.07499999999999996,
+        "p95_wait_range_sec": 1324.1515119309365,
+        "nonzero_migration_cost_range_sec": 4929.199999999999,
+        "low_fragment_control_deadline_gain": 0.15000000000000002
+      }
+    },
+    {
+      "scenario": "S1",
+      "seed": 20261109,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261109_interval10\\S1",
+      "passed": false,
+      "reasons": [
+        "no measurable prevention choice between placements"
+      ],
+      "differences": {
+        "deadline_rate_range": 0.050000000000000044,
+        "p95_wait_range_sec": 151.54856884988178,
+        "nonzero_migration_cost_range_sec": 2262.400000000002,
+        "low_fragment_control_deadline_gain": 0.0
+      }
+    },
+    {
+      "scenario": "S2",
+      "seed": 20261109,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261109_interval10\\S2",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.15000000000000002,
+        "p95_wait_range_sec": 2055.5679924268725,
+        "nonzero_migration_cost_range_sec": 3268.000000000001,
+        "low_fragment_control_deadline_gain": 0.09999999999999998
+      }
+    },
+    {
+      "scenario": "S3",
+      "seed": 20261109,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261109_interval10\\S3",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.08124999999999993,
+        "p95_wait_range_sec": 2765.8158971699477,
+        "nonzero_migration_cost_range_sec": 4000.4000000000024,
+        "low_fragment_control_deadline_gain": 0.1499999999999999
+      }
+    },
+    {
+      "scenario": "S4",
+      "seed": 20261109,
+      "interval_sec": 10.0,
+      "path": "candidates\\seed20261109_interval10\\S4",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.1166666666666667,
+        "p95_wait_range_sec": 1682.0904570991952,
+        "nonzero_migration_cost_range_sec": 5005.299999999996,
+        "low_fragment_control_deadline_gain": 0.14166666666666672
+      }
+    },
+    {
+      "scenario": "S1",
+      "seed": 20261107,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261107_interval16\\S1",
+      "passed": false,
+      "reasons": [
+        "no measurable prevention choice between placements"
+      ],
+      "differences": {
+        "deadline_rate_range": 0.03749999999999998,
+        "p95_wait_range_sec": 130.2115541873539,
+        "nonzero_migration_cost_range_sec": 996.3999999999999,
+        "low_fragment_control_deadline_gain": 0.0
+      }
+    },
+    {
+      "scenario": "S2",
+      "seed": 20261107,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261107_interval16\\S2",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.15000000000000002,
+        "p95_wait_range_sec": 1265.0694937248004,
+        "nonzero_migration_cost_range_sec": 3137.8999999999996,
+        "low_fragment_control_deadline_gain": 0.15000000000000002
+      }
+    },
+    {
+      "scenario": "S3",
+      "seed": 20261107,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261107_interval16\\S3",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.11249999999999993,
+        "p95_wait_range_sec": 2094.076524120844,
+        "nonzero_migration_cost_range_sec": 4208.199999999996,
+        "low_fragment_control_deadline_gain": 0.16874999999999996
+      }
+    },
+    {
+      "scenario": "S4",
+      "seed": 20261107,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261107_interval16\\S4",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.3583333333333333,
+        "p95_wait_range_sec": 1473.455267607665,
+        "nonzero_migration_cost_range_sec": 6085.999999999988,
+        "low_fragment_control_deadline_gain": 0.19999999999999996
+      }
+    },
+    {
+      "scenario": "S1",
+      "seed": 20261108,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261108_interval16\\S1",
+      "passed": false,
+      "reasons": [
+        "no >=5 percentage point deadline or >=120s P95 difference",
+        "no measurable prevention choice between placements"
+      ],
+      "differences": {
+        "deadline_rate_range": 0.0,
+        "p95_wait_range_sec": 0.0,
+        "nonzero_migration_cost_range_sec": 283.99999999999994,
+        "low_fragment_control_deadline_gain": 0.0
+      }
+    },
+    {
+      "scenario": "S2",
+      "seed": 20261108,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261108_interval16\\S2",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.125,
+        "p95_wait_range_sec": 1149.6325874802842,
+        "nonzero_migration_cost_range_sec": 3092.3000000000034,
+        "low_fragment_control_deadline_gain": 0.09999999999999998
+      }
+    },
+    {
+      "scenario": "S3",
+      "seed": 20261108,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261108_interval16\\S3",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.17500000000000004,
+        "p95_wait_range_sec": 1811.6812320290308,
+        "nonzero_migration_cost_range_sec": 4094.499999999999,
+        "low_fragment_control_deadline_gain": 0.1875
+      }
+    },
+    {
+      "scenario": "S4",
+      "seed": 20261108,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261108_interval16\\S4",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.14166666666666672,
+        "p95_wait_range_sec": 2094.9448426165945,
+        "nonzero_migration_cost_range_sec": 4511.999999999996,
+        "low_fragment_control_deadline_gain": 0.16666666666666663
+      }
+    },
+    {
+      "scenario": "S1",
+      "seed": 20261109,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261109_interval16\\S1",
+      "passed": false,
+      "reasons": [
+        "no >=5 percentage point deadline or >=120s P95 difference",
+        "no measurable prevention choice between placements"
+      ],
+      "differences": {
+        "deadline_rate_range": 0.006249999999999978,
+        "p95_wait_range_sec": 0.0,
+        "nonzero_migration_cost_range_sec": 420.0,
+        "low_fragment_control_deadline_gain": 0.0
+      }
+    },
+    {
+      "scenario": "S2",
+      "seed": 20261109,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261109_interval16\\S2",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.125,
+        "p95_wait_range_sec": 1050.3759335621571,
+        "nonzero_migration_cost_range_sec": 3074.4000000000005,
+        "low_fragment_control_deadline_gain": 0.10624999999999996
+      }
+    },
+    {
+      "scenario": "S3",
+      "seed": 20261109,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261109_interval16\\S3",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.16874999999999996,
+        "p95_wait_range_sec": 2421.9604269791002,
+        "nonzero_migration_cost_range_sec": 5007.900000000001,
+        "low_fragment_control_deadline_gain": 0.16874999999999996
+      }
+    },
+    {
+      "scenario": "S4",
+      "seed": 20261109,
+      "interval_sec": 16.0,
+      "path": "candidates\\seed20261109_interval16\\S4",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.375,
+        "p95_wait_range_sec": 2039.383091154995,
+        "nonzero_migration_cost_range_sec": 5770.79999999999,
+        "low_fragment_control_deadline_gain": 0.21666666666666667
+      }
+    },
+    {
+      "scenario": "S1",
+      "seed": 20261107,
+      "interval_sec": 40.0,
+      "path": "candidates\\seed20261107_interval40\\S1",
+      "passed": false,
+      "reasons": [
+        "no >=5 percentage point deadline or >=120s P95 difference",
+        "no measurable prevention choice between placements"
+      ],
+      "differences": {
+        "deadline_rate_range": 0.0,
+        "p95_wait_range_sec": 0.0,
+        "nonzero_migration_cost_range_sec": 0.0,
+        "low_fragment_control_deadline_gain": 0.0
+      }
+    },
+    {
+      "scenario": "S2",
+      "seed": 20261107,
+      "interval_sec": 40.0,
+      "path": "candidates\\seed20261107_interval40\\S2",
+      "passed": false,
+      "reasons": [
+        "no >=3pp deadline recovery from migration or changed layout"
+      ],
+      "differences": {
+        "deadline_rate_range": 0.018750000000000044,
+        "p95_wait_range_sec": 160.78114689705657,
+        "nonzero_migration_cost_range_sec": 1215.6000000000001,
+        "low_fragment_control_deadline_gain": 0.018750000000000044
+      }
+    },
+    {
+      "scenario": "S3",
+      "seed": 20261107,
+      "interval_sec": 40.0,
+      "path": "candidates\\seed20261107_interval40\\S3",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.08750000000000002,
+        "p95_wait_range_sec": 488.9643271470779,
+        "nonzero_migration_cost_range_sec": 1952.6999999999998,
+        "low_fragment_control_deadline_gain": 0.08125000000000004
+      }
+    },
+    {
+      "scenario": "S4",
+      "seed": 20261107,
+      "interval_sec": 40.0,
+      "path": "candidates\\seed20261107_interval40\\S4",
+      "passed": true,
+      "reasons": [],
+      "differences": {
+        "deadline_rate_range": 0.10833333333333328,
+        "p95_wait_range_sec": 810.077814304553,
+        "nonzero_migration_cost_range_sec": 3009.2,
+        "low_fragment_control_deadline_gain": 0.09166666666666667
+      }
+    }
+  ],
+  "selected": {
+    "S1": "S1_selected",
+    "S2": "S2_selected",
+    "S3": "S3_selected",
+    "S4": "S4_selected"
+  },
+  "common_group_required": true,
+  "selection": "earliest predeclared grid group passing all classes; no favored baseline"
+}

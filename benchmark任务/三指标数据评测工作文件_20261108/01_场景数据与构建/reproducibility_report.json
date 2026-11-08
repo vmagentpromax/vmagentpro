@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "seed": 20261108,
+  "scenarios": [
+    "S1",
+    "S2",
+    "S3",
+    "S4"
+  ],
+  "inputs_equal": true,
+  "all_baseline_metrics_and_events_equal": true
+}

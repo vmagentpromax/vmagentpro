@@ -1,0 +1,31 @@
+{
+  "selected": {
+    "S1": {
+      "servers": 100,
+      "initial_pods": 293,
+      "arrivals": 160,
+      "arrival_gpu_work_GPU_sec": 2141692.8
+    },
+    "S2": {
+      "servers": 100,
+      "initial_pods": 293,
+      "arrivals": 160,
+      "arrival_gpu_work_GPU_sec": 2141692.8
+    },
+    "S3": {
+      "servers": 100,
+      "initial_pods": 293,
+      "arrivals": 160,
+      "arrival_gpu_work_GPU_sec": 2141692.8
+    },
+    "S4": {
+      "servers": 100,
+      "initial_pods": 293,
+      "arrivals": 120,
+      "arrival_gpu_work_GPU_sec": 2141692.8
+    }
+  },
+  "parquet_matches_original_run_hashes": true,
+  "frozen_json_matches_parquet": true,
+  "csv_order_preserved": true
+}

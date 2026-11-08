@@ -1,0 +1,185 @@
+[
+  {
+    "gpu": 4,
+    "request": {
+      "pod_id": "384823db435c9d67c0dd33205c9c85c5",
+      "workload_id": "7145d39f6c3e15ffd44d034e534848d3",
+      "source_server_id": "62c7ab1ff20ed559d696f4b0a2bdfc13",
+      "source_cluster_id": "1f28e063c4e5e1bc48ff55269617dd2f",
+      "source_day": 0,
+      "source_hour": 0,
+      "gpu_spec_public": "H20",
+      "gpu_request": 4,
+      "cpu_request_cores": 92.0,
+      "source_gpu_request": 4.0,
+      "gpu_mem_request_trace": 410500726784,
+      "priority_class": "HP",
+      "job_type_public": "dev",
+      "model_type_public": "dev",
+      "is_genai_request": false,
+      "source_state_public": "Unknown",
+      "source_ready_status": true,
+      "source_used_gpu_hours": 4.0,
+      "duration_source_pod_id": "0a92818d6365972252c6e3085eabe462",
+      "duration_summary_row_index": 26965518,
+      "duration_hours_raw": 335.99444444444447,
+      "duration_source_method": "same_model_gpu_size_record_resample",
+      "duration_sec": 7200.0,
+      "migratable": true,
+      "request_id": "req_0004",
+      "arrival_time_sec": 66.95959240007284,
+      "duration_base_sec": 7200.0
+    },
+    "plans": [
+      {
+        "target": "01852ef77599a6dae9ff1d70ccf16c69",
+        "moves": [
+          {
+            "pod_id": "ff72fbba0421dadb8b9830562cf72651",
+            "source": "01852ef77599a6dae9ff1d70ccf16c69",
+            "destination": "a1622e61613bfb9aa22fa76b58035ead",
+            "pause_sec": 28.4,
+            "gpu": 1
+          }
+        ],
+        "gpu_pause_sec": 28.4
+      },
+      {
+        "target": "4501ab471e21e93e85eb76da78136fc0",
+        "moves": [
+          {
+            "pod_id": "2d0dfdd177801d9230ec7a1447db81e9",
+            "source": "4501ab471e21e93e85eb76da78136fc0",
+            "destination": "0f20ffbcfe44e43d63cfb5d0ab599f94",
+            "pause_sec": 40.0,
+            "gpu": 2
+          },
+          {
+            "pod_id": "b0d5cda3f005a580336635bd65f04556",
+            "source": "4501ab471e21e93e85eb76da78136fc0",
+            "destination": "7b194c29ab251818b894449eafe8dc8a",
+            "pause_sec": 36.4,
+            "gpu": 2
+          },
+          {
+            "pod_id": "d1a9786b656bf7e30265b0df78c25ad3",
+            "source": "4501ab471e21e93e85eb76da78136fc0",
+            "destination": "c056e5ff14e04451556ae406e6502e67",
+            "pause_sec": 36.8,
+            "gpu": 2
+          },
+          {
+            "pod_id": "b26283cda5fba60d66fa9e8117cfd4d9",
+            "source": "4501ab471e21e93e85eb76da78136fc0",
+            "destination": "a1622e61613bfb9aa22fa76b58035ead",
+            "pause_sec": 30.0,
+            "gpu": 1
+          }
+        ],
+        "gpu_pause_sec": 256.4
+      }
+    ]
+  },
+  {
+    "gpu": 8,
+    "request": {
+      "pod_id": "3bb80262fb686d7eb8231952982d32a8",
+      "workload_id": "e2790fe724e5bde1e151121f812933f1",
+      "source_server_id": "68350bc68afacb736f5f17765797f374",
+      "source_cluster_id": "1f28e063c4e5e1bc48ff55269617dd2f",
+      "source_day": 0,
+      "source_hour": 0,
+      "gpu_spec_public": "H20",
+      "gpu_request": 8,
+      "cpu_request_cores": 104.0,
+      "source_gpu_request": 8.0,
+      "gpu_mem_request_trace": 821001453568,
+      "priority_class": "HP",
+      "job_type_public": "dev",
+      "model_type_public": "dev",
+      "is_genai_request": false,
+      "source_state_public": "Unknown",
+      "source_ready_status": true,
+      "source_used_gpu_hours": 8.0,
+      "duration_source_pod_id": "17e0ec23311a5c6876e2c0ba154d31f7",
+      "duration_summary_row_index": 22843043,
+      "duration_hours_raw": 192.0,
+      "duration_source_method": "same_model_gpu_size_record_resample",
+      "duration_sec": 6912.0,
+      "migratable": true,
+      "request_id": "req_0005",
+      "arrival_time_sec": 96.40613211549548,
+      "duration_base_sec": 6912.0
+    },
+    "plans": [
+      {
+        "target": "01852ef77599a6dae9ff1d70ccf16c69",
+        "moves": [
+          {
+            "pod_id": "80d60d328c5246fca581643c4bf9c94b",
+            "source": "01852ef77599a6dae9ff1d70ccf16c69",
+            "destination": "0f20ffbcfe44e43d63cfb5d0ab599f94",
+            "pause_sec": 36.4,
+            "gpu": 2
+          },
+          {
+            "pod_id": "7b7e1649dcd3da156d79febf6de7ddb4",
+            "source": "01852ef77599a6dae9ff1d70ccf16c69",
+            "destination": "a1622e61613bfb9aa22fa76b58035ead",
+            "pause_sec": 29.6,
+            "gpu": 1
+          },
+          {
+            "pod_id": "bc3642e2c95daa641050f081bcc604cd",
+            "source": "01852ef77599a6dae9ff1d70ccf16c69",
+            "destination": "55697def52e4c77ab576a38c4f1b4a95",
+            "pause_sec": 29.2,
+            "gpu": 1
+          },
+          {
+            "pod_id": "ff72fbba0421dadb8b9830562cf72651",
+            "source": "01852ef77599a6dae9ff1d70ccf16c69",
+            "destination": "2a593a379523ef2d27b2f8b438058bf3",
+            "pause_sec": 28.4,
+            "gpu": 1
+          }
+        ],
+        "gpu_pause_sec": 160.0
+      },
+      {
+        "target": "4501ab471e21e93e85eb76da78136fc0",
+        "moves": [
+          {
+            "pod_id": "2d0dfdd177801d9230ec7a1447db81e9",
+            "source": "4501ab471e21e93e85eb76da78136fc0",
+            "destination": "0f20ffbcfe44e43d63cfb5d0ab599f94",
+            "pause_sec": 40.0,
+            "gpu": 2
+          },
+          {
+            "pod_id": "b0d5cda3f005a580336635bd65f04556",
+            "source": "4501ab471e21e93e85eb76da78136fc0",
+            "destination": "7b194c29ab251818b894449eafe8dc8a",
+            "pause_sec": 36.4,
+            "gpu": 2
+          },
+          {
+            "pod_id": "d1a9786b656bf7e30265b0df78c25ad3",
+            "source": "4501ab471e21e93e85eb76da78136fc0",
+            "destination": "c056e5ff14e04451556ae406e6502e67",
+            "pause_sec": 36.8,
+            "gpu": 2
+          },
+          {
+            "pod_id": "b26283cda5fba60d66fa9e8117cfd4d9",
+            "source": "4501ab471e21e93e85eb76da78136fc0",
+            "destination": "a1622e61613bfb9aa22fa76b58035ead",
+            "pause_sec": 30.0,
+            "gpu": 1
+          }
+        ],
+        "gpu_pause_sec": 256.4
+      }
+    ]
+  }
+]

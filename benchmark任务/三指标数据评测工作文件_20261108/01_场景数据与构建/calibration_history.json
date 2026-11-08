@@ -1,0 +1,21 @@
+{
+  "early_run": "work/run_v2",
+  "same_thresholds_as_final": true,
+  "observations": [
+    {
+      "seed": 20261107,
+      "interval_sec": 16,
+      "S1": "failed prevention difference",
+      "S2": "passed",
+      "S3": "passed",
+      "S4": "passed"
+    },
+    {
+      "seed": 20261108,
+      "interval_sec": 16,
+      "S1": "greedy construction failed; not a proof of infeasibility; integer constraint fallback added"
+    }
+  ],
+  "final_grid_adaptation": "expanded to 10/16 second pressures across three seeds plus 40-second light boundary; all final results retained",
+  "engine_accounting_fix": "in-flight migrations charged at start; independent accrued pause accounting; no selected trajectory in-flight at horizon"
+}

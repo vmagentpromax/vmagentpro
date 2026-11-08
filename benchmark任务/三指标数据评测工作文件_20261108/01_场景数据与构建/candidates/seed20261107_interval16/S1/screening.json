@@ -1,0 +1,16 @@
+{
+  "scenario": "S1",
+  "seed": 20261107,
+  "interval_sec": 16.0,
+  "path": "candidates\\seed20261107_interval16\\S1",
+  "passed": false,
+  "reasons": [
+    "no measurable prevention choice between placements"
+  ],
+  "differences": {
+    "deadline_rate_range": 0.03749999999999998,
+    "p95_wait_range_sec": 130.2115541873539,
+    "nonzero_migration_cost_range_sec": 996.3999999999999,
+    "low_fragment_control_deadline_gain": 0.0
+  }
+}

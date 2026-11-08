@@ -1,0 +1,177 @@
+{
+  "servers": 100,
+  "initial_pods": 284,
+  "arrival_requests": 160,
+  "gpu_capacity": 800,
+  "initial_gpu": 560,
+  "initial_cpu": 5648.0,
+  "free_gpu_histogram": {
+    "0": 40,
+    "2": 20,
+    "4": 20,
+    "6": 20
+  },
+  "gpu8_unusable_free_fraction": 1.0,
+  "gpu4_unusable_free_fraction": 0.33333333333333337,
+  "frozen_request_classes": {
+    "direct": 136,
+    "fragmentation": 24
+  },
+  "probe_by_size": {
+    "1": {
+      "representative_pod_id": "d477edff10f496d04fd5340da20af4b9",
+      "class": "direct",
+      "legal_direct_hosts": 60,
+      "found_plan_count": 0,
+      "min_found_moves": null,
+      "min_found_gpu_pause_sec": null,
+      "max_found_gpu_pause_sec": null
+    },
+    "2": {
+      "representative_pod_id": "acb34e6f7857871c3a19c41cab9a49b3",
+      "class": "direct",
+      "legal_direct_hosts": 60,
+      "found_plan_count": 0,
+      "min_found_moves": null,
+      "min_found_gpu_pause_sec": null,
+      "max_found_gpu_pause_sec": null
+    },
+    "4": {
+      "representative_pod_id": "384823db435c9d67c0dd33205c9c85c5",
+      "class": "direct",
+      "legal_direct_hosts": 40,
+      "found_plan_count": 0,
+      "min_found_moves": null,
+      "min_found_gpu_pause_sec": null,
+      "max_found_gpu_pause_sec": null
+    },
+    "8": {
+      "representative_pod_id": "3bb80262fb686d7eb8231952982d32a8",
+      "class": "fragmentation",
+      "legal_direct_hosts": 0,
+      "found_plan_count": 94,
+      "min_found_moves": 1,
+      "min_found_gpu_pause_sec": 56.8,
+      "max_found_gpu_pause_sec": 492.8
+    }
+  },
+  "eight_gpu_min_moves_resource_lower_bound": 1,
+  "initial_remaining_sec_quantiles": [
+    725.095492576298,
+    1361.3825090504627,
+    3081.9761222254474,
+    4748.602358859418,
+    6446.664141605267
+  ],
+  "arrival_gpu_counts": {
+    "1": 80,
+    "2": 32,
+    "4": 24,
+    "8": 24
+  },
+  "arrival_gpu_service_work_sec": 2272435.2,
+  "arrival_end_sec": 1605.7841567632822,
+  "duration_quantiles_sec": [
+    1800.0,
+    1800.0,
+    4320.0,
+    7200.0,
+    7200.0
+  ],
+  "source_and_initial_legality": true,
+  "witness_replay_passed": true,
+  "low_fragment_control": [
+    {
+      "placement": "first_fit",
+      "migration": "none",
+      "requests": 160,
+      "started": 160,
+      "completed": 160,
+      "unstarted": 0,
+      "p95_wait_censored_sec": 16.868176102478376,
+      "mean_wait_censored_sec": 59.062272658403096,
+      "start_within_deadline_rate": 0.95,
+      "gpu_effective_allocation_rate": 0.8363216872836516,
+      "gpu_reserved_allocation_rate": 0.8363216872836516,
+      "gpu_effective_allocation_full_horizon_rate": 0.45966589810064096,
+      "migration_count": 0,
+      "migration_completed_count": 0,
+      "gpu_units_moved": 0,
+      "migration_gpu_pause_sec": 0.0,
+      "migration_gpu_pause_accrued_sec": 0.0,
+      "migration_inflight_at_horizon": false,
+      "first_attempt_classes": {
+        "direct": 152,
+        "fragmentation": 8
+      },
+      "blocked_request_seconds": {
+        "fragmentation": 9449.963625344488
+      },
+      "all_resource_checks_passed": true
+    },
+    {
+      "placement": "best_fit",
+      "migration": "none",
+      "requests": 160,
+      "started": 160,
+      "completed": 160,
+      "unstarted": 0,
+      "p95_wait_censored_sec": 17.54800229340505,
+      "mean_wait_censored_sec": 55.171105053945055,
+      "start_within_deadline_rate": 0.95,
+      "gpu_effective_allocation_rate": 0.8382361426880599,
+      "gpu_reserved_allocation_rate": 0.8382361426880599,
+      "gpu_effective_allocation_full_horizon_rate": 0.45966589810064107,
+      "migration_count": 0,
+      "migration_completed_count": 0,
+      "gpu_units_moved": 0,
+      "migration_gpu_pause_sec": 0.0,
+      "migration_gpu_pause_accrued_sec": 0.0,
+      "migration_inflight_at_horizon": false,
+      "first_attempt_classes": {
+        "direct": 152,
+        "fragmentation": 8
+      },
+      "blocked_request_seconds": {
+        "fragmentation": 8827.376808631212
+      },
+      "all_resource_checks_passed": true
+    }
+  ],
+  "aggregate_capacity_relaxation": {
+    "placement": "first_fit",
+    "migration": "none",
+    "requests": 160,
+    "started": 160,
+    "completed": 160,
+    "unstarted": 0,
+    "p95_wait_censored_sec": 0.0,
+    "mean_wait_censored_sec": 0.0,
+    "start_within_deadline_rate": 1.0,
+    "gpu_effective_allocation_rate": 0.8606912685741541,
+    "gpu_reserved_allocation_rate": 0.8606912685741541,
+    "gpu_effective_allocation_full_horizon_rate": 0.4596658981006409,
+    "migration_count": 0,
+    "migration_completed_count": 0,
+    "gpu_units_moved": 0,
+    "migration_gpu_pause_sec": 0.0,
+    "migration_gpu_pause_accrued_sec": 0.0,
+    "migration_inflight_at_horizon": false,
+    "first_attempt_classes": {
+      "direct": 160
+    },
+    "blocked_request_seconds": {},
+    "all_resource_checks_passed": true
+  },
+  "aggregate_capacity_relaxation_note": "Evaluator-only optimistic resource pool; permits splitting across hosts; NOT a legal placement policy or migration witness.",
+  "all_dynamic_resource_checks": true,
+  "same_move_count_cost_choices": {
+    "eight_gpu_found_plans": 94,
+    "one_move_found_plans": 24,
+    "one_move_cost_min_gpu_sec": 72.8,
+    "one_move_cost_max_gpu_sec": 246.4,
+    "one_move_target_hosts": 24
+  },
+  "validation_status": "PASS_RESOURCE_AND_LIFECYCLE_CHECKS",
+  "screening_passed": true
+}

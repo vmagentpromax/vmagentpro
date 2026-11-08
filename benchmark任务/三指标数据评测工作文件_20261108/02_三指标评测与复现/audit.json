@@ -1,0 +1,12 @@
+{
+  "run_count": 160,
+  "original_reproductions": 32,
+  "budget_runs": 128,
+  "semantic_tests_passed": true,
+  "all_event_replays_passed": true,
+  "all_metric_cross_checks_passed": true,
+  "source_inputs_unchanged": true,
+  "elapsed_wall_seconds": 112.17510640004184,
+  "python": "3.11.5",
+  "engine_sha256": "88cd6f16b64e33565bfb6bc3e53b7ee2a8c134b9983bc2e7384ab3da3e370411"
+}

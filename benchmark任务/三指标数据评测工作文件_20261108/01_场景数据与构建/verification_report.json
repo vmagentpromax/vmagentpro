@@ -1,0 +1,1513 @@
+{
+  "status": "PASS",
+  "instance_count": 32,
+  "source_hashes_checked": true,
+  "file_hashes_checked": true,
+  "controlled_variables_passed": true,
+  "instances": {
+    "candidates\\seed20261107_interval10\\S1": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 860,
+          "moves": 33,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 861,
+          "moves": 31,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 774,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 834,
+          "moves": 15,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 868,
+          "moves": 36,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 868,
+          "moves": 36,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 774,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 834,
+          "moves": 15,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval10\\S2": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 918,
+          "moves": 46,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 926,
+          "moves": 55,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 774,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 890,
+          "moves": 29,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 925,
+          "moves": 49,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 946,
+          "moves": 68,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 898,
+          "moves": 31,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval10\\S3": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 962,
+          "moves": 69,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 983,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 769,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 918,
+          "moves": 36,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 966,
+          "moves": 71,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 977,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 769,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 922,
+          "moves": 37,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval10\\S4": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 899,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 885,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 654,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 878,
+          "moves": 56,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 889,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 877,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 654,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 878,
+          "moves": 56,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261108_interval10\\S1": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 831,
+          "moves": 21,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 819,
+          "moves": 17,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 801,
+          "moves": 7,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 839,
+          "moves": 24,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 832,
+          "moves": 22,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 813,
+          "moves": 10,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261108_interval10\\S2": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 899,
+          "moves": 41,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 925,
+          "moves": 59,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 772,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 865,
+          "moves": 23,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 921,
+          "moves": 52,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 947,
+          "moves": 70,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 772,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 869,
+          "moves": 24,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261108_interval10\\S3": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 971,
+          "moves": 68,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 981,
+          "moves": 78,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 768,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 917,
+          "moves": 36,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 965,
+          "moves": 66,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 976,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 768,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 913,
+          "moves": 35,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261108_interval10\\S4": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 889,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 868,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 653,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 865,
+          "moves": 53,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 887,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 865,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 653,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 873,
+          "moves": 55,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261109_interval10\\S1": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 818,
+          "moves": 19,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 821,
+          "moves": 20,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 764,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 796,
+          "moves": 8,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 814,
+          "moves": 18,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 822,
+          "moves": 23,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 764,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 804,
+          "moves": 10,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261109_interval10\\S2": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 872,
+          "moves": 34,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 923,
+          "moves": 60,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 761,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 852,
+          "moves": 22,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 884,
+          "moves": 39,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 900,
+          "moves": 54,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 761,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 860,
+          "moves": 24,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261109_interval10\\S3": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 936,
+          "moves": 57,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 953,
+          "moves": 71,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 754,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 900,
+          "moves": 34,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 952,
+          "moves": 65,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 968,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 755,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 900,
+          "moves": 34,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261109_interval10\\S4": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 884,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 867,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 644,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 856,
+          "moves": 53,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 878,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 855,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 644,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 860,
+          "moves": 54,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval16\\S1": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 774,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 774,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 774,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 774,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 792,
+          "moves": 5,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 816,
+          "moves": 17,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 774,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 790,
+          "moves": 4,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval16\\S2": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 848,
+          "moves": 19,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 856,
+          "moves": 28,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 774,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 842,
+          "moves": 17,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 846,
+          "moves": 19,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 890,
+          "moves": 45,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 842,
+          "moves": 17,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval16\\S3": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 919,
+          "moves": 48,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 946,
+          "moves": 63,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 768,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 882,
+          "moves": 27,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 924,
+          "moves": 51,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 980,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 770,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 886,
+          "moves": 28,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval16\\S4": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 904,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 886,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 654,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 842,
+          "moves": 47,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 892,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 872,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 654,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 838,
+          "moves": 46,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261108_interval16\\S1": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 779,
+          "moves": 2,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 783,
+          "moves": 4,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 777,
+          "moves": 1,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261108_interval16\\S2": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 827,
+          "moves": 17,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 851,
+          "moves": 30,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 821,
+          "moves": 12,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 837,
+          "moves": 19,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 891,
+          "moves": 48,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 772,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 833,
+          "moves": 15,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261108_interval16\\S3": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 911,
+          "moves": 44,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 925,
+          "moves": 58,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 770,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 889,
+          "moves": 29,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 927,
+          "moves": 50,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 973,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 769,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 893,
+          "moves": 30,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261108_interval16\\S4": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 897,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 868,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 653,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 881,
+          "moves": 57,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 891,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 860,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 653,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 869,
+          "moves": 54,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261109_interval16\\S1": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 764,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 764,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 764,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 764,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 768,
+          "moves": 1,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 770,
+          "moves": 2,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 764,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 768,
+          "moves": 1,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261109_interval16\\S2": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 810,
+          "moves": 14,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 814,
+          "moves": 17,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 764,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 804,
+          "moves": 10,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 826,
+          "moves": 18,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 858,
+          "moves": 37,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 762,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 820,
+          "moves": 14,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261109_interval16\\S3": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 904,
+          "moves": 43,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 931,
+          "moves": 62,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 753,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 876,
+          "moves": 28,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 908,
+          "moves": 45,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 965,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 757,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 876,
+          "moves": 28,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261109_interval16\\S4": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 870,
+          "moves": 75,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 868,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 644,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 840,
+          "moves": 49,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 887,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 859,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 644,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 840,
+          "moves": 49,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval40\\S1": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval40\\S2": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 771,
+          "moves": 6,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 787,
+          "moves": 13,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 771,
+          "moves": 6,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 771,
+          "moves": 6,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 789,
+          "moves": 16,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 771,
+          "moves": 6,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval40\\S3": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 825,
+          "moves": 26,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 827,
+          "moves": 27,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 799,
+          "moves": 13,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 827,
+          "moves": 27,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 831,
+          "moves": 33,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 747,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 799,
+          "moves": 13,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "candidates\\seed20261107_interval40\\S4": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 698,
+          "moves": 11,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 716,
+          "moves": 20,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 654,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 698,
+          "moves": 11,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 698,
+          "moves": 11,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 738,
+          "moves": 31,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 654,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 698,
+          "moves": 11,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "S1_selected": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 831,
+          "moves": 21,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 819,
+          "moves": 17,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 801,
+          "moves": 7,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 839,
+          "moves": 24,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 832,
+          "moves": 22,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 773,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 813,
+          "moves": 10,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "S2_selected": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 899,
+          "moves": 41,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 925,
+          "moves": 59,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 772,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 865,
+          "moves": 23,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 921,
+          "moves": 52,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 947,
+          "moves": 70,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 772,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 869,
+          "moves": 24,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "S3_selected": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 971,
+          "moves": 68,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 981,
+          "moves": 78,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 768,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 917,
+          "moves": 36,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 965,
+          "moves": 66,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 976,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 768,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 913,
+          "moves": 35,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    },
+    "S4_selected": {
+      "source_requests_and_capacities_unchanged": true,
+      "lifecycle_transform_verified": true,
+      "witnesses_replayed": true,
+      "baselines": {
+        "best_fit__cheap_multi.json": {
+          "events_replayed": 889,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__first_multi.json": {
+          "events_replayed": 868,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__none.json": {
+          "events_replayed": 653,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "best_fit__one_move.json": {
+          "events_replayed": 865,
+          "moves": 53,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__cheap_multi.json": {
+          "events_replayed": 887,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__first_multi.json": {
+          "events_replayed": 865,
+          "moves": 80,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__none.json": {
+          "events_replayed": 653,
+          "moves": 0,
+          "all_constraints_and_metrics_match": true
+        },
+        "first_fit__one_move.json": {
+          "events_replayed": 873,
+          "moves": 55,
+          "all_constraints_and_metrics_match": true
+        }
+      }
+    }
+  }
+}
