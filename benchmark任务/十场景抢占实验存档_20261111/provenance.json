@@ -1,0 +1,168 @@
+{
+  "source_root": "D:\\vmagent_scenarios_preemption_20261107",
+  "note": "十场景原始输入与运行输出未上传仓库（总量约3.4GB，部分单文件超过GitHub 100MB限制）。此清单记录场景输入文件的SHA256，用于核对仓库内存档与本地数据一致。",
+  "scenarios": {
+    "P0_real_F8d": {
+      "README.md": {
+        "bytes": 12057,
+        "sha256": "31e31057827795b0d4369d5f353a0831a1b6e8b0076ac52f7ec0d353b3bdba42"
+      },
+      "tasks.csv": {
+        "bytes": 15917949,
+        "sha256": "fe6f0c0fc806e8bc7eec679ec6f3cb21d1a33f7842f367387434046a072027bc"
+      },
+      "tasks.json": {
+        "bytes": 40533823,
+        "sha256": "fefbfbb99e158ae39807aa3cd4c4a67fa79f47f43b31d3d3436d945740d6023f"
+      }
+    },
+    "P1_steady": {
+      "README.md": {
+        "bytes": 14647,
+        "sha256": "e4359ab06b014d5ada1c1ef5a86a99da05a0279ef845adc2120ad29605fc5083"
+      },
+      "tasks.csv": {
+        "bytes": 9347306,
+        "sha256": "225bee956a0a727f11e77803ad8a4da338dcd36dc62e8ba0a1c352d58de7c5e3"
+      },
+      "tasks.json": {
+        "bytes": 19629306,
+        "sha256": "a214aee371eaff9ef890cb518009f77496d7519d9cad59e1d7c8e46e3f8d65c1"
+      }
+    },
+    "P2_burst": {
+      "README.md": {
+        "bytes": 14740,
+        "sha256": "63d587a31ab2136a1dc9edaccccd554367572604b7c6794ac23712dcaeadc957"
+      },
+      "tasks.csv": {
+        "bytes": 9309149,
+        "sha256": "13fad13f7c42aa38ca5c8c84925fb9013b948d4ec4cbcc15d2e294b07409d66c"
+      },
+      "tasks.json": {
+        "bytes": 19591149,
+        "sha256": "74904ce09c93385ac9eab7d6480de387b806cafa8a08ac2b7e7fa38af7bd8031"
+      }
+    },
+    "P3_overload": {
+      "README.md": {
+        "bytes": 14767,
+        "sha256": "64d6f195d5a917a209f95aa8adf565986ee346319cb3f89a06ecad611f5c5b54"
+      },
+      "tasks.csv": {
+        "bytes": 12059826,
+        "sha256": "98df9b811ac010378ee824980e6af4a4829430a23da53faec40c2a451eaeaef9"
+      },
+      "tasks.json": {
+        "bytes": 25216050,
+        "sha256": "95a171e17e62e9bee6e13ab2c2a42eb99e2e7e183509a80a9744abe954491224"
+      }
+    },
+    "P4_model_skew": {
+      "README.md": {
+        "bytes": 14835,
+        "sha256": "21b77323649012a9e699ff3182cdaebea3f584f26f82ce0f6c770df1c236cd48"
+      },
+      "tasks.csv": {
+        "bytes": 8642669,
+        "sha256": "64e588dd9dac429eaf2e1a94060716b4c8c4d347393529f4a01888d786a22f2e"
+      },
+      "tasks.json": {
+        "bytes": 18008845,
+        "sha256": "44cefdb024a1c10471f485c061293f51df2745ee4d8b5476624ecdcc11189a6c"
+      }
+    },
+    "P5_cpu_contention": {
+      "README.md": {
+        "bytes": 15173,
+        "sha256": "12559a6b64227d5d71451d7bba052d054f6333cc7c7795292bed7105876957ff"
+      },
+      "tasks.csv": {
+        "bytes": 17468858,
+        "sha256": "65753d5b73de96b8a8f5deaac125e7aeb78d7dc8ae4f903728dc8a9f70de047a"
+      },
+      "tasks.json": {
+        "bytes": 36265818,
+        "sha256": "f4a32fdd3b0f19fad47056bc9b05876779986f865f178c7ec72b99ba7a754317"
+      }
+    },
+    "P6_real_H20_early15d": {
+      "README.md": {
+        "bytes": 12284,
+        "sha256": "5ecf28d3870846da27c731446c9671eaa07bacbf27318b516a97ed4e0644149f"
+      },
+      "tasks.csv": {
+        "bytes": 4548250,
+        "sha256": "3e14de7c76c4309c1cc83b4be12b6cd07081de92a0572a0792161a2ec51d39e5"
+      },
+      "tasks.json": {
+        "bytes": 13054032,
+        "sha256": "bece0e1a0c5518fc4d170d36f4120807427d6a30c6101358f9fc784c6de57790"
+      },
+      "nodes.csv": {
+        "bytes": 2380,
+        "sha256": "ebcdbfe4c7d7c72dde167271a2fd43b54b731343dfb32adb69702f3db20147f3"
+      }
+    },
+    "P7_real_H20_15d": {
+      "README.md": {
+        "bytes": 12412,
+        "sha256": "6112c5211e3de475f33589dbcc88b96ba2d6257ed67d6ffc7944f675106a7de1"
+      },
+      "tasks.csv": {
+        "bytes": 68662561,
+        "sha256": "2cc68641a0ca800347b8a267a7c79d1109ba3eec77ddc2df7ad99a26694ebb7e"
+      },
+      "tasks.json": {
+        "bytes": 207099395,
+        "sha256": "cc4d7bc0b6dca348227ce6e8d1cd1d87740ce4933f248b6a5182556482514c0c"
+      },
+      "nodes.csv": {
+        "bytes": 2380,
+        "sha256": "0718fd5e5a92388ca5b41581a95a18c036546bfb31cb344954dab8daca6cb667"
+      }
+    },
+    "P8_real_XPUD_15d": {
+      "README.md": {
+        "bytes": 12474,
+        "sha256": "ee81fd5af555b9e095ed5c72740ea145a82428a97f479e7211dcb4b4dcadf803"
+      },
+      "tasks.csv": {
+        "bytes": 78099102,
+        "sha256": "5643ed07fc363a3b7ef606fb190e7f59e85c4fd7daf9805cf3d1140283a72f21"
+      },
+      "tasks.json": {
+        "bytes": 231452858,
+        "sha256": "451250a55348b531f9201d716159e178b6b6b6d90c1db3aa0aef7ff6053c0ae4"
+      },
+      "nodes.csv": {
+        "bytes": 2440,
+        "sha256": "72ca37ed57ac51e46d60e19b6f4328bcd5b35084df92f2b6973c82b188ef2a89"
+      }
+    },
+    "P9_H20_gpu_capacity_pressure": {
+      "README.md": {
+        "bytes": 10695,
+        "sha256": "cd2b86cde611720d30bfc5f58f10024fba9f57c9a26b5a1e5e4872be195f7e47"
+      },
+      "tasks.csv": {
+        "bytes": 3049719,
+        "sha256": "1ca6c497f2b3208fb7fbb7799efd4180885fd1db55720e27dfae852df75a3d7d"
+      },
+      "tasks.json": {
+        "bytes": 8171337,
+        "sha256": "7ea7e55a42ed6ee7325e73076714ea094d3c9f81a463bdb4accffa3752f5c32d"
+      },
+      "nodes.csv": {
+        "bytes": 1533,
+        "sha256": "087e4bb7983eb98a012aede63f466d083f83a0e8be855693c8bf1aac2475c319"
+      }
+    }
+  },
+  "results": {
+    "outputs/comparison_latest.csv": {
+      "bytes": 1075,
+      "sha256": "8f844e34b619de998ef6fcfc38c123f61462d84b16863bedf87c7ae0f367310d"
+    }
+  }
+}
