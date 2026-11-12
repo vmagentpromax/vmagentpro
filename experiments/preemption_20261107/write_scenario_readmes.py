@@ -52,7 +52,7 @@ def source_style(name):
 
 def methodology(name,m):
     """State exact provenance and simulation-time transformations per scene."""
-    f_source='`D:/vmagent_scenarios_hetero_8d/sim_inputs/jobs_F.csv`'
+    f_source='`runs/hetero8d_20261101/inputs/jobs_F.csv`（仓库内；原始 D 盘位置见该目录 README 第 6 节）'
     if name=='P0_real_F8d':
         return [f'- **原始天数：**阿里原始 `day=109–116`，连续8天；另读 `day=108/hour=23` 判断边界前已出现的 Pod。输入直接来自 F 的 {f_source}，不是新的原始扫描，也不是未修改的真实提交日志。',
             '- **取样和改动：**沿用 F 的30台节点、119,495个去重任务，不再次抽样。F 中1,070个 `presence_remaining` 边界任务在模拟0秒到达，服务时长各增加3,600秒准备量；F 中其余正时刻到达统一加3,600秒。测量 `[3600,694800)`；源任务资源请求、机型、优先级和正时刻任务之间的到达间距不改。',

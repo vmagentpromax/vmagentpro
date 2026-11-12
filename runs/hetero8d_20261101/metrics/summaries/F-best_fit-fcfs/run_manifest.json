@@ -1,0 +1,8 @@
+{
+  "nodes": "D:\\vmagent_scenarios_hetero_8d\\sim_inputs\\nodes.csv",
+  "tasks": "D:\\vmagent_scenarios_hetero_8d\\sim_inputs\\jobs_F.csv",
+  "policy": "best_fit",
+  "queue_policy": "fcfs",
+  "workload_metadata": {},
+  "seed": 42
+}

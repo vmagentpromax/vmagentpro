@@ -1,0 +1,99 @@
+{
+  "scenario": "F",
+  "role": "8天整体高负载异构窗口（day109 h0 .. day117 h0，192 小时）",
+  "source_trace": "alibaba/clusterdata cluster-trace-gpu-v2026 (ASI, OSDI'26)",
+  "source_partitions": "asi_opensource_pod_hourly day=108 hour=23 (warmup) + day=109..116 all hours",
+  "cluster_id": "1f28e063c4e5e1bc48ff55269617dd2f",
+  "asw_id": "7b39f1498b7a4c42b46c440960e863b9",
+  "nodes": {
+    "count": 30,
+    "by_gpu_type": {
+      "XPU-A|8|192": 20,
+      "H20|8|192": 10
+    },
+    "capacity_gpu": 240.0,
+    "capacity_cpu_cores": 5760.0,
+    "single_cluster": true
+  },
+  "jobs": {
+    "count": 119495,
+    "gpu_jobs": 5910,
+    "cpu_only_jobs": 113585,
+    "priority_class_all": {
+      "HP": 9487,
+      "Other": 104691,
+      "LP": 5317
+    },
+    "priority_class_gpu_jobs": {
+      "HP": 447,
+      "LP": 5215,
+      "Other": 248
+    },
+    "job_type_public": {
+      "unknown": 113613,
+      "online_inference": 461,
+      "training": 73,
+      "dev": 3,
+      "offline_inference": 5341,
+      "other": 4
+    },
+    "gpu_spec_public": {
+      "[]": 113585,
+      "XPU-A": 4720,
+      "H20": 1190
+    },
+    "seed": 20261101
+  },
+  "achieved_load": {
+    "gpu": 0.9611,
+    "cpu": 1.4389
+  },
+  "run_parameters": {
+    "clock": "fast",
+    "seed": 42,
+    "cpu_background_fraction": 0,
+    "measurement_seconds": 691200,
+    "max_sim_time": 4000000,
+    "spotgpu_checkpoint_interval_sec": 3600
+  },
+  "runs_collected": [
+    "F-best_fit-backfill",
+    "F-best_fit-fcfs",
+    "F-best_fit-fcfs-rerun",
+    "F-first_fit-backfill",
+    "F-first_fit-fcfs",
+    "F-first_fit-fcfs-rerun",
+    "F-random-backfill",
+    "F-random-fcfs",
+    "F-random-fcfs-rerun",
+    "F-spotgpu-backfill",
+    "F-spotgpu-fcfs",
+    "F-worst_fit-backfill",
+    "F-worst_fit-fcfs",
+    "F-worst_fit-fcfs-rerun"
+  ],
+  "runs_not_collected": "每组 outputs 下的 events.csv / resource_history.csv / tasks.csv / nodes_final.csv（单个运行目录约 80 MB，合计约 1.2 GB）未入库，可由 inputs 与 run_parameters 复现",
+  "upstream_not_in_repo": {
+    "location": "D:/vmagent_scenarios_hetero_8d/",
+    "raw_layer_files": {
+      "jobs_scenario_F.csv": {
+        "bytes": 14135696,
+        "sha256": "1de88e078e530dbd0cda70cbcbbdb23f7beef10ac0bb21c9b3f1c3a5b7867815",
+        "header": "job_id,submit_time_sec,gpu_request,cpu_request_cores,service_sec,allowed_gpu_types,job_type_public,priority_class,source_pod_id,service_source,pod_kind"
+      },
+      "nodes.csv": {
+        "bytes": 3656,
+        "sha256": "1fca902ca976838d3237f361a5a8e46e35bc1a54d852a22cd87ff804bd3b870d",
+        "note": "原始字段层，已作为 inputs/nodes_raw_with_asw.csv 入库"
+      }
+    },
+    "conversion_script": "未保留：raw 层 -> sim_inputs 层的转换脚本在 D 盘不存在，属已知溯源缺口"
+  },
+  "input_sha256": {
+    "cpu_background.csv": "767fb7fab5b59379037c76cbf37791f9f0ae8823a721e155fdb0a6128937578a",
+    "jobs_F.csv": "639c017036f0a97edd3bd8162df74d39419572ba9114a4a0b647d443c9d3f207",
+    "nodes.csv": "6ee470ae7c3ae92efc3e6fe3f607a91239e4ca7141e2da7681adac3ee969f4bc",
+    "nodes_raw_with_asw.csv": "1fca902ca976838d3237f361a5a8e46e35bc1a54d852a22cd87ff804bd3b870d",
+    "scenario_manifest.json": "fb570b14385e3b652768875f85fbee6e85efe494bba06230af7e97f7cd9fe098"
+  }
+}

@@ -3,6 +3,7 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import random
 import shutil
 from collections import Counter
@@ -10,8 +11,11 @@ from pathlib import Path
 
 DAY = 86400
 P0_WARMUP_SEC = 3600
-SOURCE = Path('D:/vmagent_scenarios_hetero_8d/sim_inputs')
-DEFAULT_OUT = Path('D:/vmagent_scenarios_preemption_20261107')
+REPO_ROOT = Path(__file__).resolve().parents[2]
+# Scene F inputs are versioned in the repository; override VMAGENTPRO_SCENE_F to read elsewhere.
+SOURCE = Path(os.environ.get('VMAGENTPRO_SCENE_F', REPO_ROOT / 'runs/hetero8d_20261101/inputs'))
+# Derived scenarios are regenerable outputs, so they stay out of version control (/outputs/gpu/ is gitignored).
+DEFAULT_OUT = Path(os.environ.get('VMAGENTPRO_PREEMPTION_OUT', REPO_ROOT / 'outputs/gpu/preemption_20261107'))
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()

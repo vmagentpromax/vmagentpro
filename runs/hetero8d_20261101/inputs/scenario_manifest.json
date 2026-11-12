@@ -1,0 +1,146 @@
+{
+  "generated_at_epoch": 1793518592,
+  "pool_summary": {
+    "title": "single 8-day heterogeneous high-load scenario for scheduler-strategy comparison",
+    "source_partitions": "asi_opensource_pod_hourly day=108 hour=23 + day=109..116 all hours",
+    "asw_id": "7b39f1498b7a4c42b46c440960e863b9",
+    "cluster_id": "1f28e063c4e5e1bc48ff55269617dd2f",
+    "filters": "30 pool servers; gpu_request>0 OR cpu_request_cores>0",
+    "raw_pod_hour_rows": 339034,
+    "distinct_pods": 119742,
+    "gpu_pods": 5910,
+    "cpu_only_pods": 113832,
+    "service_job_summary": 5910,
+    "service_presence_fallback": 113832,
+    "capacity_gpu": 240,
+    "capacity_cpu": 5760,
+    "node_gpu_types": {
+      "XPU-A": "20",
+      "H20": "10"
+    },
+    "daily_loads": [
+      {
+        "day": 109,
+        "pod_hour_proxy_gpu": 1.1158,
+        "pod_hour_proxy_cpu": 1.4358,
+        "distinct_pods": 9134,
+        "pod_hour_rows": 35123
+      },
+      {
+        "day": 110,
+        "pod_hour_proxy_gpu": 1.1204,
+        "pod_hour_proxy_cpu": 1.5296,
+        "distinct_pods": 10886,
+        "pod_hour_rows": 38621
+      },
+      {
+        "day": 111,
+        "pod_hour_proxy_gpu": 1.1509,
+        "pod_hour_proxy_cpu": 1.4713,
+        "distinct_pods": 20316,
+        "pod_hour_rows": 45288
+      },
+      {
+        "day": 112,
+        "pod_hour_proxy_gpu": 1.1656,
+        "pod_hour_proxy_cpu": 1.5198,
+        "distinct_pods": 16932,
+        "pod_hour_rows": 42129
+      },
+      {
+        "day": 113,
+        "pod_hour_proxy_gpu": 1.192,
+        "pod_hour_proxy_cpu": 1.5961,
+        "distinct_pods": 20057,
+        "pod_hour_rows": 47476
+      },
+      {
+        "day": 114,
+        "pod_hour_proxy_gpu": 1.1916,
+        "pod_hour_proxy_cpu": 1.5855,
+        "distinct_pods": 17936,
+        "pod_hour_rows": 45521
+      },
+      {
+        "day": 115,
+        "pod_hour_proxy_gpu": 1.1919,
+        "pod_hour_proxy_cpu": 1.5316,
+        "distinct_pods": 15525,
+        "pod_hour_rows": 41743
+      },
+      {
+        "day": 116,
+        "pod_hour_proxy_gpu": 1.2487,
+        "pod_hour_proxy_cpu": 1.6109,
+        "distinct_pods": 16150,
+        "pod_hour_rows": 41816
+      }
+    ],
+    "assumptions": [
+      "heterogeneous pool: 20 XPU-A + 10 H20 servers of ASW 7b39f149... (cluster 1f28e063...); GPU model constraint via allowed_gpu_types",
+      "single 192h continuous window day109 h0 .. day117 h0; warmup from day108 h23",
+      "arrival times: first-seen pod inside the window, uniform within its first hour",
+      "GPU pod service time: job_execution_summary median duration_hours; unmatched/CPU-only: observed presence span (last-first+1 hours)",
+      "CPU-only pods first seen near the window end have right-censored presence spans (see right_censored counts)",
+      "no synthetic CPU background; CPU load comes from real pod requests",
+      "gpu_mem_request and host RAM are not modeled",
+      "asw_id exists for all days >= day109; no proxying needed"
+    ],
+    "scenario_notes": [
+      {
+        "scenario": "F",
+        "role": "8天整体高负载窗口（day109-116，192h）",
+        "block": {
+          "start_day": 109,
+          "start_hour": 0,
+          "end_day": 117,
+          "end_hour": 0
+        },
+        "achieved_gpu_load": 0.9611,
+        "achieved_cpu_load": 1.4389,
+        "n_jobs": 119495,
+        "gpu_jobs": 5910,
+        "cpu_only_jobs": 113585,
+        "warmup_jobs": 1070,
+        "warmup_gpu_load": 0.6793,
+        "warmup_cpu_load": 0.5596,
+        "arrival_service_job_summary": 5693,
+        "arrival_service_presence": 112732,
+        "max_service_sec": 2322400.0,
+        "recommended_max_sim_time_sec": 4000000,
+        "right_censored_first_seen_last_hour": 487,
+        "right_censored_first_seen_last_day": 15125,
+        "unique_pods_only": true,
+        "seed": 20261101
+      }
+    ]
+  },
+  "scenario_notes": [
+    {
+      "scenario": "F",
+      "role": "8天整体高负载窗口（day109-116，192h）",
+      "block": {
+        "start_day": 109,
+        "start_hour": 0,
+        "end_day": 117,
+        "end_hour": 0
+      },
+      "achieved_gpu_load": 0.9611,
+      "achieved_cpu_load": 1.4389,
+      "n_jobs": 119495,
+      "gpu_jobs": 5910,
+      "cpu_only_jobs": 113585,
+      "warmup_jobs": 1070,
+      "warmup_gpu_load": 0.6793,
+      "warmup_cpu_load": 0.5596,
+      "arrival_service_job_summary": 5693,
+      "arrival_service_presence": 112732,
+      "max_service_sec": 2322400.0,
+      "recommended_max_sim_time_sec": 4000000,
+      "right_censored_first_seen_last_hour": 487,
+      "right_censored_first_seen_last_day": 15125,
+      "unique_pods_only": true,
+      "seed": 20261101
+    }
+  ]
+}

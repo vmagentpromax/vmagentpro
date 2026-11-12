@@ -156,7 +156,7 @@
           <li>点“使用内置场景 A 数据”；它会把测量窗切成 120 秒（模拟上限保留当前值）。</li>
           <li>时间模式选“快速模式”，点“开始实验”。</li>
           <li>跑自己的 6 小时数据时，在“高级设置”里用测量窗口 21600、模拟上限 150000。</li>
-          <li>跑异构 8 天场景（30 台 H20+XPU-A、约 12 万任务）时，先点“异构 8 天场景 F 参数”，再上传 <code>sim_inputs/nodes.csv</code> 与 <code>sim_inputs/jobs_F.csv</code>（任务表约 16 MB，上限 64 MiB）。</li>
+          <li>跑异构 8 天场景（30 台 H20+XPU-A、约 12 万任务）时，先点“异构 8 天场景 F 参数”，再上传仓库内的 <code>runs/hetero8d_20261101/inputs/nodes.csv</code> 与 <code>runs/hetero8d_20261101/inputs/jobs_F.csv</code>（任务表约 15.9 MB，上限 64 MiB）。场景定义、构造假设与复跑预期见 <code>runs/hetero8d_20261101/README.md</code>。</li>
           <li>右侧观察完成数、资源曲线、分机型负载、服务器和任务状态；结束后在左侧下载结果。</li>
         </ol>
         <h3>三个容易混淆的概念</h3>

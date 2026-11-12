@@ -1,0 +1,52 @@
+{
+  "task_count": 119495,
+  "node_count": 30,
+  "gpu_capacity": 240.0,
+  "cpu_capacity_cores": 5760.0,
+  "not_arrived": 0,
+  "waiting": 0,
+  "running": 0,
+  "completed": 119495,
+  "rejected": 0,
+  "unfinished": 0,
+  "sim_time_sec": 2982940.0,
+  "wall_time_sec": 128.9220000000205,
+  "clock": "fast",
+  "speed": 1.0,
+  "end_reason": "drained",
+  "measurement_window_sec": [
+    0.0,
+    691200.0
+  ],
+  "measurement_denominator_sec": 691200.0,
+  "offered_gpu_ratio": 0.961098173605083,
+  "offered_cpu_ratio": 1.4389450130270514,
+  "reserved_gpu_ratio": 0.7638336512948446,
+  "reserved_cpu_ratio": 0.999929355752573,
+  "per_model": {
+    "XPU-A": {
+      "gpu_capacity": 160.0,
+      "cpu_capacity_cores": 3840.0,
+      "offered_gpu_ratio": 1.040616417218244,
+      "reserved_gpu_ratio": 0.909553952781406,
+      "reserved_cpu_ratio": 0.9999319024304101
+    },
+    "H20": {
+      "gpu_capacity": 80.0,
+      "cpu_capacity_cores": 1920.0,
+      "offered_gpu_ratio": 0.8020616863787615,
+      "reserved_gpu_ratio": 0.4723930483217528,
+      "reserved_cpu_ratio": 0.9999242623969227
+    }
+  },
+  "preemptions": 0,
+  "preempted_task_count": 0,
+  "wasted_gpu_sec": 0.0,
+  "mean_wait_sec_started": 174868.89095740297,
+  "p95_wait_sec_started": 263586.339,
+  "peak_queue_length": 41144,
+  "peak_gpu_reserved": 210.78,
+  "peak_cpu_reserved_cores": 5760.0,
+  "cpu_background_fraction": 0.0,
+  "reservation_metrics_are_not_SM_or_CPU_execution_utilization": true
+}
