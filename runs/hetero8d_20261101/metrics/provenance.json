@@ -95,5 +95,48 @@
     "nodes.csv": "6ee470ae7c3ae92efc3e6fe3f607a91239e4ca7141e2da7681adac3ee969f4bc",
     "nodes_raw_with_asw.csv": "1fca902ca976838d3237f361a5a8e46e35bc1a54d852a22cd87ff804bd3b870d",
     "scenario_manifest.json": "fb570b14385e3b652768875f85fbee6e85efe494bba06230af7e97f7cd9fe098"
-  }
+  },
+  "hash_convention": {
+    "note": "input_sha256 与 hash_convention.files 中的 sha256_working_copy_crlf 记录的是 Windows 工作副本（core.autocrlf=true，行尾 CRLF）的字节哈希，与仓库既有的 runs/allpods_20261025/metrics/provenance.json 口径一致。",
+    "caveat": "git 会把文本文件在 blob 中归一化为 LF，因此在 Linux/macOS 上 clone，或在 Windows 上 core.autocrlf=input/false 时检出，得到的字节是 LF 版本，sha256_working_copy_crlf 不会匹配。此时请改用 sha256_git_blob_lf 核对。",
+    "not_corruption": "已逐文件验证 identical_apart_from_line_endings 为 true，即两种版本除行尾外内容完全相同，数据未损坏；CSV 解析对行尾不敏感，两种版本都能被引擎正确加载。",
+    "files": {
+      "cpu_background.csv": {
+        "bytes_working_copy": 1682,
+        "sha256_working_copy_crlf": "767fb7fab5b59379037c76cbf37791f9f0ae8823a721e155fdb0a6128937578a",
+        "bytes_git_blob": 1651,
+        "sha256_git_blob_lf": "1823c9ca44feed26889108e3730fd4a600b5d0f23d8dcf7c576ecab74c292d69",
+        "identical_apart_from_line_endings": true
+      },
+      "jobs_F.csv": {
+        "bytes_working_copy": 15910384,
+        "sha256_working_copy_crlf": "639c017036f0a97edd3bd8162df74d39419572ba9114a4a0b647d443c9d3f207",
+        "bytes_git_blob": 15790888,
+        "sha256_git_blob_lf": "e0d68222fa70fb43cecf43fc3de7e135ca6581ae94b414f4a8e51149c93921ec",
+        "identical_apart_from_line_endings": true
+      },
+      "nodes.csv": {
+        "bytes_working_copy": 2417,
+        "sha256_working_copy_crlf": "6ee470ae7c3ae92efc3e6fe3f607a91239e4ca7141e2da7681adac3ee969f4bc",
+        "bytes_git_blob": 2386,
+        "sha256_git_blob_lf": "4e345cc227c9f63005ec74ea68550bc82e37bb3df9a5a3ef93b41d9f98a7f4e2",
+        "identical_apart_from_line_endings": true
+      },
+      "nodes_raw_with_asw.csv": {
+        "bytes_working_copy": 3656,
+        "sha256_working_copy_crlf": "1fca902ca976838d3237f361a5a8e46e35bc1a54d852a22cd87ff804bd3b870d",
+        "bytes_git_blob": 3625,
+        "sha256_git_blob_lf": "59589bf10f8695e89e6287427dc828535d53581583965e7faba63820a70c65f2",
+        "identical_apart_from_line_endings": true
+      },
+      "scenario_manifest.json": {
+        "bytes_working_copy": 4799,
+        "sha256_working_copy_crlf": "fb570b14385e3b652768875f85fbee6e85efe494bba06230af7e97f7cd9fe098",
+        "bytes_git_blob": 4654,
+        "sha256_git_blob_lf": "36259a65541070ba867aac499de3108f406542088dda1a6ddfd2ec589b24fa86",
+        "identical_apart_from_line_endings": true
+      }
+    }
+  },
+  "input_sha256_convention": "working_copy_crlf；跨平台核对见 hash_convention"
 }

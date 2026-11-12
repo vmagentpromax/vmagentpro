@@ -93,6 +93,22 @@ service_sec, cluster_id, duration_match_status, job_type_public, priority_class
 
 **该表头与 `runs/allpods_20261025/inputs/jobs_A.csv` 逐字相同**，`nodes.csv` 表头也与 `runs/allpods_20261025/inputs/nodes.csv` 逐字相同——两套场景输入是同一格式，可共用加载与评价代码。
 
+### 关于 sha256 核对（跨平台必读）
+
+本机 `core.autocrlf=true`，所以**工作副本是 CRLF，而 git blob 里存的是归一化后的 LF**。`metrics/provenance.json` 的 `input_sha256` 记录的是**工作副本（CRLF）**口径——这与仓库既有的 `runs/allpods_20261025/metrics/provenance.json` 口径一致（我核对过，那份记录的三个哈希全部匹配工作副本而非 blob）。
+
+后果：在 Linux/macOS 上 clone，或在 Windows 上把 `core.autocrlf` 设为 `input`/`false` 时检出，得到的是 LF 版本，`sha256_working_copy_crlf` **不会匹配**。这不是数据损坏。`provenance.json` 的 `hash_convention.files` 段为每个输入同时记录了两种哈希：
+
+| 文件 | CRLF 字节 | LF 字节 | 除行尾外内容相同 |
+|---|---:|---:|:---:|
+| `jobs_F.csv` | 15,910,384 | 15,790,888 | ✅ |
+| `scenario_manifest.json` | 4,799 | 4,654 | ✅ |
+| `nodes_raw_with_asw.csv` | 3,656 | 3,625 | ✅ |
+| `nodes.csv` | 2,417 | 2,386 | ✅ |
+| `cpu_background.csv` | 1,682 | 1,651 | ✅ |
+
+五个文件均已逐个验证 `identical_apart_from_line_endings = true`。CSV/JSON 解析对行尾不敏感，两种版本都能被引擎正确加载（第 5 节的复现校验就是在 CRLF 工作副本上跑的）。**跨平台核对时请用 `sha256_git_blob_lf`。**
+
 ### 收录的 14 个运行组
 
 `F-{first_fit,best_fit,worst_fit,random,spotgpu}-{fcfs,backfill}` 共 10 组，另有 4 个 `F-{first_fit,best_fit,worst_fit,random}-fcfs-rerun`（性能优化后的复跑，用于核验既有结果）。
