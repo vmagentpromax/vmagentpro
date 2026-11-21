@@ -1,7 +1,7 @@
 # 场景 F：异构 8 天高负载窗口（day109–116）
 
 收录时间：2026-11-12
-数据来源：本机 `D:\vmagent_scenarios_hetero_8d\`（未入库，见第 6 节）
+数据来源：原始构造层在本机 `D:\vmagent_scenarios_hetero_8d\`（未全部入库，见第 6 节）；本目录 `inputs/` 已收录仿真就绪输入。
 上游 trace：`alibaba/clusterdata` 的 `cluster-trace-gpu-v2026`（ASI，OSDI'26）
 
 本目录是**场景 F 的仿真就绪输入与指标结论**。运行明细（events / resource_history / tasks，约 1.2 GB）未入库，可由本目录的 `inputs/` 加第 5 节的命令复现。
@@ -14,7 +14,7 @@
 |---|---|
 | 角色 | 8 天整体高负载窗口，用于调度策略横向对比 |
 | 时间块 | `day=109 hour=00` 至 `day=117 hour=00`，连续 192 小时 |
-| 预热 | `day=108 hour=23`（1,070 个 warmup 任务，warmup GPU/CPU 负载 0.6793 / 0.5596） |
+| 边界任务来源 | 参考 `day=108 hour=23`，得到 1,070 个窗口边界已出现任务；其边界 GPU/CPU 负载代理值为 0.6793 / 0.5596。**原 F 仿真把它们放在 `t=0` 到达，测量窗也从 `t=0` 开始；这不是严格的模拟预热段。** |
 | 源分区 | `asi_opensource_pod_hourly` day=108 hour=23 + day=109..116 全部小时 |
 | cluster_id | `1f28e063c4e5e1bc48ff55269617dd2f`（30 台同属一个 cluster，已核实唯一） |
 | asw_id | `7b39f1498b7a4c42b46c440960e863b9`（**单一 ASW 域**，池内无跨 ASW 拓扑差异） |
@@ -129,7 +129,9 @@ service_sec, cluster_id, duration_match_status, job_type_public, priority_class
 
 前两行**都是"20 台 H20、160 GPU"，但 cluster 不同、每台核数不同（192 vs 224）、总 CPU 容量差 640 核**。这不是笔误，是两个不同的节点池：前者来自 `docs/server_selection/` 的首轮选型（论文 §3.3 举例的 8-GPU H20 / 192 核），后者来自五场景（allpods）工作，`conversion_manifest.json` 里记的是 `capacity_cpu: 4480`。
 
-**已经产生的后果**：`docs/server_selection/run_request_scenes.py:123,125` 把容量写死成 `160` 和 `3840`，只适用于第一个池；`runs/allpods_20261025/metrics/README.md` 写的是"160 GPU、4,480 CPU 核"。**用错池会让 CPU 预留率算错约 17%。**
+**这是脆弱性，不是已发生的错误。** 逐个脚本核对后确认当前结果都正确：`docs/server_selection/run_request_scenes.py:113` 读的正是 `servers_20_H20.csv`（192 核 / 3,840），与它 `:123`/`:125` 写死的 `160`/`3840` 匹配；`runs/allpods_20261025/metrics/reproduce_metrics.py:67` 与 `experiments/preemption_20261107/harness.py:164` 都用 `env.total_gpu` 动态取，写法本来就正确。**本场景 F 的指标不受影响**——`summary.json` 里 `gpu_capacity 240.0 / cpu_capacity_cores 5760.0`，四个比率全按本目录 `inputs/nodes.csv` 的实际容量计算。
+
+风险只在于：`run_request_scenes.py` 是三者里唯一把容量写成字面量的，**一旦有人把它的输入换成上表另外两个池之一，那两条断言会静默给出错误数字或直接误报失败**，而且不会有人注意到。
 
 引用任何 CPU 相关指标前，先确认用的是哪个 `nodes.csv`。
 
@@ -139,7 +141,7 @@ service_sec, cluster_id, duration_match_status, job_type_public, priority_class
 
 | 关系 | 说明 |
 |---|---|
-| **是十场景抢占实验的数据源** | `experiments/preemption_20261107/build_scenarios.py:13` 的 `SOURCE` 原本指向 `D:/vmagent_scenarios_hetero_8d/sim_inputs`；十场景中的 `P0_real_F8d` 就是场景 F 本身 |
+| **是十场景抢占实验的数据源** | `experiments/preemption_20261107/build_scenarios.py` 原本从 `D:/vmagent_scenarios_hetero_8d/sim_inputs` 读取 F，现默认从本目录 `inputs/` 读取。P0 沿用 F 的节点和任务来源，**但不是逐行相同的 F 输入**：1070 个边界任务在模拟 `t=0` 到达且各增加 3600 秒准备服务量，其余任务到达各后移 3600 秒；P0 测量窗为 `[3600,694800)`，形成严格模拟预热。原 F 测量窗为 `[0,691200)`。 |
 | **是性能优化说明的数据来源** | `vmagentpro准备工作/调度器性能优化说明.md` 里"119,495 任务 / 30 节点"的十组墙钟数字，与 `metrics/策略对比结果.md` 逐个一致 |
 | **驱动了引擎的异构与抢占支持** | 提交 `e3181b4`（异构 GPU 支持、backfill 扫描游标、分机型指标、64 MiB 上传上限、8 天场景预设 UI）与 `d20f8b1`（SpotGPU 抢占、CPU 线段树 backfill）都是为跑通本场景而做 |
 | **前端有对应预设按钮** | `vmagent/gpu/static/index.html:44` 的"异构 8 天场景 F 参数"按钮、`app.js:83` 的提示文案（测量窗 691200 秒 / 上限 4,000,000 秒 / 快速模式） |
