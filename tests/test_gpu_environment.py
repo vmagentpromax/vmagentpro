@@ -291,5 +291,88 @@ class TopologyAndFragmentationMetricTests(unittest.TestCase):
             self.assertEqual([t.workload_id for t in loaded], ["w1", "", ""])
 
 
+class BlockClassificationTests(unittest.TestCase):
+    """_classify_block explains why a waiting task cannot start right now.
+
+    The fragmentation case is the one that matters: aggregate free capacity is
+    sufficient but no single node jointly fits, so only a migration or a
+    defragmentation sweep can unblock the task.
+
+    These unit tests set the resource ledger directly rather than driving step():
+    under clock="fast" a step jumps to the next decision point, so a task that
+    can never be placed would fast-forward past the occupants' completion and the
+    state under test would already be gone.
+    """
+
+    def two_nodes(self):
+        return [NodeSpec("n1", "c", "H20", 8., 8.), NodeSpec("n2", "c", "H20", 8., 8.)]
+
+    def staged(self, free_gpu, free_cpu, nodes=None):
+        env = GpuSchedEnv(nodes or self.two_nodes(),
+                          [task("probe", 1, 1)], clock="fast", measurement_window=(0., 20.))
+        env.reset()
+        env.free_gpu, env.free_cpu = list(free_gpu), list(free_cpu)
+        return env
+
+    def test_direct_when_a_node_fits_now(self):
+        env = self.staged([8., 8.], [8., 8.])
+        self.assertEqual(env._classify_block(task("a", 2, 2)), "direct")
+
+    def test_model_unavailable_when_no_node_has_the_model(self):
+        env = self.staged([8., 8.], [8., 8.])
+        self.assertEqual(env._classify_block(task("a", 1, 1, model="A100")), "model_unavailable")
+
+    def test_gpu_capacity_shortage_is_aggregate_not_per_node(self):
+        # 1 GPU free on n1 and none on n2: the aggregate is 1 but 2 are needed, so
+        # this is a real capacity shortage, not something defragmentation can fix.
+        env = self.staged([1., 0.], [8., 8.])
+        self.assertEqual(env._classify_block(task("c", 2, 1)), "gpu_capacity_shortage")
+
+    def test_cpu_capacity_shortage_when_gpu_aggregate_suffices(self):
+        # Plenty of GPU in aggregate, no CPU left anywhere: the paper's third
+        # fragmentation cause must not be mislabelled as GPU fragmentation.
+        env = self.staged([4., 4.], [0., 0.])
+        self.assertEqual(env._classify_block(task("c", 2, 2)), "cpu_capacity_shortage")
+
+    def test_fragmentation_when_aggregate_fits_but_no_single_node_does(self):
+        # n1 and n2 each keep 1 GPU and 1 CPU free: 2+2 aggregate is enough for c,
+        # yet neither node can take it. This is the case defragmentation targets.
+        env = self.staged([1., 1.], [1., 1.])
+        probe = task("c", 2, 2)
+        self.assertEqual(sum(env.free_gpu), 2.)
+        self.assertEqual(max(env.free_gpu), 1.)
+        self.assertFalse(any(env._fits(probe, j) for j in range(2)))
+        self.assertEqual(env._classify_block(probe), "fragmentation")
+
+    def test_fragmentation_is_scoped_to_model_compatible_nodes(self):
+        # An A100 node with free capacity must not rescue an H20-only request, and
+        # the H20 pool alone is what should be judged short.
+        nodes = [NodeSpec("n1", "c", "H20", 8., 8.), NodeSpec("n2", "c", "A100", 8., 8.)]
+        env = self.staged([1., 8.], [1., 8.], nodes)
+        self.assertEqual(env._classify_block(task("c", 2, 2, model="H20")), "gpu_capacity_shortage")
+
+    def test_background_cpu_is_excluded_before_shortage_is_claimed(self):
+        env = GpuSchedEnv([NodeSpec("n1", "c", "H20", 8., 100.)],
+                          [task("a", 1, 1)], clock="fast", measurement_window=(0., 20.),
+                          cpu_background_fraction=0.5)
+        env.reset()
+        # 100 cores with half reserved: a 60-core request is a real shortage, not
+        # something to blame on fragmentation.
+        self.assertEqual(env.free_cpu, [50.])
+        self.assertEqual(env._classify_block(task("big", 1, 60)), "cpu_capacity_shortage")
+
+    def test_summary_reports_first_attempt_classes_and_coverage(self):
+        occupied = [task("h1", 7, 7, service=5), task("h2", 7, 7, service=5)]
+        env = GpuSchedEnv(self.two_nodes(), occupied + [task("c", 2, 2, arrival=1)],
+                          clock="fast", measurement_window=(0., 20.), queue_policy="fcfs")
+        block = env.run()["block_classification"]
+        self.assertEqual(block["tasks_classified"], 3)
+        self.assertEqual(block["first_attempt_classes"]["direct"], 2)
+        self.assertEqual(block["first_attempt_classes"]["fragmentation"], 1)
+        self.assertEqual(block["task_count"], 3)
+        self.assertEqual(block["tasks_never_reaching_a_decision"], 0)
+        self.assertAlmostEqual(block["fragmentation_share_of_classified"], 1/3)
+
+
 if __name__ == "__main__":
     unittest.main()

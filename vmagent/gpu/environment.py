@@ -305,6 +305,7 @@ class GpuSchedEnv:
                     self.asw_nodes.setdefault(node.asw_id, []).append(j)
             self.partial_node_time = 0.
             self.stranded_gpu_time = 0.
+            self.first_block_class = {}
             self.pending_id = None
             self._waiting_order = []
             self._gpu_wait_groups = []
@@ -465,11 +466,24 @@ class GpuSchedEnv:
             self._record(kind, pid)
         self._check_resources()
 
+    def _note_block(self, pid):
+        """Record the first observed blocking reason for a task, once.
+
+        _next_ready only hands a task to the policy when it already fits, so a
+        blocked task never reaches pending_id. The classification therefore has to
+        happen here, on the branch where _any_fits failed; recording at the decision
+        point alone would label every task "direct".
+        """
+        if pid not in self.first_block_class:
+            self.first_block_class[pid] = self._classify_block(self.by_id[pid])
+
     def _next_ready(self):
         if self.queue_policy == "fcfs":
             pid = next(iter(self.waiting), None)
-            if pid is not None and self._any_fits(self.by_id[pid]):
-                return pid
+            if pid is not None:
+                if self._any_fits(self.by_id[pid]):
+                    return pid
+                self._note_block(pid)
             return None
         max_free_cpu = max(self.free_cpu)
         candidate = self._cpu_wait_candidate(max_free_cpu)
@@ -485,9 +499,43 @@ class GpuSchedEnv:
             if cursor == len(group):
                 continue
             sequence, pid = group[cursor]
-            if sequence < candidate_sequence and self._any_fits(self.by_id[pid]):
-                candidate, candidate_sequence = pid, sequence
+            if sequence < candidate_sequence:
+                if self._any_fits(self.by_id[pid]):
+                    candidate, candidate_sequence = pid, sequence
+                else:
+                    # Only the earliest blocked task per group is recorded: it is the
+                    # one backfill actually skipped over, and the guard keeps this
+                    # O(nodes) once per task rather than once per event.
+                    self._note_block(pid)
         return candidate
+
+    def _classify_block(self, task):
+        """Why this task cannot start at this instant. Observational only.
+
+        Keeps the four-way split used by the archived defragmentation benchmark so
+        results stay comparable, adapted to this engine: GPU eligibility is a
+        whitelist rather than an exact label, and CPU-only tasks are compatible with
+        every node. free_cpu already excludes the background reservation.
+
+        This describes the current state only. Permanent impossibility is decided
+        separately by _rejection_reason against empty nodes, so a task classified
+        here as a capacity shortage may still be rejected later.
+        """
+        if task.gpu == 0:
+            candidates = range(len(self.nodes))
+        else:
+            candidates = set()
+            for model in task.allowed_gpu_types:
+                candidates.update(self.model_nodes.get(model, ()))
+            if not candidates:
+                return "model_unavailable"
+        if any(self._fits(task, j) for j in candidates):
+            return "direct"
+        if sum(self.free_gpu[j] for j in candidates)+EPS < task.gpu:
+            return "gpu_capacity_shortage"
+        if sum(self.free_cpu[j] for j in candidates)+EPS < task.cpu:
+            return "cpu_capacity_shortage"
+        return "fragmentation"
 
     def _advance_until_ready(self):
         while True:
@@ -502,6 +550,10 @@ class GpuSchedEnv:
                     return
                 self.pending_id = self._next_ready()
                 if self.pending_id is not None:
+                    # Reaching a decision point means the task fits now. Record
+                    # "direct" only if it was never seen blocked, so a task that
+                    # waited and then started keeps the reason it waited for.
+                    self.first_block_class.setdefault(self.pending_id, "direct")
                     return
                 if self.preempt_enabled and self._try_preempt():
                     continue
@@ -846,6 +898,25 @@ class GpuSchedEnv:
                 "gpu_entropy_nats_max": entropies[-1] if entropies else 0.,
                 "topology_metrics_are_final_placement_not_coresidency": True}
 
+    def _block_classification(self):
+        """Aggregate of the first observed blocking reason per task that reached a
+        decision point. Tasks never reached (still waiting at the horizon, or
+        permanently rejected before any decision) are reported as uncovered rather
+        than silently omitted."""
+        counts = {}
+        for reason in self.first_block_class.values():
+            counts[reason] = counts.get(reason, 0)+1
+        for reason in ("direct", "model_unavailable", "gpu_capacity_shortage",
+                       "cpu_capacity_shortage", "fragmentation"):
+            counts.setdefault(reason, 0)
+        classified = len(self.first_block_class)
+        return {"first_attempt_classes": counts, "tasks_classified": classified,
+                "task_count": len(self.tasks),
+                "tasks_never_reaching_a_decision": len(self.tasks)-classified,
+                "fragmentation_share_of_classified": (counts["fragmentation"]/classified
+                                                      if classified else 0.),
+                "classification_is_instant_state_not_permanence": True}
+
     def summary(self):
         with self.lock:
             duration = self.measure_end-self.measure_start
@@ -907,6 +978,7 @@ class GpuSchedEnv:
                         stranded_gpu_time_ratio=(self.stranded_gpu_time/(self.total_gpu*denominator_sec)
                                                  if self.total_gpu and denominator_sec else 0.)),
                     "topology": self._topology_metrics(),
+                    "block_classification": self._block_classification(),
                     "reservation_metrics_are_not_SM_or_CPU_execution_utilization": True}
 
     def snapshot(self):
