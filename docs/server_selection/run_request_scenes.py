@@ -96,6 +96,7 @@ def interval(values):
 
 def evaluate(source=OUT, output=ROOT / "outputs/gpu/request_scenes", sensitivity=False):
     rows = []
+    capacities = set()
     constructed = json.loads((source / "construction_audit.json").read_text(encoding="utf-8")).get("natural_scenes", {})
     for label in ("low", "high"):
         if label not in constructed:
@@ -112,6 +113,7 @@ def evaluate(source=OUT, output=ROOT / "outputs/gpu/request_scenes", sensitivity
                 bound = max(t["submit_time_sec"] for t in data["tasks"])+sum(t["service_sec"] for t in data["tasks"])+1
                 env, meta = make_environment(ROOT / "docs/server_selection/servers_20_H20.csv", path,
                     clock="fast", queue_policy="backfill", max_sim_time=bound, seed=int(seq.seed))
+                capacities.add((env.total_gpu, env.total_cpu))
                 summary = env.run(policy)
                 assert summary["end_reason"] == "drained" and summary["rejected"] == summary["unfinished"] == 0
                 assert summary["completed"] == len(env.tasks)
@@ -120,9 +122,12 @@ def evaluate(source=OUT, output=ROOT / "outputs/gpu/request_scenes", sensitivity
                            for n,f,c in zip(env.nodes,env.free_gpu,env.free_cpu))
                 result = metrics(env, meta["transient_cutoff_sec"])
                 # Reservation work must equal the input resource-time workload after draining.
-                assert abs(result["agu_reserved"]*160*result["makespan_sec"]-meta["gpu_work_gpu_sec"]) < 1e-5
+                # Capacity comes from the loaded node inventory, never from literals: this
+                # script's 160/3840 matched servers_20_H20.csv by coincidence, and the repo
+                # now holds three node pools with different totals (3840, 4480, 5760 cores).
+                assert abs(result["agu_reserved"]*env.total_gpu*result["makespan_sec"]-meta["gpu_work_gpu_sec"]) < 1e-5
                 cpu_work = sum(t.cpu*t.service_time for t in env.tasks)
-                assert abs(result["cpu_reserved"]*3840*result["makespan_sec"]-cpu_work) < 1e-5
+                assert abs(result["cpu_reserved"]*env.total_cpu*result["makespan_sec"]-cpu_work) < 1e-5
                 rows.append(dict(scene=label, seed=int(seq.seed), policy=policy, rho=seq.rho,
                     max_service_sec=int(seq.max_service_sec), task_count=len(env.tasks), **result))
                 if seq.seed == 42 and seq.max_service_sec == 90 and seq.rho == main_rho:
@@ -153,12 +158,18 @@ def evaluate(source=OUT, output=ROOT / "outputs/gpu/request_scenes", sensitivity
             for metric in METRICS:
                 paired.append(dict(**base,comparison=f"best_fit - {control}",metric=metric,
                                    **interval(best[metric]-other[metric])))
+    # One node pool per evaluation; if that ever stops holding, the AGU denominator
+    # below would be ambiguous and the audit would silently describe only part of it.
+    assert len(capacities) == 1, "runs mixed node pools: %s" % sorted(capacities)
+    gpu_capacity, cpu_capacity = capacities.pop()
     pd.DataFrame(summaries).to_csv(output / "metrics_mean_ci95.csv",index=False)
     pd.DataFrame(paired).to_csv(output / "paired_differences_ci95.csv",index=False)
     save_json(output / "evaluation_audit.json", dict(runs=len(frame), policies=list(POLICIES),
         seeds=sorted(int(s) for s in frame.seed.unique()), all_runs_drained=True, all_resources_released=True,
         all_work_integrals_verified=True, ci="two-sided Student t 95%; paired per-seed differences",
-        steady_state_claimed=False, AGU="allocated GPU-equivalent time / (160 * makespan); not SM utilization",
+        steady_state_claimed=False, node_pool_gpu_capacity=gpu_capacity,
+        node_pool_cpu_capacity_cores=cpu_capacity,
+        AGU="allocated GPU-equivalent time / (%g * makespan); not SM utilization" % gpu_capacity,
         AFR="fraction of time with a waiting task for which aggregate GPU and CPU suffice but no node jointly fits; excludes aggregate CPU shortage",
         transient="fixed 10% of last-arrival time; JCT cohort selected by submission >= cutoff; resource integral cutoff..drain; full metrics also retained",
         natural_low_missing="low" not in constructed))

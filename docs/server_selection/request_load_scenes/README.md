@@ -8,7 +8,7 @@
 
 高阈值为平均 GPU 请求饱和度 ≥80%、CPU ≥60%；低阈值为两者均 ≤35%；GPU 正请求的唯一 Pod 数限制为 50～150。最低窗口平均 GPU 请求饱和度为 **85.4167%**。
 
-![固定20台H20的6小时滚动平均GPU/CPU请求饱和度](D:/一般文件/VMAgent/docs/server_selection/request_load_scenes/request_pressure.png)
+![固定20台H20的6小时滚动平均GPU/CPU请求饱和度](./request_pressure.png)
 
 图：原始Pod小时表，day0～184；分母固定为160 GPU / 3,840 CPU核。实线为6小时滚动平均，横线为本轮阈值；完整6～24小时逐窗核验另存CSV。
 

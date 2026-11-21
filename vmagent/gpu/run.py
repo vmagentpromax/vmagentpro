@@ -1,9 +1,24 @@
 """Run a GPU trace experiment: python -m vmagent.gpu.run --help."""
 import argparse
 import json
+import platform
+import sys
 from pathlib import Path
 
 from .environment import DEFAULT_NODES, DEFAULT_TASKS, ROOT, GpuSchedEnv, load_nodes, load_workload
+
+
+def environment_stamp():
+    """Record what produced a run.
+
+    CPython 3.12 switched float sum() to Neumaier compensated summation, so the
+    last 1-2 ULP of any aggregate differs between interpreters on identical code
+    and identical input. Measured: per_model.XPU-A.offered_gpu_ratio is
+    1.040616417218244 under 3.11.11 and 1.0406164172182435 under 3.13.14. Without
+    this stamp a golden diff across environments looks like a regression.
+    """
+    return {"python": sys.version.split()[0], "python_implementation": platform.python_implementation(),
+            "platform": platform.platform()}
 
 
 def make_environment(nodes_path, tasks_path, **options):
@@ -52,7 +67,8 @@ def main():
         summary = env.export(args.output)
         manifest = {"nodes": str(args.nodes.resolve()), "tasks": str(args.tasks.resolve()),
                     "policy": args.policy, "queue_policy": args.queue_policy,
-                    "workload_metadata": metadata, "seed": args.seed}
+                    "workload_metadata": metadata, "seed": args.seed,
+                    "environment": environment_stamp()}
         (args.output/"run_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         print("Results: " + str(args.output.resolve()))

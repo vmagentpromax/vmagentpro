@@ -62,14 +62,14 @@
 在 PowerShell 中进入项目根目录：
 
 ```powershell
-Set-Location -LiteralPath 'D:\一般文件\VMAgent'
+Set-Location -LiteralPath '<仓库根目录>'   # 例如 C:\Users\<你>\Desktop\论文\vmagentpro
 python --version
 ```
 
 如果 `python` 不是你希望使用的解释器，可使用本机已验证的解释器：
 
 ```powershell
-& 'C:\Users\11935\anaconda3\python.exe' -m vmagent.gpu.dashboard
+& '<你的 python.exe 完整路径>' -m vmagent.gpu.dashboard   # 仅当 python 不在 PATH 或不是你要的解释器时
 ```
 
 以下命令都应从项目根目录运行。
@@ -121,14 +121,14 @@ docs/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.js
 服务器选择：
 
 ```text
-D:\一般文件\VMAgent\docs\server_selection\servers_20_H20.csv
+docs\server_selection\servers_20_H20.csv
 ```
 
 任务选择 JSON 或对应的 timed CSV，两者都可以：
 
 ```text
-D:\一般文件\VMAgent\docs\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.json
-D:\一般文件\VMAgent\docs\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.csv
+docs\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.json
+docs\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.csv
 ```
 
 操作步骤：
@@ -223,7 +223,7 @@ pod_02,H20,2,8,0.3,12.5
 网页实验分别保存到：
 
 ```text
-D:\一般文件\VMAgent\outputs\gpu\dashboard\runs\<run_id>\
+<仓库根目录>\outputs\gpu\dashboard\runs\<run_id>\
 ```
 
 网页会显示当前结果的绝对目录。文件在关闭页面或服务后仍保留。`outputs/gpu/` 已加入 `.gitignore`，上传和运行结果不会默认进入 Git 变更。
@@ -245,7 +245,7 @@ python -m vmagent.gpu.run --clock fast --policy best_fit --output outputs/gpu/A-
 指定自己的文件，路径有空格或中文时加引号：
 
 ```powershell
-python -m vmagent.gpu.run --nodes "D:\一般文件\VMAgent\docs\server_selection\servers_20_H20.csv" --tasks "D:\一般文件\VMAgent\docs\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.csv" --clock realtime --policy first_fit --output "outputs/gpu/A-csv"
+python -m vmagent.gpu.run --nodes "docs\server_selection\servers_20_H20.csv" --tasks "docs\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.csv" --clock realtime --policy first_fit --output "outputs/gpu/A-csv"
 ```
 
 严格 FCFS：
@@ -298,7 +298,7 @@ python -m unittest discover -s tests -p "test_gpu*.py" -v
 
 ## 10. 常见问题
 
-**提示 No module named vmagent：**先进入 `D:\一般文件\VMAgent` 再执行 `python -m ...`，不要进入 `vmagent` 子目录运行新入口。
+**提示 No module named vmagent：**先进入**仓库根目录**再执行 `python -m ...`，不要进入 `vmagent` 子目录运行新入口。
 
 **网页打不开：**确认启动终端仍在运行、端口与地址一致；默认网址是 `http://127.0.0.1:8765/`。第一次用快速模式检查也可以。若在受限执行环境中无法访问监听端口，直接在普通本机 PowerShell 启动上述服务，不需要修改防火墙或关闭安全设置。
 
