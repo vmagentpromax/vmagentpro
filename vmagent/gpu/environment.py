@@ -38,6 +38,15 @@ def required(row, key):
     return value
 
 
+def optional_label(row, key):
+    """Read an observational label: blank, nan and null all mean unknown."""
+    value = row.get(key)
+    if value is None:
+        return ""
+    text = str(value).strip()
+    return "" if text.lower() in ("", "nan", "none", "null") else text
+
+
 def read_records(path, key):
     path = Path(path)
     text = path.read_text(encoding="utf-8-sig")
@@ -64,6 +73,9 @@ class NodeSpec:
     gpu_type: str
     gpu_capacity: float
     cpu_capacity: float
+    # Optional access-switch / rack-domain label. Observational only: it never enters
+    # _fits, placement scoring or rejection classification, so results are unchanged.
+    asw_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -76,6 +88,9 @@ class TaskSpec:
     service_time: float
     priority: str = "Other"
     metadata: dict = field(default_factory=dict, compare=False)
+    # Optional workload identity: in the ASI trace a multi-node job appears as several
+    # pods sharing one workload_id. Observational only; absent or blank means unknown.
+    workload_id: str = ""
 
 
 def load_nodes(path):
@@ -88,7 +103,8 @@ def load_nodes(path):
         seen.add(sid)
         result.append(NodeSpec(sid, required(row, "cluster_id"), required(row, "gpu_spec_public"),
                                number(row.get("gpu_count"), "gpu_count", True),
-                               number(row.get("cpu_capacity_cores"), "cpu_capacity_cores", True)))
+                               number(row.get("cpu_capacity_cores"), "cpu_capacity_cores", True),
+                               optional_label(row, "asw_id")))
     if len({node.cluster_id for node in result}) != 1:
         raise ValueError("All servers must belong to the same cluster_id")
     return result
@@ -124,7 +140,7 @@ def load_workload(path):
         result.append(TaskSpec(pid, gpu, number(row.get("cpu_request_cores"), "cpu_request_cores"),
                                tuple(allowed), number(row.get("submit_time_sec"), "submit_time_sec"),
                                number(row.get("service_sec"), "service_sec", True),
-                               priority, dict(row)))
+                               priority, dict(row), optional_label(row, "workload_id")))
     result.sort(key=lambda task: (task.submit_time, task.pod_id))
     return result, {key: value for key, value in metadata.items() if key != "tasks"}
 
@@ -281,6 +297,14 @@ class GpuSchedEnv:
                 self.model_nodes.setdefault(node.gpu_type, []).append(j)
             self.model_gpu_area = {m: 0. for m in self.model_nodes}
             self.model_cpu_area = {m: 0. for m in self.model_nodes}
+            # Observational topology / fragmentation accounting. Neither feeds _fits,
+            # placement scoring or rejection classification, so scheduling is unchanged.
+            self.asw_nodes = {}
+            for j, node in enumerate(self.nodes):
+                if node.asw_id:
+                    self.asw_nodes.setdefault(node.asw_id, []).append(j)
+            self.partial_node_time = 0.
+            self.stranded_gpu_time = 0.
             self.pending_id = None
             self._waiting_order = []
             self._gpu_wait_groups = []
@@ -347,6 +371,15 @@ class GpuSchedEnv:
             self.model_gpu_area[model] += sum(self.nodes[j].gpu_capacity-self.free_gpu[j] for j in idxs)*overlap
             self.model_cpu_area[model] += sum(self.nodes[j].cpu_capacity*(1-self.background)-self.free_cpu[j] for j in idxs)*overlap
         self.queue_area += len(self.waiting)*overlap
+        partial = 0
+        stranded = 0.
+        for j, node in enumerate(self.nodes):
+            used = node.gpu_capacity-self.free_gpu[j]
+            if EPS < used < node.gpu_capacity-EPS:
+                partial += 1
+                stranded += node.gpu_capacity-used
+        self.partial_node_time += partial*overlap
+        self.stranded_gpu_time += stranded*overlap
         self.current_time = target
 
     def _move_to(self, target):
@@ -730,6 +763,89 @@ class GpuSchedEnv:
     def _counts(self):
         return dict(self.status_counts)
 
+    def _fragmentation_metrics(self):
+        """Stranded-capacity observation: how much node-time sits partially used.
+
+        A node counts as partially occupied when at least one GPU is in use but the
+        node is not saturated. Fully idle nodes are excluded: they are idle capacity,
+        not fragmentation. This is the quantity IPC is reported against ("reduces the
+        number of not-fully-occupied nodes by 20.2%"), so it is recorded even when no
+        defragmentation policy is active.
+        """
+        idle = partial = full = 0
+        for j, node in enumerate(self.nodes):
+            used = node.gpu_capacity-self.free_gpu[j]
+            if used <= EPS:
+                idle += 1
+            elif used >= node.gpu_capacity-EPS:
+                full += 1
+            else:
+                partial += 1
+        return {"node_count": len(self.nodes), "nodes_idle_end": idle,
+                "nodes_partially_occupied_end": partial, "nodes_fully_occupied_end": full,
+                "partial_node_time_sec": self.partial_node_time,
+                "stranded_gpu_time_sec": self.stranded_gpu_time}
+
+    def _topology_metrics(self):
+        """GPU entropy of workload placement over ASW domains (observational only).
+
+        Entropy is a property of a group: in the ASI trace one multi-node job appears
+        as several pods sharing a workload_id, and a single pod always lives in one
+        node hence one ASW. So this metric is only meaningful when the input carries
+        workload_id on tasks and asw_id on nodes; coverage counts are reported so the
+        reader can see how much of the load the number actually covers.
+
+        Placement means the final assigned server per pod. It is not a simultaneous
+        co-residency measure, and it does not claim the pods ran at the same instant.
+        Logarithm base is natural (nats); the field name states it explicitly.
+        """
+        index_of = {node.server_id: j for j, node in enumerate(self.nodes)}
+        groups = {}
+        for pid, task in self.by_id.items():
+            if not task.workload_id:
+                continue
+            sid = self.records[pid]["server_id"]
+            if sid is None:
+                continue
+            j = index_of.get(sid)
+            if j is None:
+                continue
+            groups.setdefault(task.workload_id, []).append((self.nodes[j].asw_id, task.gpu))
+        spanned, entropies, multi_asw_gpu, group_gpu = {}, [], 0., 0.
+        unknown_asw_gpu = 0.
+        for workload, placements in groups.items():
+            total = sum(gpu for _, gpu in placements)
+            if total <= EPS:
+                continue
+            by_asw = {}
+            for asw, gpu in placements:
+                if asw:
+                    by_asw[asw] = by_asw.get(asw, 0.)+gpu
+                else:
+                    unknown_asw_gpu += gpu
+            if not by_asw:
+                continue
+            known = sum(by_asw.values())
+            n_asw = len(by_asw)
+            spanned[n_asw] = spanned.get(n_asw, 0)+1
+            if n_asw > 1:
+                multi_asw_gpu += known
+            group_gpu += known
+            entropies.append(-sum((gpu/known)*math.log(gpu/known) for gpu in by_asw.values()))
+        entropies.sort()
+        labeled = sum(1 for task in self.tasks if task.workload_id)
+        return {"nodes_with_asw": sum(1 for node in self.nodes if node.asw_id),
+                "tasks_with_workload_id": labeled, "task_count": len(self.tasks),
+                "workloads_placed": len(groups), "workloads_with_known_gpu_total": len(entropies),
+                "asw_span_histogram": {str(k): v for k, v in sorted(spanned.items())},
+                "workload_gpu_sec_in_multi_asw_workloads": multi_asw_gpu,
+                "workload_gpu_in_measurable_groups": group_gpu,
+                "gpu_on_nodes_without_asw": unknown_asw_gpu,
+                "gpu_entropy_nats_mean": (sum(entropies)/len(entropies)) if entropies else 0.,
+                "gpu_entropy_nats_p95": entropies[max(0, math.ceil(.95*len(entropies)))-1] if entropies else 0.,
+                "gpu_entropy_nats_max": entropies[-1] if entropies else 0.,
+                "topology_metrics_are_final_placement_not_coresidency": True}
+
     def summary(self):
         with self.lock:
             duration = self.measure_end-self.measure_start
@@ -785,6 +901,12 @@ class GpuSchedEnv:
                     "peak_queue_length": int(self.peak_queue),
                     "peak_gpu_reserved": self.peak_gpu, "peak_cpu_reserved_cores": self.peak_cpu,
                     "cpu_background_fraction": self.background,
+                    "fragmentation": dict(self._fragmentation_metrics(),
+                        partial_node_time_ratio=(self.partial_node_time/(len(self.nodes)*denominator_sec)
+                                                 if denominator_sec else 0.),
+                        stranded_gpu_time_ratio=(self.stranded_gpu_time/(self.total_gpu*denominator_sec)
+                                                 if self.total_gpu and denominator_sec else 0.)),
+                    "topology": self._topology_metrics(),
                     "reservation_metrics_are_not_SM_or_CPU_execution_utilization": True}
 
     def snapshot(self):

@@ -1,5 +1,6 @@
 import csv
 import json
+import math
 import tempfile
 import threading
 import time
@@ -199,6 +200,95 @@ class GpuEnvironmentTests(unittest.TestCase):
         elapsed = env.summary()["wall_time_sec"]
         time.sleep(.002)
         self.assertEqual(env.summary()["wall_time_sec"], elapsed)
+
+
+class TopologyAndFragmentationMetricTests(unittest.TestCase):
+    """Phase A adds observational fields only: asw_id, workload_id, entropy and
+    partially-occupied node time. None of them may change scheduling decisions."""
+
+    def stranded_env(self, tasks, nodes=None, **options):
+        nodes = nodes or [NodeSpec("n1", "cluster", "H20", 8., 8.)]
+        return GpuSchedEnv(nodes, tasks, clock="fast", measurement_window=(0., 10.), **options)
+
+    def test_absent_labels_degrade_to_zero_without_error(self):
+        env = self.stranded_env([task("a", 2, 2, service=5)])
+        result = env.run()
+        self.assertEqual(result["topology"]["nodes_with_asw"], 0)
+        self.assertEqual(result["topology"]["tasks_with_workload_id"], 0)
+        self.assertEqual(result["topology"]["workloads_placed"], 0)
+        self.assertEqual(result["topology"]["gpu_entropy_nats_mean"], 0.)
+        self.assertEqual(result["topology"]["gpu_entropy_nats_max"], 0.)
+
+    def test_partial_and_stranded_node_time_matches_hand_computation(self):
+        # t in [0,5): 8/8 used -> fully occupied, contributes neither.
+        # t in [5,10]: 2/8 used -> partial, 6 GPUs stranded.
+        env = self.stranded_env([task("a", 8, 8, service=5), task("b", 2, 2, service=10)],
+                                queue_policy="fcfs")
+        frag = env.run()["fragmentation"]
+        self.assertEqual(frag["partial_node_time_sec"], 5.)
+        self.assertEqual(frag["stranded_gpu_time_sec"], 30.)
+        self.assertAlmostEqual(frag["partial_node_time_ratio"], 5./(1*10.))
+        self.assertAlmostEqual(frag["stranded_gpu_time_ratio"], 30./(8*10.))
+
+    def test_fully_idle_and_fully_used_nodes_are_not_counted_as_partial(self):
+        env = self.stranded_env([task("a", 8, 8, service=5)])
+        frag = env.run()["fragmentation"]
+        self.assertEqual(frag["partial_node_time_sec"], 0.)
+        self.assertEqual(frag["stranded_gpu_time_sec"], 0.)
+        self.assertEqual(frag["nodes_partially_occupied_end"], 0)
+        self.assertEqual(frag["nodes_idle_end"], 1)
+
+    def entropy_env(self):
+        from dataclasses import replace
+        nodes = [NodeSpec("n1", "cluster", "H20", 8., 8., "A"),
+                 NodeSpec("n2", "cluster", "A100", 8., 8., "B")]
+        # Model whitelist pins each pod to one node, so placement is deterministic.
+        specs = [task("p1", 4, 4, model="H20"), task("p2", 4, 4, model="A100"),
+                 task("p3", 2, 1, model="H20"), task("p4", 2, 1, model="H20")]
+        groups = ["w1", "w1", "w2", "w2"]
+        tasks = [replace(t, workload_id=g) for t, g in zip(specs, groups)]
+        return GpuSchedEnv(nodes, tasks, clock="fast", measurement_window=(0., 10.),
+                           queue_policy="fcfs")
+
+    def test_entropy_is_natural_log_over_asws_per_workload(self):
+        topo = self.entropy_env().run()["topology"]
+        self.assertEqual(topo["nodes_with_asw"], 2)
+        self.assertEqual(topo["tasks_with_workload_id"], 4)
+        self.assertEqual(topo["workloads_placed"], 2)
+        # w1 puts 4 GPUs in ASW A and 4 in ASW B -> uniform over two -> ln 2.
+        self.assertAlmostEqual(topo["gpu_entropy_nats_max"], math.log(2.))
+        # w2 keeps all 4 GPUs inside ASW A -> entropy 0; mean is half of ln 2.
+        self.assertAlmostEqual(topo["gpu_entropy_nats_mean"], math.log(2.)/2)
+        self.assertEqual(topo["asw_span_histogram"], {"1": 1, "2": 1})
+        self.assertEqual(topo["workload_gpu_in_measurable_groups"], 12.)
+        self.assertEqual(topo["workload_gpu_sec_in_multi_asw_workloads"], 8.)
+
+    def test_single_pod_workload_has_zero_entropy_by_construction(self):
+        # This is why phase A alone cannot demonstrate the entropy policy: one pod
+        # always lands on one node, hence in one ASW, whatever scenario is chosen.
+        from dataclasses import replace
+        nodes = [NodeSpec("n1", "cluster", "H20", 8., 8., "A"),
+                 NodeSpec("n2", "cluster", "H20", 8., 8., "B")]
+        env = GpuSchedEnv(nodes, [replace(task("solo", 4, 4), workload_id="w1")],
+                          clock="fast", measurement_window=(0., 10.))
+        topo = env.run()["topology"]
+        self.assertEqual(topo["asw_span_histogram"], {"1": 1})
+        self.assertEqual(topo["gpu_entropy_nats_max"], 0.)
+
+    def test_loaders_read_optional_labels_and_tolerate_missing_columns(self):
+        with tempfile.TemporaryDirectory() as folder:
+            nodes = Path(folder, "nodes.csv")
+            nodes.write_text("server_id,cluster_id,gpu_spec_public,gpu_count,cpu_capacity_cores,asw_id\n"
+                             "n1,c1,H20,8,192,  A  \nn2,c1,H20,8,192,\n", encoding="utf-8")
+            loaded = load_nodes(nodes)
+            self.assertEqual([n.asw_id for n in loaded], ["A", ""])
+
+            tasks = Path(folder, "jobs.csv")
+            tasks.write_text("pod_id,gpu_spec_public,gpu_request,cpu_request_cores,submit_time_sec,"
+                             "service_sec,workload_id\n"
+                             "p1,H20,1,1,0,1,w1\np2,H20,1,1,0,1,nan\np3,H20,1,1,0,1,\n", encoding="utf-8")
+            loaded, _ = load_workload(tasks)
+            self.assertEqual([t.workload_id for t in loaded], ["w1", "", ""])
 
 
 if __name__ == "__main__":
