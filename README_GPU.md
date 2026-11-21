@@ -98,7 +98,7 @@ python -m vmagent.gpu.dashboard --port 8766
 
 ### 3.2 先用内置数据运行一次
 
-1. 左侧点击“使用内置场景 A 数据”。
+1. 左侧点击“使用内置场景 A 数据（20 台 H20 · 50 个 Pod）”。
 2. 保留 First Fit、真实时间节奏、允许后续可放任务先运行。
 3. 使用内置场景 A 数据时，按钮会把测量窗口切到 120 秒；模拟时间上限保留默认值 150000 秒，CPU 背景比例 0。若上传自己的 6 小时场景，把测量窗口改为 21600 秒即可。
 4. 点击“开始实验”。
@@ -111,6 +111,23 @@ python -m vmagent.gpu.dashboard --port 8766
 docs/server_selection/servers_20_H20.csv
 docs/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json
 ```
+
+### 3.3 仓库自带的另外两组数据（不用手动选文件）
+
+“选择数据”面板里的按钮由 `vmagent/gpu/dashboard.py` 的 `BUILTIN_DATASETS` 生成，直接读取仓库内的文件，服务启动时会把测量窗、模拟上限、策略、时间模式一并按该场景 README 的复跑命令设好；文件缺失时按钮变灰并在副标题里说明缺哪一个。
+
+| 按钮 | 数据 | 规模 | 用途 |
+|---|---|---|---|
+| SpotGPU 抢占演示数据 | `runs/spotgpu_demo_20261121/inputs/` | 3 台 XPU-A（24 GPU）· 29 个 Pod | 看 HP 驱逐 LP。策略自动设为 SpotGPU，测量窗自动从 86,400 秒起（这批 Pod 都在 87,000 秒后才到达），几毫秒跑完 |
+| 异构 8 天场景 F 数据 | `runs/hetero8d_20261101/inputs/` | 30 台 XPU-A+H20（240 GPU）· 119,495 个 Pod | 最接近真实负载的评测场景，导入约 2 秒、单组 25–280 秒 |
+
+“只设 8 天参数（不加载数据）”是纯参数预设，只改测量窗与上限，不动已选数据——上传自己的同规模数据时用得上。
+
+命令行也有对应开关：`--measurement-seconds` 只给长度，起点默认 0；起点非 0 时再加 `--measurement-start-seconds`。
+
+抢占演示的对比做法：先用默认参数跑一次（策略 SpotGPU，事件表出现“抢占驱逐”，汇总里 `preemptions` 为 5），再把策略换成 First Fit 重跑（`preemptions` 为 0，HP 最大等待从 0 秒变成约 8,352 秒）。同一份数据，差别只在要不要抢占。场景构造规则与被否决的两种选法见 `runs/spotgpu_demo_20261121/README.md`。
+
+新增一组内置数据只需要在 `BUILTIN_DATASETS` 里加一项；`tests/test_spotgpu_demo_scene.py` 会检查每条路径是否还在，避免留下失效按钮。
 
 ## 4. 数据如何上传 / 导入
 
@@ -139,7 +156,7 @@ docs\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.cs
 4. 等待显示 50 条记录。
 5. 确认参数，再点击“开始实验”。
 
-单个文件界面限制为 10 MiB，编码为 UTF-8；Excel 导出的“CSV UTF-8”可以使用。原始大型 Parquet 不直接上传到网页，先提取成节点表和带时间字段的任务表。上传文件只保存在本机；原始文件不会被修改。
+单个文件界面限制为 64 MiB（前后端一致），编码为 UTF-8；Excel 导出的“CSV UTF-8”可以使用。原始大型 Parquet 不直接上传到网页，先提取成节点表和带时间字段的任务表——或者直接把它登记成 3.3 节那样的内置数据集。上传文件只保存在本机；原始文件不会被修改。
 
 页面中的上传选择在服务本次启动期间有效。重启服务后，可重新上传同一文件；已保存的运行结果和上传文件仍留在输出目录。页面默认数据按钮会同时恢复节点表和任务表。
 
@@ -287,10 +304,14 @@ env.export("outputs/gpu/my-policy")
 运行针对新增环境的验证：
 
 ```powershell
-python -m unittest discover -s tests -p "test_gpu*.py" -v
+python -m unittest discover -s tests -v
 ```
 
-覆盖任务等待后才开始计服务时间、CPU 阻塞、型号拒绝、单节点超限、FCFS 与回填差异、同刻先释放、时间上限保留未完成任务、背景只计一次、非法动作、去重与数值校验、真实 A 场景 CSV/JSON、一致释放、真实时间停止和运行结束后的墙钟冻结。另通过实际 HTTP 请求检查网页、静态资源、文件上传校验、运行、结果下载及停止操作。
+覆盖任务等待后才开始计服务时间、CPU 阻塞、型号拒绝、单节点超限、FCFS 与回填差异、同刻先释放、时间上限保留未完成任务、背景只计一次、非法动作、去重与数值校验、真实 A 场景 CSV/JSON、一致释放、真实时间停止和运行结束后的墙钟冻结。另通过实际 HTTP 请求检查网页、静态资源、文件上传校验、内置数据集按钮、运行、结果下载及停止操作。
+
+`tests/test_spotgpu_demo_scene.py` 把抢占演示钉住：同一份 29 任务数据下 SpotGPU 抢占 5 次、HP 最大等待 0 秒，First Fit 抢占 0 次、HP 最大等待 8,000 秒以上；换策略、改 checkpoint 间隔或把演示数据改坏都会立刻失败。`tests/test_gpu_matrix.py` 校验并行策略矩阵与串行逐字段一致。
+
+`test_request_scenes.py` 用到 numpy 和 pandas（只有 `docs/server_selection/` 的场景构建脚本需要），本机没装时会自动跳过——GPU 引擎与它的其余测试只用标准库。
 
 场景 A 的 First Fit、Best Fit、Random 在快速模式下均完成全部 50 个任务、拒绝 0、未完成 0，结束时所有节点资源释放。模拟完成时刻约 105.740805 秒；GPU/CPU 提供负载约 5.7416% / 3.8292%，无等待时资源预留率与此相符。真实时间模式也完成过完整的 50 个 Pod；系统唤醒与调度计算会带来小幅时间差。
 
@@ -319,12 +340,19 @@ python -m unittest discover -s tests -p "test_gpu*.py" -v
 ## 11. 代码位置
 
 ```text
-vmagent/gpu/environment.py    数据读取、GPU/CPU模型、时钟、队列、完成释放、统计
+vmagent/gpu/environment.py    数据读取、GPU/CPU模型、时钟、队列、完成释放、抢占、统计
 vmagent/gpu/run.py            命令行实验入口
-vmagent/gpu/dashboard.py      本地上传、后台运行、状态与下载接口
+vmagent/gpu/matrix.py         多进程策略矩阵（放置 × 队列 × 优先级开关并行）
+vmagent/gpu/compare.py        两次运行的容差对比（屏蔽跨解释器末位 ULP 噪声）
+vmagent/gpu/dashboard.py      本地上传、内置数据集、后台运行、状态与下载接口
 vmagent/gpu/static/           可视化网页
 schedgym/gpu_env.py           新环境导入入口
 tests/test_gpu_environment.py 关键行为验证
-tests/test_gpu_dashboard.py   上传、运行、停止与下载验证
+tests/test_gpu_dashboard.py   上传、内置数据、运行、停止与下载验证
+tests/test_gpu_matrix.py      并行矩阵与串行结果逐字段一致性
+tests/test_spotgpu_demo_scene.py 抢占演示场景的行为契约
+experiments/spotgpu_demo/     演示场景构建脚本
+runs/hetero8d_20261101/       异构 8 天场景 F 输入与指标
+runs/spotgpu_demo_20261121/   抢占演示场景输入与说明
 README_GPU.md                本文：修改步骤与详细使用说明
 ```

@@ -50,9 +50,35 @@ class DashboardTests(unittest.TestCase):
 
     def test_page_and_static_resources(self):
         self.assertIn("上传服务器表", self.request("/").decode("utf-8"))
+        self.assertIn("id=\"builtin-datasets\"", self.request("/").decode("utf-8"))
         self.assertIn(b"/api/upload", self.request("/app.js"))
+        self.assertIn(b"/api/builtin", self.request("/app.js"))
         self.assertIn(b".layout", self.request("/style.css"))
         self.assertTrue(self.get_json("/api/config")["defaults_available"])
+
+    def test_builtin_dataset_needs_no_upload(self):
+        catalog = {item["id"]: item for item in self.get_json("/api/config")["builtin_datasets"]}
+        demo = catalog["spotgpu_preemption"]
+        self.assertTrue(demo["available"], demo["missing_files"])
+        self.assertEqual("spotgpu", demo["run"]["policy"])
+        selection = self.get_json("/api/builtin", {"dataset": "spotgpu_preemption"})
+        self.assertEqual((3, 29), (selection["node_count"], selection["task_count"]))
+        config = dict(selection["config"])
+        config.update(nodes_upload_id=selection["nodes_upload_id"],
+                      tasks_upload_id=selection["tasks_upload_id"])
+        self.get_json("/api/run", config)
+        final = self.wait_finished()
+        self.assertEqual("completed", final["status"])
+        self.assertEqual(29, final["summary"]["completed"])
+        self.assertEqual(0, final["summary"]["rejected"])
+        self.assertGreater(final["summary"]["preemptions"], 0)
+        self.assertGreater(final["summary"]["reserved_gpu_ratio"], 0.)
+        self.assertIn("preempt", {event["event"] for event in final["events"]})
+
+    def test_unknown_builtin_dataset_is_rejected(self):
+        with self.assertRaises(HTTPError) as error:
+            self.request("/api/builtin", {"dataset": "does_not_exist"})
+        self.assertEqual(error.exception.code, 400)
 
     def test_nonzero_measurement_start_excludes_warmup(self):
         self.get_json("/api/run", {"clock": "fast", "measurement_start_seconds": 24,

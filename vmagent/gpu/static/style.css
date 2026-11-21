@@ -332,6 +332,26 @@ input[type=number] { font-variant-numeric: tabular-nums; }
 .btn.wide { width: 100%; }
 .btn:disabled { opacity: .45; cursor: default; transform: none; box-shadow: none; }
 .actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; }
+.data-buttons { display: grid; gap: 8px; }
+.builtin-datasets { display: grid; gap: 8px; }
+.builtin-datasets .btn {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 13px;
+  text-align: left;
+  line-height: 1.45;
+}
+.builtin-datasets .ds-label { font-size: 12.5px; font-weight: 800; }
+.builtin-datasets .ds-note { color: var(--muted); font-size: 10.5px; font-weight: 500; overflow-wrap: anywhere; }
+.builtin-datasets .btn.selected,
+.builtin-datasets .btn.selected:hover:not(:disabled) {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+.builtin-datasets .btn.selected .ds-note { color: #1e40af; }
 .message {
   margin: 10px 0 0;
   padding: 9px 11px;

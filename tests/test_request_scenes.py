@@ -4,17 +4,25 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "docs/server_selection"))
-from construct_request_scenes import extract_templates, timing
-from rebuild_request_scenes import windows
-from run_request_scenes import metrics, interval
-from vmagent.gpu.environment import GpuSchedEnv, NodeSpec, TaskSpec
+
+try:
+    import numpy as np
+    import pandas as pd
+    from construct_request_scenes import extract_templates, timing
+    from rebuild_request_scenes import windows
+    from run_request_scenes import metrics, interval
+    from vmagent.gpu.environment import GpuSchedEnv, NodeSpec, TaskSpec
+    MISSING_DEPENDENCY = None
+except ImportError as exc:
+    # The GPU engine and its tests are standard-library only; numpy and pandas enter
+    # solely through the docs/server_selection scenario builders. Without this guard a
+    # plain "python -m unittest discover" turned red on a fresh clone.
+    MISSING_DEPENDENCY = "needs numpy and pandas, imported only by docs/server_selection ({})".format(exc)
 
 
+@unittest.skipIf(MISSING_DEPENDENCY, MISSING_DEPENDENCY or "")
 class RequestSceneTests(unittest.TestCase):
     def test_request_changes_including_zero_gpu_are_excluded(self):
         rows = []

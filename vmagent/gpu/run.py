@@ -42,7 +42,11 @@ def main():
     parser.add_argument("--clock", choices=["realtime", "fast"], default="realtime")
     parser.add_argument("--speed", type=float, default=1., help="realtime simulated seconds per wall-clock second")
     parser.add_argument("--queue-policy", choices=["backfill", "fcfs"], default="backfill")
-    parser.add_argument("--measurement-seconds", type=float, help="override measurement window to [0, seconds]")
+    parser.add_argument("--measurement-seconds", type=float,
+                        help="measurement window length, starting at --measurement-start-seconds")
+    parser.add_argument("--measurement-start-seconds", type=float, default=0.,
+                        help="measurement window start; scenes whose pods arrive late (for example the "
+                             "SpotGPU demo at ~87,000 s) need a nonzero start or every ratio reads 0%")
     parser.add_argument("--max-sim-time", type=float, default=600.)
     parser.add_argument("--cpu-background-fraction", type=float, default=0.)
     parser.add_argument("--checkpoint-interval", type=float, default=3600.,
@@ -54,7 +58,8 @@ def main():
                    max_sim_time=args.max_sim_time, cpu_background_fraction=args.cpu_background_fraction,
                    checkpoint_interval=args.checkpoint_interval, seed=args.seed)
     if args.measurement_seconds is not None:
-        options["measurement_window"] = [0., args.measurement_seconds]
+        options["measurement_window"] = [args.measurement_start_seconds,
+                                         args.measurement_start_seconds+args.measurement_seconds]
     try:
         env, metadata = make_environment(args.nodes, args.tasks, **options)
         print("Loaded {} nodes, {} unique pods; clock={}, policy={}".format(len(env.nodes), len(env.tasks), args.clock, args.policy), flush=True)

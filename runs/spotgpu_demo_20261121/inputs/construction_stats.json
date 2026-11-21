@@ -1,0 +1,22 @@
+{
+  "nodes": 3,
+  "node_models": [
+    "XPU-A"
+  ],
+  "capacity_gpu": 24.0,
+  "capacity_cpu_cores": 576.0,
+  "anchor_T_sec": 95999.394,
+  "concurrent_lp_gpu_at_T_in_full_trace": 49.0,
+  "hp_window_sec": [
+    95999.394,
+    103199.394
+  ],
+  "tasks": 29,
+  "lp_tasks": 24,
+  "hp_tasks": 5,
+  "lp_gpu_committed": 24.0,
+  "checkpoint_interval_sec": 3600.0,
+  "hp_arrivals_in_window": 5,
+  "victim_candidates_not_selected": 21,
+  "source": "subset of runs/hetero8d_20261101/inputs/jobs_F.csv, values unmodified"
+}

@@ -15,6 +15,48 @@ from .run import make_environment
 STATIC = Path(__file__).with_name("static")
 RESULT_FILES = {"summary.json", "tasks.csv", "events.csv", "resource_history.csv", "nodes_final.csv", "run_manifest.json"}
 
+# Datasets that ship with the repository. Selecting one registers the repo file
+# directly instead of copying the uploaded text, so the 15.9 MB scenario F task
+# table never round-trips through the browser. "run" holds the values the form
+# should take; they match the reproduction commands in each scenario's README,
+# so clicking a button and pressing "开始实验" reproduces the documented numbers.
+BUILTIN_DATASETS = {
+    "spotgpu_preemption": {
+        "label": "SpotGPU 抢占演示数据（3 台 XPU-A · 29 个 Pod）",
+        "note": "场景 F 的真子集：24 个 LP 恰好填满 24 GPU，5 个 HP 随后到达。"
+                "策略 spotgpu 会驱逐 LP，first_fit / best_fit 只能让 HP 等待。"
+                "见 runs/spotgpu_demo_20261121/README.md。",
+        "nodes": ROOT/"runs/spotgpu_demo_20261121/inputs/nodes.csv",
+        "tasks": ROOT/"runs/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv",
+        # The pods in this scene arrive around 87,000 s (they are a slice of scenario F
+        # in the middle of its 8 days), so the measurement window has to start there:
+        # with [0, 43200] the run drains correctly but every offered/reserved ratio reads 0%.
+        "run": {"policy": "spotgpu", "clock": "fast", "queue_policy": "backfill",
+                "measurement_start_seconds": 86400., "measurement_seconds": 43200.,
+                "max_sim_time": 400000., "cpu_background_fraction": 0., "checkpoint_interval": 3600.},
+    },
+    "hetero_8d_scene_f": {
+        "label": "异构 8 天场景 F 数据（30 台 XPU-A+H20 · 119,495 个 Pod）",
+        "note": "仓库内最接近真实负载的场景，单组 25–280 秒。任务表约 15.9 MB，导入需要几秒。"
+                "场景定义、构造假设与复跑预期见 runs/hetero8d_20261101/README.md。",
+        "nodes": ROOT/"runs/hetero8d_20261101/inputs/nodes.csv",
+        "tasks": ROOT/"runs/hetero8d_20261101/inputs/jobs_F.csv",
+        "run": {"policy": "first_fit", "clock": "fast", "queue_policy": "backfill",
+                "measurement_start_seconds": 0., "measurement_seconds": 691200.,
+                "max_sim_time": 4000000., "cpu_background_fraction": 0., "checkpoint_interval": 3600.},
+    },
+}
+
+
+def dataset_catalog():
+    """What the front end can offer without an upload, and whether the files are present."""
+    catalog = []
+    for dataset_id, entry in BUILTIN_DATASETS.items():
+        missing = [str(path) for path in (entry["nodes"], entry["tasks"]) if not Path(path).is_file()]
+        catalog.append({"id": dataset_id, "label": entry["label"], "note": entry["note"],
+                        "run": dict(entry["run"]), "available": not missing, "missing_files": missing})
+    return catalog
+
 
 class DashboardState:
     def __init__(self, output_root):
@@ -23,6 +65,14 @@ class DashboardState:
         self.lock = threading.RLock()
         self.uploads, self.runs = {}, {}
         self.current_id = None
+
+    def _register(self, kind, filename, path, token=None):
+        """Validate a file and make it selectable by upload id."""
+        token = token or uuid.uuid4().hex
+        count = len(load_nodes(path)) if kind == "nodes" else len(load_workload(path)[0])
+        with self.lock:
+            self.uploads[token] = {"path": Path(path), "kind": kind, "filename": filename, "count": count}
+        return {"upload_id": token, "filename": filename, "record_count": count, "kind": kind}
 
     def upload(self, kind, filename, content):
         if kind not in ("nodes", "tasks") or not isinstance(filename, str) or not isinstance(content, str):
@@ -35,13 +85,28 @@ class DashboardState:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
         try:
-            count = len(load_nodes(path)) if kind == "nodes" else len(load_workload(path)[0])
+            return self._register(kind, filename, path, token)
         except Exception:
             path.unlink()
             raise
-        with self.lock:
-            self.uploads[token] = {"path": path, "kind": kind, "filename": filename, "count": count}
-        return {"upload_id": token, "filename": filename, "record_count": count, "kind": kind}
+
+    def builtin(self, dataset_id):
+        """Select a dataset that ships with the repository."""
+        entry = BUILTIN_DATASETS.get(dataset_id)
+        if entry is None:
+            raise ValueError("Unknown built-in dataset")
+        handles = {}
+        for kind in ("nodes", "tasks"):
+            path = Path(entry[kind])
+            if not path.is_file():
+                raise ValueError("Built-in dataset file is missing: " + str(path))
+            handles[kind] = self._register(kind, path.name, path)
+        return {"dataset": dataset_id, "label": entry["label"], "note": entry["note"],
+                "config": dict(entry["run"]),
+                "nodes_upload_id": handles["nodes"]["upload_id"],
+                "tasks_upload_id": handles["tasks"]["upload_id"],
+                "nodes_filename": handles["nodes"]["filename"], "node_count": handles["nodes"]["record_count"],
+                "tasks_filename": handles["tasks"]["filename"], "task_count": handles["tasks"]["record_count"]}
 
     def launch(self, config):
         with self.lock:
@@ -126,7 +191,8 @@ def handler_class(state):
             path = urlparse(self.path).path
             if path == "/api/config":
                 self.send_json({"default_nodes": str(DEFAULT_NODES), "default_tasks": str(DEFAULT_TASKS),
-                                "defaults_available": DEFAULT_NODES.is_file() and DEFAULT_TASKS.is_file()})
+                                "defaults_available": DEFAULT_NODES.is_file() and DEFAULT_TASKS.is_file(),
+                                "builtin_datasets": dataset_catalog()})
             elif path == "/api/state":
                 self.send_json(state.snapshot())
             elif path.startswith("/api/download/"):
@@ -160,6 +226,8 @@ def handler_class(state):
                 path = urlparse(self.path).path
                 if path == "/api/upload":
                     self.send_json(state.upload(config.get("kind"), config.get("filename"), config.get("content")))
+                elif path == "/api/builtin":
+                    self.send_json(state.builtin(config.get("dataset")))
                 elif path == "/api/run":
                     self.send_json(state.launch(config))
                 elif path == "/api/stop":

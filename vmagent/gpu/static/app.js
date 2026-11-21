@@ -21,6 +21,11 @@ const idleCaption = "提供负载按理想运行区间积分，可能超过 100%
 
 let nodesUpload = null, tasksUpload = null, lastState = null, busy = false;
 
+// Keys the /api/builtin response uses to fill the form, mapped to element ids.
+const configFields = {policy: "policy", clock: "clock", queue_policy: "queue-policy", seed: "seed",
+  measurement_start_seconds: "measurement-start", measurement_seconds: "measurement",
+  max_sim_time: "max-time", cpu_background_fraction: "background", checkpoint_interval: "checkpoint-interval"};
+
 async function api(path, body) {
   const response = await fetch(path, body === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
   const result = await response.json();
@@ -52,6 +57,7 @@ async function upload(kind) {
       $("measurement").value = window[1] - window[0];
     }
     $(kind + "-source").textContent = (kind === "nodes" ? "服务器：" : "任务：") + file.name + " · " + result.record_count + " 条记录";
+    clearDatasetSelection();
     message("导入成功。点击“开始实验”使用这份数据。");
   } catch (error) {
     message("导入失败：" + error.message, true);
@@ -64,8 +70,50 @@ async function upload(kind) {
 $("nodes-file").addEventListener("change", () => upload("nodes"));
 $("tasks-file").addEventListener("change", () => upload("tasks"));
 
+function clearDatasetSelection() {
+  document.querySelectorAll("#builtin-datasets .btn.selected").forEach(b => b.classList.remove("selected"));
+}
+
+function renderDatasets(datasets) {
+  const box = $("builtin-datasets");
+  if (!box) return;
+  box.innerHTML = (datasets || []).map(d => `<button type="button" class="btn ghost wide" data-dataset="${esc(d.id)}"${d.available ? "" : " disabled"}>
+      <span class="ds-label">${esc(d.label)}</span>
+      <span class="ds-note">${esc(d.available ? d.note : "仓库内缺少文件：" + (d.missing_files || []).join("、"))}</span>
+    </button>`).join("");
+  box.querySelectorAll("button[data-dataset]").forEach(b => b.onclick = () => selectDataset(b));
+}
+
+async function selectDataset(button) {
+  busy = true;
+  $("run").disabled = true;
+  message("正在从仓库导入数据集，请稍候…");
+  try {
+    const result = await api("/api/builtin", {dataset: button.dataset.dataset});
+    nodesUpload = result.nodes_upload_id;
+    tasksUpload = result.tasks_upload_id;
+    $("nodes-file").value = $("tasks-file").value = "";
+    for (const [key, id] of Object.entries(configFields)) {
+      if (result.config[key] === undefined) continue;
+      const field = $(id);
+      if (field) field.value = result.config[key];
+    }
+    clearDatasetSelection();
+    button.classList.add("selected");
+    $("nodes-source").textContent = "仓库内置服务器表：" + result.nodes_filename + " · " + result.node_count + " 条";
+    $("tasks-source").textContent = "仓库内置任务表：" + result.tasks_filename + " · " + result.task_count + " 条";
+    message("已加载“" + result.label + "”，参数按该场景 README 的复跑命令设好。点击“开始实验”即可。");
+  } catch (error) {
+    message("内置数据导入失败：" + error.message, true);
+  } finally {
+    busy = false;
+    render(lastState || {status: "idle"});
+  }
+}
+
 $("defaults").onclick = () => {
   nodesUpload = tasksUpload = null;
+  clearDatasetSelection();
   $("measurement-start").value = 0;
   $("measurement").value = 120;
   $("nodes-file").value = $("tasks-file").value = "";
@@ -80,7 +128,7 @@ $("preset-8d").onclick = () => {
   $("max-time").value = 4000000;
   $("background").value = 0;
   $("clock").value = "fast";
-  message("已按异构 8 天场景 F 设置：测量窗 691200 秒（8 天）、模拟上限 4,000,000 秒、快速模式。请上传 30 台异构服务器表与 12 万任务表。");
+  message("已按异构 8 天场景 F 设置参数（测量窗 691200 秒、模拟上限 4,000,000 秒、快速模式），数据未改变。要连数据一起换，点“异构 8 天场景 F 数据”。");
 };
 
 $("run").onclick = async () => {
@@ -311,6 +359,7 @@ async function poll() {
 }
 
 api("/api/config").then(c => {
+  renderDatasets(c.builtin_datasets);
   if (!c.defaults_available) message("内置数据不存在，请分别上传服务器表与任务表。", true);
 }).catch(() => message("无法连接本地服务。", true));
 
