@@ -93,24 +93,11 @@ def main():
 
     out.parent.mkdir(parents=True, exist_ok=True)
     observed.to_parquet(out, index=False)
-    whole = observed[observed.gpu_request % 1 == 0]
-    per_gpu = whole.avg_gpu_sm_util/whole.gpu_request
-    weight = whole.used_gpu_hours
-    good = per_gpu.notna() & (weight > 0)
-    summary = {
-        "nodes": str(args.nodes), "rows": int(len(observed)),
-        "rows_scanned": scanned, "distinct_pods": int(observed.pod_id.nunique()),
-        "distinct_servers_observed": int(observed.server_id.nunique()),
-        "partitions_used": len(frames),
-        "schedule_delay_sec": {q: float(observed.schedule_delay_sec.quantile(q))
-                               for q in (.5, .9, .95, .99)},
-        "schedule_delay_nonnull_share": float(observed.schedule_delay_sec.notna().mean()),
-        "reserved_gpu_hours": float(observed[observed.gpu_request > 0].used_gpu_hours.sum()),
-        "per_gpu_sm_util_gpu_hour_weighted": float(
-            (per_gpu[good]*weight[good]).sum()/weight[good].sum()),
-        "reserved_gpu_hours_under_10pct_util": float(
-            weight[good & (per_gpu < 10.)].sum()/weight[good].sum()),
-    }
+    hours = (1 if args.last_hour is not None else 24) + 24*(args.end_day-args.start_day)
+    if len(frames) != hours:
+        print("    WARNING %d partitions carried these servers, expected %d over %d hours"
+              % (len(frames), hours, hours))
+    summary = summarise(observed, nodes, hours, scanned, len(frames), str(args.nodes))
     print(json.dumps(summary, indent=2, ensure_ascii=False))
     (out.parent/"extraction_summary.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -118,6 +105,62 @@ def main():
         missing = sorted(servers-set(observed.server_id))
         print("    WARNING %d of %d scene servers never appear in these partitions: %s"
               % (len(missing), len(servers), missing[:3]))
+
+
+def summarise(observed, nodes, hours, scanned, partitions, source):
+    """The numbers a re-scan is not needed to check, so keep it callable.
+
+    Split out of main() because a 193-partition pass over a USB drive takes 25 minutes,
+    and a change to any figure here should be verifiable against the parquet that pass
+    already wrote rather than by paying for the scan again.
+    """
+    # gpu_request == 0 also satisfies "% 1 == 0", and on scenario F those CPU-only rows
+    # are 87% of the table, so without the >0 here a coverage figure silently divides by
+    # a population the field could never describe.
+    whole = observed[(observed.gpu_request > 0) & (observed.gpu_request % 1 == 0)]
+    per_gpu = whole.avg_gpu_sm_util/whole.gpu_request
+    weight = whole.used_gpu_hours
+    good = per_gpu.notna() & (weight > 0)
+    gpu = observed[observed.gpu_request > 0]
+    # The scene this was built for keeps only rows that ask for something. Applying its
+    # own stated filter here is what turns "I read the same servers" into "the scene is
+    # reproducible from the trace": on scenario F all four counts its manifest records
+    # come back exactly - 339,034 rows, 119,742 pods, 5,910 GPU pods, 113,832 CPU-only.
+    # Without this line the extraction reads as 64,949 rows and 973 pods *more* than the
+    # scene, which looks like a discrepancy and is only a filter nobody applied.
+    requested = observed[(observed.gpu_request > 0) | (observed.cpu_request_cores > 0)]
+    return {
+        "nodes": source, "rows": int(len(observed)),
+        "rows_scanned": int(scanned), "distinct_pods": int(observed.pod_id.nunique()),
+        "distinct_servers_observed": int(observed.server_id.nunique()),
+        "partitions_used": int(partitions), "hours_covered": int(hours),
+        "scene_filter_gpu_or_cpu_request": {
+            "rows": int(len(requested)), "pods": int(requested.pod_id.nunique()),
+            "gpu_pods": int(requested[requested.gpu_request > 0].pod_id.nunique()),
+            "cpu_only_pods": int(requested[requested.gpu_request <= 0].pod_id.nunique())},
+        "schedule_delay_sec": {("p%.0f" % (q*100)): float(observed.schedule_delay_sec.quantile(q))
+                               for q in (.5, .9, .95, .99)},
+        "schedule_delay_nonnull_share": float(observed.schedule_delay_sec.notna().mean()),
+        "reserved_gpu_hours": float(gpu.used_gpu_hours.sum()),
+        "physical_gpu_hours": float(nodes.gpu_count.sum()*hours),
+        # Above 1.0 is not the cluster overselling itself: used_gpu_hours credits a pod
+        # that was present in an hour, so sequential pods on one card each fill it.
+        # The ratio is the number that stops a reader treating the column as a
+        # reservation integral.
+        "reserved_gpu_hours_over_physical_capacity": float(
+            gpu.used_gpu_hours.sum()/(nodes.gpu_count.sum()*hours)),
+        "per_gpu_sm_util_gpu_hour_weighted": float(
+            (per_gpu[good]*weight[good]).sum()/weight[good].sum()),
+        # Denominator is GPU pod-hours, not `whole`: `whole` still carries the CPU-only
+        # rows that survive `% 1 == 0`, and quoting coverage against them turns 20.78%
+        # into 2.43% purely by including 87% of the table the field could never describe.
+        "per_gpu_sm_util_row_coverage": float(
+            good.sum()/max(1, int((weight > 0).sum()))),
+        "gpu_pod_hours_with_util": int(good.sum()),
+        "gpu_pod_hours": int((weight > 0).sum()),
+        "reserved_gpu_hours_under_10pct_util": float(
+            weight[good & (per_gpu < 10.)].sum()/weight[good].sum()),
+    }
 
 
 if __name__ == "__main__":

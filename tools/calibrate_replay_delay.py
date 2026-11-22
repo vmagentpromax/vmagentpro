@@ -42,11 +42,24 @@ QUANTILES = (.5, .9, .95, .99)
 
 
 def quantiles(values):
-    values = np.clip(np.asarray(values, dtype=float), 0., CEILING)
-    if values.size == 0:
+    """Clipped at the trace's own ceiling, plus what the clipping is hiding.
+
+    The clip is needed to make the two sides comparable, and it is also where this
+    comparison became uninformative on scenario F: with a CPU-oversubscribed pool every
+    simulated wait lands above 86,399 s, so all four clipped quantiles print as exactly
+    the ceiling and backfill and FCFS look identical. `above_ceiling_share` and the
+    unclipped p50/p90 say how much of that agreement is really saturation.
+    """
+    raw = np.asarray(values, dtype=float)
+    if raw.size == 0:
         return {"n": 0}
-    return {"n": int(values.size),
-            **{"p%.0f" % (q*100): round(float(np.quantile(values, q)), 1) for q in QUANTILES}}
+    clipped = np.clip(raw, 0., CEILING)
+    out = {"n": int(raw.size),
+           "above_ceiling_share": round(float((raw > CEILING).mean()), 4),
+           "unclipped": {"p50": round(float(np.quantile(raw, .5)), 1),
+                         "p90": round(float(np.quantile(raw, .9)), 1)}}
+    out.update({"p%.0f" % (q*100): round(float(np.quantile(clipped, q)), 1) for q in QUANTILES})
+    return out
 
 
 def main():
@@ -65,6 +78,13 @@ def main():
     jobs = pd.read_csv(args.jobs)
     if args.limit:
         jobs = jobs.head(args.limit)
+
+    # The replay window the observations cover, taken from the partitions that were read
+    # rather than hardcoded, because "the simulator took 46 days to drain what the trace
+    # served in 8" is the sentence this whole comparison is really about.
+    first = int(observed.snapshot_day.min())*24 + int(observed.snapshot_hour.min())
+    last = int(observed.snapshot_day.max())*24 + int(observed.snapshot_hour.max())
+    window_sec = float((last-first+1)*3600)
 
     # schedule_delay_sec is a pod attribute copied onto each of its pod-hour rows, so
     # first-non-null is the pod's value; taking a mean over rows would just down-weight
@@ -92,15 +112,19 @@ def main():
         print("    %-6s %s" % (label, json.dumps(quantiles(subset.schedule_delay_sec.dropna()))))
 
     print("\n2. is the HP tail about request size? (the probe could only guess)")
-    # `shared(<1)` is GPU sharing, and the trace carries no SM utilisation for those
-    # pods at all, so this bucket is also exactly the blind spot of section 3 of the
-    # probe. Keeping it separate is what makes a claim like "bigger requests wait
-    # longer" checkable instead of rhetorical.
-    for size, subset in keep.groupby(pd.cut(keep.gpu_request,
-                                            [-1, 0.999, 1.5, 2.5, 4.5, 8.5, 100],
-                                            labels=["shared(<1)", "1", "2", "3-4", "5-8", ">8"],
-                                            ordered=True)):
-        for priority in ("HP", "LP"):
+    # The bands have to separate "asks for nothing", "shares a card" and "owns a card".
+    # The first version used pd.cut(..., [-1, 0.999, ...]) and labelled that bucket
+    # "shared(<1)", which quietly swept in the 113,586 CPU-only pods - 95% of the scene -
+    # and reported them as GPU-sharing ones. That mislabel is what made an HP cohort of
+    # 8,999 pods look like GPU sharing when the real shared-GPU count here is 91.
+    bands = pd.Series("cpu_only(0)", index=keep.index)
+    bands[keep.gpu_request > 0] = "gpu_shared(0<r<1)"
+    for low, high, label in ((0.999, 1.5, "whole_1"), (1.5, 2.5, "gpu_2"),
+                             (2.5, 4.5, "gpu_3_4"), (4.5, 8.5, "gpu_5_8"),
+                             (8.5, 1e9, "gpu_>8")):
+        bands[(keep.gpu_request > low) & (keep.gpu_request <= high)] = label
+    for size, subset in keep.groupby(bands, sort=False):
+        for priority in ("HP", "LP", "Other"):
             cell = subset[subset.priority == priority]
             print("    %-11s %-3s %s" % (size, priority,
                                          json.dumps(quantiles(cell.schedule_delay_sec.dropna()))))
@@ -146,25 +170,30 @@ def main():
         def ratio(q):
             """Simulated over observed at one quantile, or None where it is meaningless.
 
-            Observed p50 on this scene is exactly 0 s, and 0/0-style ratios printed as
-            2.1e13 read like a result. A ratio needs a denominator that is not the
-            truncation floor.
+            The observed side is clipped because the trace truncates at 24h-1s and there
+            is nothing beyond that to compare to. The simulated side is not, because
+            clipping it to the same ceiling would turn "the model took 40x longer" into
+            "the model took 1.0x longer" wherever both saturate - which is exactly what
+            scenario F does, and the whole reason this column exists.
             """
             if not simulated or not actual:
                 return None
             base = np.quantile(np.clip(actual, 0., CEILING), q)
             if base <= 1.:
                 return None
-            return round(float(np.quantile(np.clip(simulated, 0., CEILING), q)/base), 3)
+            return round(float(np.quantile(simulated, q)/base), 3)
         row = {"queue_policy": queue, "preemptions": summary["preemptions"],
+               "end_reason": summary["end_reason"],
+               "simulated_makespan_sec": round(float(env.current_time), 1),
+               "trace_window_sec": window_sec,
                "paired_pods": len(paired),
                "simulated_all": quantiles(simulated), "observed_all": quantiles(actual),
                "ratio_p90": ratio(.9), "ratio_p95": ratio(.95), "ratio_p99": ratio(.99),
                "by_priority": by_priority}
         table["policies"][name+(":"+queue if queue else "")] = row
-        print("    %-10s paired=%d  simulated %s\n               observed  %s  "
+        print("    %-22s paired=%d  simulated %s\n                         observed  %s  "
               "ratio p90=%s p95=%s p99=%s"
-              % (name, len(paired), json.dumps(row["simulated_all"]),
+              % (name+"/"+queue, len(paired), json.dumps(row["simulated_all"]),
                  json.dumps(row["observed_all"]), row["ratio_p90"], row["ratio_p95"],
                  row["ratio_p99"]), flush=True)
 

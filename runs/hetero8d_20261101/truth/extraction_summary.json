@@ -1,0 +1,30 @@
+{
+  "nodes": "runs/hetero8d_20261101/inputs/nodes.csv",
+  "rows": 403983,
+  "rows_scanned": 299062185,
+  "distinct_pods": 120715,
+  "distinct_servers_observed": 30,
+  "partitions_used": 193,
+  "hours_covered": 193,
+  "scene_filter_gpu_or_cpu_request": {
+    "rows": 339034,
+    "pods": 119742,
+    "gpu_pods": 5910,
+    "cpu_only_pods": 113832
+  },
+  "schedule_delay_sec": {
+    "p50": 0.0,
+    "p90": 123.0,
+    "p95": 209.0,
+    "p99": 6673.0
+  },
+  "schedule_delay_nonnull_share": 0.8012168828886364,
+  "reserved_gpu_hours": 47923.492777777785,
+  "physical_gpu_hours": 46320.0,
+  "reserved_gpu_hours_over_physical_capacity": 1.0346177197274997,
+  "per_gpu_sm_util_gpu_hour_weighted": 27.94073727366664,
+  "per_gpu_sm_util_row_coverage": 0.20782849829351535,
+  "gpu_pod_hours_with_util": 9743,
+  "gpu_pod_hours": 46880,
+  "reserved_gpu_hours_under_10pct_util": 0.34493511662274023
+}
