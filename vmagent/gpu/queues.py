@@ -98,19 +98,30 @@ class QueueMixin:
             self._hp_gpu_wait_groups[index].append((sequence, pid))
             self._preempt_generation += 1
 
+    def _group_head(self, group, cursors, index):
+        """Advance one demand group's cursor to its earliest still-waiting entry.
+
+        The cursor is the whole point: a group's blocked head stays blocked while the
+        ledger is unchanged, so scanning once per group per event is enough. `sequence`
+        is compared against `_queue_seq` because a preempted task re-enters its group
+        with a new sequence and the stale entry has to be skipped, not honoured.
+        """
+        cursor = cursors[index]
+        while cursor < len(group):
+            sequence, pid = group[cursor]
+            if pid in self.waiting_set and self._queue_seq.get(pid) == sequence:
+                break
+            cursor += 1
+        cursors[index] = cursor
+        return group[cursor] if cursor < len(group) else None
+
     def _hp_candidates(self):
         """Earliest still-waiting HP GPU task in each demand group."""
         result = []
         for index, group in enumerate(self._hp_gpu_wait_groups):
-            cursor = self._hp_gpu_wait_group_cursors[index]
-            while cursor < len(group):
-                sequence, pid = group[cursor]
-                if pid in self.waiting_set and self._queue_seq.get(pid) == sequence:
-                    break
-                cursor += 1
-            self._hp_gpu_wait_group_cursors[index] = cursor
-            if cursor < len(group):
-                result.append(group[cursor])
+            head = self._group_head(group, self._hp_gpu_wait_group_cursors, index)
+            if head is not None:
+                result.append(head)
         return sorted(result)
 
     def _hp_first_ready(self):
@@ -148,16 +159,10 @@ class QueueMixin:
         candidate = self._cpu_wait_candidate(max_free_cpu)
         candidate_sequence = self._queue_seq[candidate] if candidate is not None else math.inf
         for index, group in enumerate(self._gpu_wait_groups):
-            cursor = self._gpu_wait_group_cursors[index]
-            while cursor < len(group):
-                sequence, pid = group[cursor]
-                if pid in self.waiting_set and self._queue_seq.get(pid) == sequence:
-                    break
-                cursor += 1
-            self._gpu_wait_group_cursors[index] = cursor
-            if cursor == len(group):
+            head = self._group_head(group, self._gpu_wait_group_cursors, index)
+            if head is None:
                 continue
-            sequence, pid = group[cursor]
+            sequence, pid = head
             if sequence < candidate_sequence:
                 if self._any_fits(self.by_id[pid]):
                     candidate, candidate_sequence = pid, sequence

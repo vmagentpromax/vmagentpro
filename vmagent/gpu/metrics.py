@@ -44,6 +44,9 @@ def run_segments(events, start_kind="start", end_kinds=("complete", "preempt")):
     """
     segments = {}
     open_at = {}
+    if not events:
+        return segments
+    horizon = events[-1]["time_sec"]
     for event in events:
         pid, kind, when = event["pod_id"], event["event"], event["time_sec"]
         if pid is None:
@@ -53,7 +56,7 @@ def run_segments(events, start_kind="start", end_kinds=("complete", "preempt")):
         elif kind in end_kinds and pid in open_at:
             segments.setdefault(pid, []).append((open_at.pop(pid), when, kind))
     for pid, when in open_at.items():
-        segments.setdefault(pid, []).append((when, events[-1]["time_sec"], "open"))
+        segments.setdefault(pid, []).append((when, horizon, "open"))
     return segments
 
 

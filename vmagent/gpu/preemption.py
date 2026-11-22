@@ -123,18 +123,7 @@ class PreemptionMixin:
         self._last_preempt_generation = self._preempt_generation
         if not any(self.node_spot_pids):
             return False
-        candidates = []
-        for index, group in enumerate(self._hp_gpu_wait_groups):
-            cursor = self._hp_gpu_wait_group_cursors[index]
-            while cursor < len(group):
-                sequence, pid = group[cursor]
-                if pid in self.waiting_set and self._queue_seq.get(pid) == sequence:
-                    break
-                cursor += 1
-            self._hp_gpu_wait_group_cursors[index] = cursor
-            if cursor < len(group):
-                candidates.append(group[cursor])
-        for _, pid in sorted(candidates):
+        for _, pid in self._hp_candidates():
             task = self.by_id[pid]
             cand = self._spotgpu_best_preemption(task)
             if cand is None:

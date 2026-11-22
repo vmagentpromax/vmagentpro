@@ -34,15 +34,18 @@ re-place those 294 pods would compact them and measure something else.
 
 What is dropped, recorded in each conversion_manifest.json rather than hidden:
 
-    migratable                  the main engine has no migration yet (M10/M11/M12)
     gpu_mem_request_trace       the engine models no memory
     source_* / duration_*       provenance only; no scheduling effect
-    config.start_deadline_sec   the engine reports no deadline-attainment rate
     config.decision_interval    the engine is event-driven, not tick-driven
     p95 wait definition         the benchmark censors unstarted requests at
                                 horizon - arrival; the engine's p95_wait_sec_started
                                 only covers started ones, so the two p95 numbers are
                                 not comparable without restating one of them
+
+Not dropped, contrary to an earlier cut of this note: `migratable` is carried into the
+job CSV and read from `task.metadata`, and `config.start_deadline_sec` has a metric in
+`tools/benchmark_runner.py`. Migration itself became an engine capability at M10/M11, so
+`config.migration.*` maps onto the four reservation switches rather than onto nothing.
 """
 import argparse
 import json
@@ -61,7 +64,7 @@ JOB_FIELDS = ("pod_id", "gpu_spec_public", "gpu_request", "cpu_request_cores", "
               "service_sec", "cluster_id", "duration_match_status", "job_type_public",
               "priority_class", "migratable", "workload_id")
 NODE_FIELDS = ("server_id", "cluster_id", "gpu_spec_public", "gpu_count", "cpu_capacity_cores", "asw_id")
-DROP_COLUMNS = ("migratable", "gpu_mem_request_trace", "source_server_id", "source_cluster_id",
+DROP_COLUMNS = ("gpu_mem_request_trace", "source_server_id", "source_cluster_id",
                 "source_day", "source_hour", "source_gpu_request", "source_state_public",
                 "source_ready_status", "source_used_gpu_hours", "duration_source_pod_id",
                 "duration_summary_row_index", "duration_hours_raw", "duration_base_sec",
@@ -145,8 +148,12 @@ def convert(instance, output):
                                       "cpu_background_fraction": 0.},
                 "parameter_mapping": {"horizon_sec": "max_sim_time",
                                       "allocation_window_sec": "measurement window length",
-                                      "migration.*": "no engine equivalent yet (M10/M11/M12)",
-                                      "start_deadline_sec": "no engine metric",
+                                      "migration.*": "engine switches from M11: reserve_destination, "
+                                                     "release_source_when, pause_service, "
+                                                     "block_admission_during_plan",
+                                      "start_deadline_sec": "benchmark_runner.py's "
+                                                            "start_within_deadline_rate, not "
+                                                            "engine summary()",
                                       "decision_interval_sec": "engine is event-driven, not tick-driven"},
                 "dropped_columns": list(DROP_COLUMNS),
                 "semantics_matching": {
