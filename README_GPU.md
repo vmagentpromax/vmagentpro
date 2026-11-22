@@ -78,18 +78,32 @@ python --version
 
 ### 3.1 启动服务
 
-**双击 `launcher.bat` 就行**（仓库根目录）。它会问你要开哪个前端：
+**双击 `launcher.bat` 就行**（仓库根目录），或者双击 `打开前端.bat`（它只有一行，转调 `launcher.bat`）。
+它只做一件事：起本项目的 GPU 调度前端，然后打开 <http://127.0.0.1:8765/>。
+端口已经有东西在监听时它不重复起服务，直接开页面。
 
-| 选项 | 开什么 | 端口 |
-|---|---|---|
-| 1 | 本项目的 GPU 调度前端（推荐） | 8765 |
-| 2 | 原版 VMAgent 的 SchedVis 前端（`schedvis/`，需要它自己的 Python 3.11 虚拟环境） | 8050 |
-| 3 | 两个都开 | — |
+**这是唯一的入口，也是唯一的一套系统。** 以前菜单里的 [2] 原版 VMAgent SchedVis、
+[3] 两个都开，以及 `打开原版前端.bat`、`start_dashboard.bat`、`启动器.bat` 三个壳，
+已经在 2026-11-22 删掉了。原因是 SchedVis **只认 CPU/MEM 双 NUMA 的 pickle 轨迹，
+一个 GPU 结果都画不出来**，把它摆在入口里只会让人以为这里有两套可用的系统。
 
-也可以不选，直接带参数：`launcher.bat dashboard`、`launcher.bat schedvis`、`launcher.bat both`。
-端口已经在监听时它不会重复起服务，直接开页面。
+`schedvis/` 目录**一行未改地留在仓库里**——它是"对官方代码 0 修改"这条结论的证据，
+也是前端交互设计的参考。真要临时看它，手动起：
 
-`打开前端.bat`、`打开原版前端.bat`、`启动器.bat`、`start_dashboard.bat` 现在都只是**一行转调 `launcher.bat` 的壳**，为的是你桌面上已有的快捷方式继续能用；启动逻辑（解释器选择、端口探测、等待、报错文案）只在 `launcher.bat` 里有一份。
+```bash
+# 需要一个 Python 3.11 虚拟环境——2021 年那套钉版依赖装不进 3.12。
+# 下面两条是当时实测跑通用过的原话，出自引入统一启动器的那次提交
+# （`git show c0bdb8b:launcher.bat` 里的 :needenv 分支，可逐字核对）：
+py -3.11 -m venv "..\.tmp\schedvis_env"
+"..\.tmp\schedvis_env\Scripts\python.exe" -m pip install "numpy<2" "pandas==1.5.3" "flask==2.0.3" "werkzeug==2.0.3" "jinja2==3.0.3" "itsdangerous==2.0.1" "click==8.0.4" "flask-compress" "dash==1.21.0" "dash-bootstrap-components==0.13.0" "dash-bootstrap-templates==0.1.1" "dash-daq==0.5.0" "plotly==5.3.1"
+
+cd schedvis
+python run.py        # 然后自己开 http://127.0.0.1:8050/
+```
+
+传旧参数不会静默失败：`launcher.bat schedvis` / `both` 会打印一条"这条路已经不通"并返回码 2。
+
+启动逻辑（解释器选择、端口探测、等待、报错文案）只在 `launcher.bat` 里有一份。
 
 > `.bat` 文件内容必须保持纯 ASCII——cmd.exe 按 ANSI 代码页读取，文件里出现非 ASCII 字节会把解析器打断在半行上。文件名用中文没问题，文件内容不行。
 
@@ -416,7 +430,7 @@ vmagent/gpu/matrix.py         多进程策略矩阵（放置 × 队列 × 优先
 vmagent/gpu/compare.py        两次运行的容差对比（屏蔽跨解释器末位 ULP 噪声）
 vmagent/gpu/dashboard.py      本地上传、内置数据集、后台运行、状态与下载接口
 vmagent/gpu/static/           可视化网页
-launcher.bat                  两个前端共用的启动器（唯一实现）
+launcher.bat                  唯一入口，只起 GPU 前端（打开前端.bat 是它的一行转调）
 tools/ab_engine_diff.py       新旧引擎等价性核对：summary + 全部 records + 全部 events 精确比对
 tools/verify_golden_runs.py   按归档 manifest 重跑 14 组场景 F golden 并逐字段对比
 tools/verify_spotgpu_variants.py 六开关实现 vs 原子类实现，逐字段核对六个变体
