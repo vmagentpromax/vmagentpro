@@ -24,14 +24,16 @@ DEFAULT_REL_TOL = 1e-12
 DEFAULT_ABS_TOL = 1e-12
 
 
-def _walk(a, b, path, rel_tol, abs_tol, out):
+def _walk(a, b, path, rel_tol, abs_tol, out, allow_new_fields=False):
     if isinstance(a, dict) and isinstance(b, dict):
         for key in sorted(set(a) | set(b)):
             sub = "%s.%s" % (path, key) if path else key
+            if key not in a and key in b and allow_new_fields:
+                continue  # a field the reference predates: added, not altered
             if key not in a or key not in b:
                 out.append((sub, a.get(key, "<absent>"), b.get(key, "<absent>"), "presence"))
                 continue
-            _walk(a[key], b[key], sub, rel_tol, abs_tol, out)
+            _walk(a[key], b[key], sub, rel_tol, abs_tol, out, allow_new_fields)
         return
     if isinstance(a, bool) or isinstance(b, bool):
         if a != b:
@@ -45,20 +47,27 @@ def _walk(a, b, path, rel_tol, abs_tol, out):
         out.append((path, a, b, "value"))
 
 
-def diff_summaries(a, b, rel_tol=DEFAULT_REL_TOL, abs_tol=DEFAULT_ABS_TOL, ignore_volatile=True):
-    """Return a list of (field_path, reference, candidate, kind) differences."""
+def diff_summaries(a, b, rel_tol=DEFAULT_REL_TOL, abs_tol=DEFAULT_ABS_TOL, ignore_volatile=True,
+                   allow_new_fields=False):
+    """Return a list of (field_path, reference, candidate, kind) differences.
+
+    allow_new_fields=True is for golden runs recorded before a metric existed: fields
+    present only in the candidate are then not reported, while a field missing from
+    the candidate still is. That is the "0 lost, 0 altered" check the project's
+    safety practice actually needs.
+    """
     out = []
-    _walk(a, b, "", rel_tol, abs_tol, out)
+    _walk(a, b, "", rel_tol, abs_tol, out, allow_new_fields)
     if ignore_volatile:
         out = [row for row in out if row[0] not in VOLATILE]
     return out
 
 
-def compare_files(reference, candidate, rel_tol=DEFAULT_REL_TOL):
+def compare_files(reference, candidate, rel_tol=DEFAULT_REL_TOL, allow_new_fields=False):
     """Convenience for golden checks: read two summary.json paths and diff them."""
     a = json.loads(Path(reference).read_text(encoding="utf-8"))
     b = json.loads(Path(candidate).read_text(encoding="utf-8"))
-    return diff_summaries(a, b, rel_tol)
+    return diff_summaries(a, b, rel_tol, allow_new_fields=allow_new_fields)
 
 
 def format_diff(differences, limit=20):
