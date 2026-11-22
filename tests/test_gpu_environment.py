@@ -4,11 +4,13 @@ import math
 import tempfile
 import threading
 import time
+import sys
 import unittest
 from collections import OrderedDict
 from pathlib import Path
 
-from vmagent.gpu.environment import GpuSchedEnv, NodeSpec, TaskSpec, DEFAULT_TASKS, EPS, load_workload, load_nodes
+from vmagent.gpu.environment import GpuSchedEnv, NodeSpec, TaskSpec, DEFAULT_TASKS, EPS, ROOT, load_workload, load_nodes
+from vmagent.gpu.metrics import interval_overlap, percentile_linear, percentile_nearest_rank
 from vmagent.gpu.run import make_environment
 from vmagent.gpu.environment import DEFAULT_NODES
 
@@ -739,6 +741,39 @@ class SpotGpuKnobTests(unittest.TestCase):
                       {"unknown": 1}):
             with self.assertRaises(ValueError, msg=str(knobs)):
                 GpuSchedEnv([node], tasks, clock="fast", spotgpu=knobs)
+
+
+class MetricDefinitionTests(unittest.TestCase):
+    """The repo has two p95 definitions on purpose; this keeps them from drifting.
+
+    The engine and the archived preemption suite report lower nearest-rank percentiles.
+    The defragmentation benchmark reports numpy's interpolated one, and matching its
+    archived numbers requires matching its definition, not just its algorithm. Having
+    both in one repository is a trap for anyone assembling a table from two sources, so
+    the difference is a named function pair with a test rather than an accident.
+    """
+    def test_the_two_percentile_rules_differ_where_they_should(self):
+        self.assertEqual(3, percentile_nearest_rank([1., 2., 3.], .95))
+        self.assertAlmostEqual(2.9, percentile_linear([1., 2., 3.], .95), places=12)
+        self.assertEqual(0., percentile_nearest_rank([], .95))
+
+    def test_the_experiment_harness_agrees_with_the_engine_rule(self):
+        # harness.py keeps its own copy because its archived results record
+        # harness_sha256; changing the file would invalidate that provenance. This test
+        # is what stops the copy from silently becoming a third definition.
+        sys.path.insert(0, str(ROOT / "experiments/preemption_20261107"))
+        from harness import percentile
+        for values in ([1., 2., 3.], [5.], list(range(1, 101)), [3., 1., 2.]):
+            ordered = sorted(values)
+            for fraction in (.5, .95, .99):
+                self.assertEqual(percentile(ordered, fraction),
+                                 percentile_nearest_rank(ordered, fraction),
+                                 "%s at %s" % (values, fraction))
+
+    def test_interval_overlap_matches_the_engine_integrator(self):
+        self.assertEqual(0., interval_overlap(0., 10., 20., 30.))
+        self.assertEqual(5., interval_overlap(0., 10., 5., 20.))
+        self.assertEqual(10., interval_overlap(0., 100., 20., 30.))
 
 
 if __name__ == "__main__":

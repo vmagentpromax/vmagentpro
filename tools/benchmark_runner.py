@@ -33,6 +33,7 @@ sys.path.insert(0, str(REPO))
 
 from vmagent.gpu.contract import load_initial_placement, load_nodes, load_workload
 from vmagent.gpu.environment import GpuSchedEnv
+from vmagent.gpu.metrics import percentile_linear
 
 # Her header, verbatim, so the two tables can be diffed as text.
 COLUMNS = ("placement", "migration", "requests", "started", "completed", "unstarted",
@@ -45,16 +46,6 @@ COLUMNS = ("placement", "migration", "requests", "started", "completed", "unstar
 BLANK_COLUMNS = {"first_attempt_classes", "blocked_request_seconds"}
 PLACEMENTS = ("first_fit", "best_fit")
 MIGRATIONS = ("none", "one_move", "cheap_multi", "first_multi")
-
-
-def quantile_linear(values, fraction):
-    ordered = sorted(values)
-    if not ordered:
-        return ""
-    position = (len(ordered)-1)*fraction
-    low = int(position)
-    high = min(low+1, len(ordered)-1)
-    return ordered[low] + (ordered[high]-ordered[low])*(position-low)
 
 
 def run_cell(nodes_path, tasks_path, placement_path, config, placement, migration):
@@ -83,7 +74,7 @@ def run_cell(nodes_path, tasks_path, placement_path, config, placement, migratio
             "started": sum(1 for pid in arrivals if env.records[pid]["start_time_sec"] is not None),
             "completed": sum(1 for pid in arrivals if env.records[pid]["status"] == "completed"),
             "unstarted": sum(1 for pid in arrivals if env.records[pid]["start_time_sec"] is None),
-            "p95_wait_censored_sec": quantile_linear(waits, .95),
+            "p95_wait_censored_sec": percentile_linear(waits, .95),
             "mean_wait_censored_sec": sum(waits)/len(waits) if waits else "",
             "start_within_deadline_rate": sum(1 for wait in waits if wait <= deadline+1e-9)/len(arrivals),
             "gpu_effective_allocation_rate": summary["effective_gpu_ratio"],

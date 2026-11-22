@@ -29,22 +29,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
+from vmagent.gpu.metrics import percentile_linear
 from vmagent.gpu.run import make_environment
 
 # Measured agreement target. The two engines integrate the same quantity with the
 # same event order, so anything larger than float noise here is a real difference.
 REL_TOL = 1e-9
-
-
-def quantile_linear(values, fraction):
-    """numpy.quantile(..., method='linear'), reimplemented so this tool needs no numpy."""
-    ordered = sorted(values)
-    if not ordered:
-        return float("nan")
-    position = (len(ordered)-1)*fraction
-    low = int(position)
-    high = min(low+1, len(ordered)-1)
-    return ordered[low] + (ordered[high]-ordered[low])*(position-low)
 
 
 def engine_metrics(env, arrivals, horizon, deadline_sec, window_sec):
@@ -62,7 +52,7 @@ def engine_metrics(env, arrivals, horizon, deadline_sec, window_sec):
                              if env.records[pid]["status"] == "completed"),
             "unstarted": sum(1 for pid in arrivals
                              if env.records[pid]["start_time_sec"] is None),
-            "p95_wait_censored_sec": quantile_linear(waits, .95),
+            "p95_wait_censored_sec": percentile_linear(waits, .95),
             "mean_wait_censored_sec": sum(waits)/len(waits) if waits else 0.,
             "start_within_deadline_rate": sum(1 for wait in waits if wait <= deadline_sec+1e-9)/len(arrivals),
             "gpu_reserved_allocation_rate": summary["reserved_gpu_ratio"],

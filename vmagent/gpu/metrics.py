@@ -23,6 +23,40 @@ import time
 from .contract import EPS
 
 
+def interval_overlap(start_a, end_a, start_b, end_b):
+    """Length of the intersection of two half-open intervals, never negative."""
+    return max(0., min(end_a, end_b) - max(start_a, start_b))
+
+
+def percentile_nearest_rank(ordered, fraction):
+    """The p95 this project reports by default.
+
+    `ordered` must already be sorted; the index is the classic lower nearest-rank
+    rule, so p95 of [1, 2, 3] is 3, not an interpolated value. Used by the engine's
+    summary and by the archived preemption experiment suite.
+    """
+    if not ordered:
+        return 0.
+    return ordered[max(0, math.ceil(fraction*len(ordered))-1)]
+
+
+def percentile_linear(values, fraction):
+    """numpy.quantile(..., method='linear'), reimplemented so nothing here needs numpy.
+
+    This is *not* the same number as percentile_nearest_rank and the two must never
+    be mixed in one table: it interpolates between neighbours, so p95 of [1, 2, 3]
+    is 2.9. It exists because the defragmentation benchmark's engine calls
+    numpy.quantile, and reproducing its p95 requires reproducing its definition.
+    """
+    ordered = sorted(values)
+    if not ordered:
+        return float("nan")
+    position = (len(ordered)-1)*fraction
+    low = int(position)
+    high = min(low+1, len(ordered)-1)
+    return ordered[low] + (ordered[high]-ordered[low])*(position-low)
+
+
 class MetricsMixin:
     def _integrate_to(self, target):
         if target < self.current_time-EPS:
@@ -175,7 +209,7 @@ class MetricsMixin:
                 "workload_gpu_in_measurable_groups": group_gpu,
                 "gpu_on_nodes_without_asw": unknown_asw_gpu,
                 "gpu_entropy_nats_mean": (sum(entropies)/len(entropies)) if entropies else 0.,
-                "gpu_entropy_nats_p95": entropies[max(0, math.ceil(.95*len(entropies)))-1] if entropies else 0.,
+                "gpu_entropy_nats_p95": percentile_nearest_rank(entropies, .95),
                 "gpu_entropy_nats_max": entropies[-1] if entropies else 0.,
                 "topology_metrics_are_final_placement_not_coresidency": True}
 
@@ -263,7 +297,7 @@ class MetricsMixin:
                     "preempted_task_count": sum(1 for r in self.records.values() if r["preemption_count"] > 0),
                     "wasted_gpu_sec": sum(r["wasted_sec"]*t.gpu for r, t in zip(self.records.values(), self.tasks)),
                     "mean_wait_sec_started": sum(waits)/len(waits) if waits else 0.,
-                    "p95_wait_sec_started": waits[max(0, math.ceil(.95*len(waits))-1)] if waits else 0.,
+                    "p95_wait_sec_started": percentile_nearest_rank(waits, .95),
                     "peak_queue_length": int(self.peak_queue),
                     "peak_gpu_reserved": self.peak_gpu, "peak_cpu_reserved_cores": self.peak_cpu,
                     "cpu_background_fraction": self.background,
