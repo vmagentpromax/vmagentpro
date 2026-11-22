@@ -374,5 +374,56 @@ class BlockClassificationTests(unittest.TestCase):
         self.assertAlmostEqual(block["fragmentation_share_of_classified"], 1/3)
 
 
+class SpotGpuVictimTieBreakTests(unittest.TestCase):
+    """Equal-cost victims must be chosen by pod_id, not by set iteration order.
+
+    Regression test for a reproducibility bug found by tools/verify_golden_runs.py:
+    node_spot_pids is a set of strings, CPython randomises string hashes per process,
+    and sorted() is stable, so the old `sorted(pids, key=cost)` returned victims in an
+    order that changed between processes. Measured on the full scenario F input:
+    preemptions 232 under PYTHONHASHSEED=0 versus 242 under PYTHONHASHSEED=1, with
+    wasted_gpu_sec 6,417 GPU·s apart and reserved_gpu_ratio 3.2 points apart, on
+    identical code and identical input. Warmup tasks that all start at t=0 make ties
+    the common case, not an edge case.
+    """
+    def stage(self, pids):
+        node = NodeSpec("n1", "cluster", "H20", 8., 8.)
+        tasks = [TaskSpec(pid, 2., 2., ("H20",), 0., 100., "LP") for pid in pids]
+        tasks.append(TaskSpec("hp", 5., 5., ("H20",), 0., 1., "HP"))
+        env = GpuSchedEnv([node], tasks, clock="fast", measurement_window=(0., 10.))
+        env.reset()
+        # Hand-stage four LP tasks sharing one node, all started at the same instant so
+        # every victim cost is identical and only the tie-break can distinguish them.
+        env.current_time = 4.
+        env.free_gpu, env.free_cpu = [0.], [0.]
+        env.node_gpu_used, env.node_cpu_used, env.node_running_count = [8.], [8.], [4]
+        env.running = {pid: 0 for pid in pids}
+        env.running_start = {pid: 0. for pid in pids}
+        env.node_spot_pids = [set(pids)]
+        return env
+
+    def test_equal_cost_victims_are_chosen_in_pod_id_order(self):
+        env = self.stage(["lp_d", "lp_c", "lp_b", "lp_a"])
+        node, victims, cost = env._spotgpu_best_preemption(env.by_id["hp"])
+        self.assertEqual(0, node)
+        self.assertEqual(["lp_a", "lp_b", "lp_c"], victims)
+        self.assertEqual(24., cost)
+
+    def test_the_choice_does_not_depend_on_how_the_set_was_built(self):
+        first = self.stage(["lp_a", "lp_b", "lp_c", "lp_d"])
+        second = self.stage(["lp_d", "lp_c", "lp_b", "lp_a"])
+        self.assertEqual(first._spotgpu_best_preemption(first.by_id["hp"])[1],
+                         second._spotgpu_best_preemption(second.by_id["hp"])[1])
+
+    def test_a_cheaper_task_is_still_chosen_over_a_lower_pod_id(self):
+        # pod_id only breaks ties: the cost ordering from the paper must still win,
+        # or the fix would have replaced one arbitrary rule with a worse one.
+        env = self.stage(["lp_a", "lp_b", "lp_c", "lp_d"])
+        env.running_start["lp_d"] = 3.9          # lp_d has just checkpointed
+        node, victims, cost = env._spotgpu_best_preemption(env.by_id["hp"])
+        self.assertIn("lp_d", victims)
+        self.assertEqual(0, node)
+
+
 if __name__ == "__main__":
     unittest.main()
