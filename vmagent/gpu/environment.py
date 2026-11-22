@@ -1,151 +1,58 @@
-"""Timed CPU/GPU resource reservation simulator (Python standard library only)."""
+"""Timed CPU/GPU resource reservation simulator (Python standard library only).
+
+The simulator used to be this one 1,009-line file. It is now six focused modules
+plus this orchestrator, and the split is by *question*, not by convenience:
+
+    contract.py     how a CSV/JSON becomes NodeSpec and TaskSpec, and what is rejected
+    ledger.py       what fits on a node right now, and the reservation invariant
+    queues.py       who is next, and why the task before them could not go
+    clock.py        the event heap, time advance, fast vs realtime, tie-breaking
+    placement.py    which feasible node a policy picks
+    preemption.py   SpotGPU: who an HP task evicts and what that costs
+    metrics.py      integrated areas, the event trace, and summary()
+
+`GpuSchedEnv` below owns only the state machine that ties them together: `__init__`
+validation, `reset`, the arrival/complete/reject event loop, `_place`, `step`, `run`,
+and the three output surfaces (`observation`, `snapshot`, `export`). That is the part
+with genuinely cross-cutting knowledge, because one transition touches the ledger,
+the queue index, the heap and the record table at the same time.
+
+Why the split exists: M10 absorbs the collaborator's defragmentation engine, and
+migration needs a ledger to reuse and a place to hook placement. Neither had an
+addressable home in a single file. Behaviour is unchanged by construction — the
+method bodies moved verbatim, with one deliberate consolidation (the allocate/release
+blocks that `_place`, `_process_due` and `_evict` each spelled out by hand are now
+`ledger.allocate` / `ledger.release`, in the same operation order).
+`tools/verify_golden_runs.py` re-runs the recorded scenario F results and diffs
+every field to prove it.
+
+Everything this module used to define is re-exported, so `from
+vmagent.gpu.environment import GpuSchedEnv, load_workload` keeps working.
+"""
 import csv
 import heapq
-import io
 import json
 import math
 import operator
 import random
 import threading
 import time
-from bisect import bisect_right
 from collections import OrderedDict
-from dataclasses import dataclass, field
 from pathlib import Path
 
-EPS = 1e-9
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_NODES = ROOT / "docs/server_selection/servers_20_H20.csv"
-DEFAULT_TASKS = ROOT / "docs/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json"
+from .clock import ClockMixin
+from .contract import (DEFAULT_NODES, DEFAULT_TASKS, EPS, ROOT, NodeSpec, TaskSpec,
+                       load_nodes, load_workload, number, optional_label, read_records,
+                       required)
+from .ledger import LedgerMixin
+from .metrics import MetricsMixin
+from .placement import PlacementMixin
+from .preemption import PreemptionMixin
+from .queues import QueueMixin
 
 
-def number(value, name, positive=False):
-    if isinstance(value, bool):
-        raise ValueError("{} must be a finite number".format(name))
-    try:
-        result = float(value)
-    except (ValueError, TypeError):
-        raise ValueError("{} must be a finite number".format(name)) from None
-    if not math.isfinite(result) or result < 0 or (positive and result == 0):
-        raise ValueError("{} must be {}".format(name, "positive and finite" if positive else "nonnegative and finite"))
-    return result
-
-
-def required(row, key):
-    value = str(row.get(key, "")).strip()
-    if not value or row.get(key) is None:
-        raise ValueError("Missing {}".format(key))
-    return value
-
-
-def optional_label(row, key):
-    """Read an observational label: blank, nan and null all mean unknown."""
-    value = row.get(key)
-    if value is None:
-        return ""
-    text = str(value).strip()
-    return "" if text.lower() in ("", "nan", "none", "null") else text
-
-
-def read_records(path, key):
-    path = Path(path)
-    text = path.read_text(encoding="utf-8-sig")
-    if path.suffix.lower() == ".json":
-        data = json.loads(text)
-        if not isinstance(data, (list, dict)):
-            raise ValueError("JSON input must be an array or an object")
-        rows = data if isinstance(data, list) else data.get(key)
-        metadata = data if isinstance(data, dict) else {}
-    elif path.suffix.lower() == ".csv":
-        rows = list(csv.DictReader(io.StringIO(text)))
-        metadata = {}
-    else:
-        raise ValueError("Only UTF-8 CSV and JSON inputs are supported")
-    if not isinstance(rows, list) or not rows or not all(isinstance(row, dict) for row in rows):
-        raise ValueError("{} must contain a nonempty list of records".format(key))
-    return rows, metadata
-
-
-@dataclass(frozen=True)
-class NodeSpec:
-    server_id: str
-    cluster_id: str
-    gpu_type: str
-    gpu_capacity: float
-    cpu_capacity: float
-    # Optional access-switch / rack-domain label. Observational only: it never enters
-    # _fits, placement scoring or rejection classification, so results are unchanged.
-    asw_id: str = ""
-
-
-@dataclass(frozen=True)
-class TaskSpec:
-    pod_id: str
-    gpu: float
-    cpu: float
-    allowed_gpu_types: tuple
-    submit_time: float
-    service_time: float
-    priority: str = "Other"
-    metadata: dict = field(default_factory=dict, compare=False)
-    # Optional workload identity: in the ASI trace a multi-node job appears as several
-    # pods sharing one workload_id. Observational only; absent or blank means unknown.
-    workload_id: str = ""
-
-
-def load_nodes(path):
-    rows, _ = read_records(path, "nodes")
-    result, seen = [], set()
-    for row in rows:
-        sid = required(row, "server_id")
-        if sid in seen:
-            raise ValueError("Duplicate server_id: " + sid)
-        seen.add(sid)
-        result.append(NodeSpec(sid, required(row, "cluster_id"), required(row, "gpu_spec_public"),
-                               number(row.get("gpu_count"), "gpu_count", True),
-                               number(row.get("cpu_capacity_cores"), "cpu_capacity_cores", True),
-                               optional_label(row, "asw_id")))
-    if len({node.cluster_id for node in result}) != 1:
-        raise ValueError("All servers must belong to the same cluster_id")
-    return result
-
-
-def load_workload(path):
-    rows, metadata = read_records(path, "tasks")
-    result, seen = [], set()
-    for row in rows:
-        pid = required(row, "pod_id")
-        if pid in seen:
-            raise ValueError("Duplicate pod_id: " + pid)
-        seen.add(pid)
-        gpu = number(row.get("gpu_request"), "gpu_request")
-        allowed = row.get("allowed_gpu_types", row.get("gpu_spec_public", []))
-        if isinstance(allowed, str):
-            stripped = allowed.strip()
-            if stripped.startswith("["):
-                allowed = json.loads(stripped)
-            elif stripped.lower() in ("", "nan", "none", "null"):
-                allowed = []
-            else:
-                allowed = [stripped]
-        if not isinstance(allowed, (list, tuple)) or any(not isinstance(x, str) or not x.strip() for x in allowed):
-            raise ValueError("allowed_gpu_types must be a list of nonempty model labels")
-        if gpu > 0 and not allowed:
-            raise ValueError("GPU tasks must specify gpu_spec_public or allowed_gpu_types")
-        priority = str(row.get("priority_class") or "Other").strip().upper()
-        if priority not in ("HP", "LP", "OTHER"):
-            priority = "OTHER"
-        if priority == "OTHER":
-            priority = "Other"
-        result.append(TaskSpec(pid, gpu, number(row.get("cpu_request_cores"), "cpu_request_cores"),
-                               tuple(allowed), number(row.get("submit_time_sec"), "submit_time_sec"),
-                               number(row.get("service_sec"), "service_sec", True),
-                               priority, dict(row), optional_label(row, "workload_id")))
-    result.sort(key=lambda task: (task.submit_time, task.pod_id))
-    return result, {key: value for key, value in metadata.items() if key != "tasks"}
-
-
-class GpuSchedEnv:
+class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, PreemptionMixin,
+                  MetricsMixin):
     """One action selects one server. reset/step expose a four-return Gym-style API.
 
     Tasks that cannot currently fit wait for future arrivals/completions. Invalid
@@ -195,71 +102,6 @@ class GpuSchedEnv:
         self.lock = threading.RLock()
         self.stop_requested = threading.Event()
         self.initialized = False
-
-    def _fits(self, task, index, empty=False):
-        node = self.nodes[index]
-        gpu = node.gpu_capacity if empty else self.free_gpu[index]
-        cpu = node.cpu_capacity*(1-self.background) if empty else self.free_cpu[index]
-        return ((task.gpu == 0 or node.gpu_type in task.allowed_gpu_types)
-                and task.gpu <= gpu+EPS and task.cpu <= cpu+EPS)
-
-    def _any_fits(self, task, max_free_cpu=None):
-        if task.gpu == 0:
-            if max_free_cpu is None:
-                max_free_cpu = max(self.free_cpu)
-            return task.cpu <= max_free_cpu+EPS
-        return any(self._fits(task, j) for model in task.allowed_gpu_types
-                   for j in self.model_nodes.get(model, ()))
-
-    def _cpu_tree_set(self, index, sequence):
-        position = self.cpu_tree_size+index
-        self._cpu_wait_tree[position] = sequence
-        position //= 2
-        while position:
-            self._cpu_wait_tree[position] = min(self._cpu_wait_tree[2*position],
-                                                 self._cpu_wait_tree[2*position+1])
-            position //= 2
-
-    def _cpu_prefix_min(self, limit):
-        left, right = self.cpu_tree_size, self.cpu_tree_size+limit
-        result = math.inf
-        while left < right:
-            if left & 1:
-                result = min(result, self._cpu_wait_tree[left])
-                left += 1
-            if right & 1:
-                right -= 1
-                result = min(result, self._cpu_wait_tree[right])
-            left //= 2
-            right //= 2
-        return result
-
-    def _cpu_wait_candidate(self, max_free_cpu):
-        limit = bisect_right(self.cpu_only_demands, max_free_cpu+EPS)
-        while limit:
-            sequence = self._cpu_prefix_min(limit)
-            if sequence == math.inf:
-                return None
-            pid = self._waiting_order[int(sequence)]
-            if pid in self.waiting_set and self._queue_seq.get(pid) == sequence:
-                return pid
-            index = self.cpu_demand_index[self.by_id[pid].cpu]
-            heap = self._cpu_wait_heaps[index]
-            while heap and (heap[0][1] not in self.waiting_set
-                            or self._queue_seq.get(heap[0][1]) != heap[0][0]):
-                heapq.heappop(heap)
-            self._cpu_tree_set(index, heap[0][0] if heap else math.inf)
-        return None
-
-    def _rejection_reason(self, task):
-        compatible = [n for n in self.nodes if task.gpu == 0 or n.gpu_type in task.allowed_gpu_types]
-        if not compatible:
-            return "gpu_model_unavailable"
-        if all(task.gpu > n.gpu_capacity+EPS for n in compatible):
-            return "gpu_request_exceeds_single_node"
-        if all(task.cpu > n.cpu_capacity*(1-self.background)+EPS for n in compatible):
-            return "cpu_request_exceeds_single_node_after_background"
-        return "joint_request_never_fits_one_node"
 
     def reset(self):
         with self.lock:
@@ -336,103 +178,12 @@ class GpuSchedEnv:
         self._advance_until_ready()
         return self.observation()
 
-    def _push(self, when, priority, kind, pod_id):
-        self.counter += 1
-        heapq.heappush(self.heap, (when, priority, self.counter, kind, pod_id))
-        return self.counter
-
-    def _record(self, kind, pod_id=None):
-        if pod_id is not None:
-            previous = self.last_recorded_status[pod_id]
-            current = self.records[pod_id]["status"]
-            if current != previous:
-                self.status_counts[previous] -= 1
-                self.status_counts[current] += 1
-                self.last_recorded_status[pod_id] = current
-        gpu = self.total_gpu-sum(self.free_gpu)
-        foreground_cpu = self.total_cpu*(1-self.background)-sum(self.free_cpu)
-        self.peak_gpu = max(self.peak_gpu, gpu)
-        self.peak_cpu = max(self.peak_cpu, foreground_cpu+self.total_cpu*self.background)
-        self.peak_queue = max(self.peak_queue, len(self.waiting))
-        counts = self._counts()
-        event = {"time_sec": self.current_time, "event": kind, "pod_id": pod_id,
-                 "gpu_reserved": max(0., gpu), "cpu_reserved_cores": max(0., foreground_cpu)+self.total_cpu*self.background,
-                 "waiting": len(self.waiting), "running": len(self.running), "completed": counts["completed"],
-                 "rejected": counts["rejected"]}
-        self.events.append(event)
-        self.history.append(dict(event))
-
-    def _integrate_to(self, target):
-        if target < self.current_time-EPS:
-            raise RuntimeError("Clock moved backwards")
-        overlap = max(0., min(target, self.measure_end)-max(self.current_time, self.measure_start))
-        self.gpu_area += (self.total_gpu-sum(self.free_gpu))*overlap
-        self.cpu_area += (self.total_cpu*(1-self.background)-sum(self.free_cpu))*overlap
-        for model, idxs in self.model_nodes.items():
-            self.model_gpu_area[model] += sum(self.nodes[j].gpu_capacity-self.free_gpu[j] for j in idxs)*overlap
-            self.model_cpu_area[model] += sum(self.nodes[j].cpu_capacity*(1-self.background)-self.free_cpu[j] for j in idxs)*overlap
-        self.queue_area += len(self.waiting)*overlap
-        partial = 0
-        stranded = 0.
-        for j, node in enumerate(self.nodes):
-            used = node.gpu_capacity-self.free_gpu[j]
-            if EPS < used < node.gpu_capacity-EPS:
-                partial += 1
-                stranded += node.gpu_capacity-used
-        self.partial_node_time += partial*overlap
-        self.stranded_gpu_time += stranded*overlap
-        self.current_time = target
-
-    def _move_to(self, target):
-        target = min(target, self.max_sim_time)
-        if self.clock == "realtime":
-            while not self.stop_requested.is_set():
-                delay = (target-(time.monotonic()-self.wall_start)*self.speed)/self.speed
-                if delay <= 0:
-                    break
-                self.stop_requested.wait(min(delay, .1))
-            elapsed = (time.monotonic()-self.wall_start)*self.speed
-            actual = min(self.max_sim_time, max(self.current_time if self.stop_requested.is_set() else target, elapsed))
-        else:
-            actual = self.current_time if self.stop_requested.is_set() else target
-        with self.lock:
-            self._integrate_to(max(self.current_time, actual))
-
-    def _enqueue(self, pid):
-        self.waiting[pid] = None
-        self.waiting_set.add(pid)
-        sequence = len(self._waiting_order)
-        self._queue_seq[pid] = sequence
-        self._waiting_order.append(pid)
-        self._queue_seq_counter += 1
-        task = self.by_id[pid]
-        if self.queue_policy == "backfill":
-            if task.gpu == 0:
-                index = self.cpu_demand_index[task.cpu]
-                heap = self._cpu_wait_heaps[index]
-                heapq.heappush(heap, (sequence, pid))
-                self._cpu_tree_set(index, heap[0][0])
-            else:
-                key = (task.gpu, task.cpu, task.allowed_gpu_types)
-                index = self._gpu_wait_group_index.get(key)
-                if index is None:
-                    index = len(self._gpu_wait_groups)
-                    self._gpu_wait_group_index[key] = index
-                    self._gpu_wait_groups.append([])
-                    self._gpu_wait_group_cursors.append(0)
-                self._gpu_wait_groups[index].append((sequence, pid))
-        if task.gpu > 0 and self.task_priority.get(pid) == "HP":
-            key = (task.gpu, task.cpu, task.allowed_gpu_types)
-            index = self._hp_gpu_wait_group_index.get(key)
-            if index is None:
-                index = len(self._hp_gpu_wait_groups)
-                self._hp_gpu_wait_group_index[key] = index
-                self._hp_gpu_wait_groups.append([])
-                self._hp_gpu_wait_group_cursors.append(0)
-            self._hp_gpu_wait_groups[index].append((sequence, pid))
-            self._preempt_generation += 1
-
     def _process_due(self):
+        """Drain every event due at the current instant, in heap order.
+
+        Completion, arrival and rejection share one loop so that tie-breaking stays
+        a property of the heap rather than of this function: see clock.py.
+        """
         while self.heap and self.heap[0][0] <= self.current_time+EPS:
             _, _, ev_counter, kind, pid = heapq.heappop(self.heap)
             task, record = self.by_id[pid], self.records[pid]
@@ -441,13 +192,7 @@ class GpuSchedEnv:
                     continue  # stale event from before a preemption
                 index = self.running.pop(pid)
                 self.running_start.pop(pid, None)
-                self.free_gpu[index] += task.gpu
-                self.free_cpu[index] += task.cpu
-                self.free_gpu[index] = min(self.nodes[index].gpu_capacity, self.free_gpu[index])
-                self.free_cpu[index] = min(self.nodes[index].cpu_capacity*(1-self.background), self.free_cpu[index])
-                self.node_gpu_used[index] -= task.gpu
-                self.node_cpu_used[index] -= task.cpu
-                self.node_running_count[index] -= 1
+                self.release(pid, index)
                 if self.task_priority.get(pid) == "HP":
                     self.node_hp_running[index] -= 1
                 elif self.task_priority.get(pid) == "LP":
@@ -466,290 +211,16 @@ class GpuSchedEnv:
             self._record(kind, pid)
         self._check_resources()
 
-    def _note_block(self, pid):
-        """Record the first observed blocking reason for a task, once.
-
-        _next_ready only hands a task to the policy when it already fits, so a
-        blocked task never reaches pending_id. The classification therefore has to
-        happen here, on the branch where _any_fits failed; recording at the decision
-        point alone would label every task "direct".
-        """
-        if pid not in self.first_block_class:
-            self.first_block_class[pid] = self._classify_block(self.by_id[pid])
-
-    def _next_ready(self):
-        if self.queue_policy == "fcfs":
-            pid = next(iter(self.waiting), None)
-            if pid is not None:
-                if self._any_fits(self.by_id[pid]):
-                    return pid
-                self._note_block(pid)
-            return None
-        max_free_cpu = max(self.free_cpu)
-        candidate = self._cpu_wait_candidate(max_free_cpu)
-        candidate_sequence = self._queue_seq[candidate] if candidate is not None else math.inf
-        for index, group in enumerate(self._gpu_wait_groups):
-            cursor = self._gpu_wait_group_cursors[index]
-            while cursor < len(group):
-                sequence, pid = group[cursor]
-                if pid in self.waiting_set and self._queue_seq.get(pid) == sequence:
-                    break
-                cursor += 1
-            self._gpu_wait_group_cursors[index] = cursor
-            if cursor == len(group):
-                continue
-            sequence, pid = group[cursor]
-            if sequence < candidate_sequence:
-                if self._any_fits(self.by_id[pid]):
-                    candidate, candidate_sequence = pid, sequence
-                else:
-                    # Only the earliest blocked task per group is recorded: it is the
-                    # one backfill actually skipped over, and the guard keeps this
-                    # O(nodes) once per task rather than once per event.
-                    self._note_block(pid)
-        return candidate
-
-    def _classify_block(self, task):
-        """Why this task cannot start at this instant. Observational only.
-
-        Keeps the four-way split used by the archived defragmentation benchmark so
-        results stay comparable, adapted to this engine: GPU eligibility is a
-        whitelist rather than an exact label, and CPU-only tasks are compatible with
-        every node. free_cpu already excludes the background reservation.
-
-        This describes the current state only. Permanent impossibility is decided
-        separately by _rejection_reason against empty nodes, so a task classified
-        here as a capacity shortage may still be rejected later.
-        """
-        if task.gpu == 0:
-            candidates = range(len(self.nodes))
-        else:
-            candidates = set()
-            for model in task.allowed_gpu_types:
-                candidates.update(self.model_nodes.get(model, ()))
-            if not candidates:
-                return "model_unavailable"
-        if any(self._fits(task, j) for j in candidates):
-            return "direct"
-        if sum(self.free_gpu[j] for j in candidates)+EPS < task.gpu:
-            return "gpu_capacity_shortage"
-        if sum(self.free_cpu[j] for j in candidates)+EPS < task.cpu:
-            return "cpu_capacity_shortage"
-        return "fragmentation"
-
-    def _advance_until_ready(self):
-        while True:
-            with self.lock:
-                if self.stop_requested.is_set():
-                    self._finish("cancelled")
-                if self.done:
-                    return
-                self._process_due()
-                if self.current_time >= self.max_sim_time:
-                    self._finish("drained" if not self.heap and not self.waiting and not self.running else "max_sim_time")
-                    return
-                self.pending_id = self._next_ready()
-                if self.pending_id is not None:
-                    # Reaching a decision point means the task fits now. Record
-                    # "direct" only if it was never seen blocked, so a task that
-                    # waited and then started keeps the reason it waited for.
-                    self.first_block_class.setdefault(self.pending_id, "direct")
-                    return
-                if self.preempt_enabled and self._try_preempt():
-                    continue
-                if not self.heap:
-                    self._finish("drained" if not self.waiting and not self.running else "blocked")
-                    return
-                target = self.heap[0][0]
-            self._move_to(target)
-
-    def _finish(self, reason):
-        if not self.done:
-            self.done, self.end_reason, self.pending_id = True, reason, None
-            self.wall_end = time.monotonic()
-            self._record(reason)
-
-    def _check_resources(self):
-        # Incremental ledgers are updated at placement and completion; compare
-        # them against the free-resource vectors (both accumulated in the same
-        # event order, so float drift stays far below EPS).
-        for j, node in enumerate(self.nodes):
-            expected_gpu = node.gpu_capacity - self.node_gpu_used[j]
-            expected_cpu = node.cpu_capacity*(1-self.background) - self.node_cpu_used[j]
-            if (abs(expected_gpu-self.free_gpu[j]) > 1e-7 or abs(expected_cpu-self.free_cpu[j]) > 1e-7
-                    or expected_gpu < -EPS or expected_cpu < -EPS):
-                raise RuntimeError("Resource ledger violated on " + node.server_id)
-
-    def observation(self):
-        with self.lock:
-            task = self.by_id[self.pending_id] if self.pending_id else None
-            return {"time_sec": self.current_time,
-                    "obs": [[self.free_gpu[j]/n.gpu_capacity, self.free_cpu[j]/n.cpu_capacity] for j, n in enumerate(self.nodes)],
-                    "feat": [task.gpu, task.cpu] if task else [0., 0.],
-                    "avail": [int(task is not None and self._fits(task, j)) for j in range(len(self.nodes))],
-                    "node_ids": [n.server_id for n in self.nodes], "gpu_models": [n.gpu_type for n in self.nodes],
-                    "task": {"pod_id": task.pod_id, "gpu_request": task.gpu, "cpu_request_cores": task.cpu,
-                             "allowed_gpu_types": list(task.allowed_gpu_types)} if task else None,
-                    "queue_length": len(self.waiting), "done": self.done}
-
-    def get_attr(self, name):
-        obs = self.observation()
-        return obs[{"req": "feat"}.get(name, name)]
-
-    def choose_action(self, policy="first_fit"):
-        obs = self.observation()
-        valid = [i for i, allowed in enumerate(obs["avail"]) if allowed]
-        if not valid:
-            raise RuntimeError("No placement decision is ready")
-        if policy == "first_fit":
-            return valid[0]
-        if policy == "random":
-            return self.rng.choice(valid)
-        if policy == "best_fit":
-            task = self.by_id[self.pending_id]
-            return min(valid, key=lambda j: ((self.free_gpu[j]-task.gpu)/self.nodes[j].gpu_capacity
-                       +(self.free_cpu[j]-task.cpu)/self.nodes[j].cpu_capacity, j))
-        if policy == "worst_fit":
-            task = self.by_id[self.pending_id]
-            return min(valid, key=lambda j: (-((self.free_gpu[j]-task.gpu)/self.nodes[j].gpu_capacity
-                       +(self.free_cpu[j]-task.cpu)/self.nodes[j].cpu_capacity), j))
-        raise ValueError("Unknown placement policy: " + str(policy))
-
-    # ---- SpotGPU (OSDI'26, "Heterogeneity at Hyperscale", Section 4.2) ----
-    # HP tasks may preempt LP spot tasks; the victim set on a node is the
-    # lowest-preemption-cost prefix. Preemption cost of a spot task t:
-    # C_t = G_t * (now - last_checkpoint), checkpoints every
-    # self.checkpoint_interval seconds since the task's start.
-
-    def _spotgpu_victim_cost(self, pid):
-        task = self.by_id[pid]
-        elapsed = self.current_time - self.running_start[pid]
-        checkpoints = int(elapsed // self.checkpoint_interval)
-        last_ck = self.running_start[pid] + checkpoints * self.checkpoint_interval
-        return task.gpu * (self.current_time - last_ck)
-
-    def _spotgpu_best_preemption(self, task):
-        """Best (node, victims, cost) to reclaim LP spot GPUs for an HP task, or None."""
-        best = None
-        for j, node in enumerate(self.nodes):
-            if not (task.gpu == 0 or node.gpu_type in task.allowed_gpu_types):
-                continue
-            if task.gpu > node.gpu_capacity+EPS or task.cpu > node.cpu_capacity*(1-self.background)+EPS:
-                continue
-            free_g, free_c = self.free_gpu[j], self.free_cpu[j]
-            if free_g >= task.gpu-EPS and free_c >= task.cpu-EPS:
-                continue  # fits non-preemptively; normal path handles it
-            spot = sorted(self.node_spot_pids[j], key=self._spotgpu_victim_cost)
-            if not spot:
-                continue
-            victims, total, freed_g, freed_c = [], 0., 0., 0.
-            for pid in spot:
-                t = self.by_id[pid]
-                victims.append(pid)
-                total += self._spotgpu_victim_cost(pid)
-                freed_g += t.gpu
-                freed_c += t.cpu
-                if free_g+freed_g >= task.gpu-EPS and free_c+freed_c >= task.cpu-EPS:
-                    if best is None or total < best[2]:
-                        best = (j, list(victims), total)
-                    break
-        return best
-
-    def _evict(self, victims, node):
-        """Preempt running LP spot tasks and return them to the waiting queue."""
-        for pid in victims:
-            task = self.by_id[pid]
-            elapsed = self.current_time - self.running_start[pid]
-            checkpoints = int(elapsed // self.checkpoint_interval)
-            preserved_now = checkpoints * self.checkpoint_interval
-            wasted = elapsed - preserved_now
-            self.preserved_progress[pid] = self.preserved_progress.get(pid, 0.0) + preserved_now
-            record = self.records[pid]
-            record["preemption_count"] += 1
-            record["wasted_sec"] += wasted
-            record["running_total_sec"] += elapsed
-            self.running.pop(pid, None)
-            self.running_start.pop(pid, None)
-            # Invalidate the pending completion event; a new one is pushed on
-            # the next placement.
-            self.completion_counter.pop(pid, None)
-            self.free_gpu[node] += task.gpu
-            self.free_cpu[node] += task.cpu
-            self.free_gpu[node] = min(self.nodes[node].gpu_capacity, self.free_gpu[node])
-            self.free_cpu[node] = min(self.nodes[node].cpu_capacity*(1-self.background), self.free_cpu[node])
-            self.node_gpu_used[node] -= task.gpu
-            self.node_cpu_used[node] -= task.cpu
-            self.node_running_count[node] -= 1
-            self.node_lp_running[node] -= 1
-            self.node_spot_pids[node].discard(pid)
-            self.node_evictions[node] += 1
-            self._enqueue(pid)
-            record["status"] = "waiting"
-            self._record("preempt", pid)
-        self._preempt_generation += 1
-        self._check_resources()
-
-    def _try_preempt(self):
-        """When no waiting task fits, place the earliest blocked HP GPU task by
-        preempting the lowest-cost spot tasks. Returns True if it acted."""
-        if self._last_preempt_generation == self._preempt_generation:
-            return False
-        self._last_preempt_generation = self._preempt_generation
-        if not any(self.node_spot_pids):
-            return False
-        candidates = []
-        for index, group in enumerate(self._hp_gpu_wait_groups):
-            cursor = self._hp_gpu_wait_group_cursors[index]
-            while cursor < len(group):
-                sequence, pid = group[cursor]
-                if pid in self.waiting_set and self._queue_seq.get(pid) == sequence:
-                    break
-                cursor += 1
-            self._hp_gpu_wait_group_cursors[index] = cursor
-            if cursor < len(group):
-                candidates.append(group[cursor])
-        for _, pid in sorted(candidates):
-            task = self.by_id[pid]
-            cand = self._spotgpu_best_preemption(task)
-            if cand is None:
-                continue
-            node, victims, _ = cand
-            self._evict(victims, node)
-            self._place(pid, node)
-            return True
-        return False
-
-    def _spotgpu_choose_action(self):
-        """Non-preemptive placement ranking: task packing, homogeneous
-        co-location, then eviction history (SpotGPU paper criteria 1-3)."""
-        task = self.by_id[self.pending_id]
-        priority = self.task_priority.get(self.pending_id, "Other")
-        valid = [j for j in range(len(self.nodes)) if self._fits(task, j)]
-        if not valid:
-            raise RuntimeError("SpotGPU: pending task does not fit any node")
-        if priority == "HP":
-            def rank(j):
-                packing = self.free_gpu[j] - task.gpu
-                co_locate = 0 if self.node_hp_running[j] > 0 else 1
-                history = -self.node_evictions[j]
-                return (packing, co_locate, history, j)
-        else:
-            def rank(j):
-                packing = self.free_gpu[j] - task.gpu
-                co_locate = 0 if self.node_lp_running[j] > 0 else 1
-                history = self.node_evictions[j]
-                return (packing, co_locate, history, j)
-        return min(valid, key=rank)
-
     def _place(self, pid, action):
-        """Place a waiting task on a node (engine-internal, used by step and SpotGPU)."""
+        """Place a waiting task on a node (engine-internal, used by step and SpotGPU).
+
+        `remaining` subtracts preserved_progress, so a task that was preempted and
+        checkpointed resumes instead of restarting; that subtraction is the whole
+        difference between SpotGPU resume semantics and a plain requeue.
+        """
         task = self.by_id[pid]
         remaining = task.service_time - self.preserved_progress.get(pid, 0.0)
-        self.free_gpu[action] -= task.gpu
-        self.free_cpu[action] -= task.cpu
-        self.node_gpu_used[action] += task.gpu
-        self.node_cpu_used[action] += task.cpu
-        self.node_running_count[action] += 1
+        self.allocate(pid, action)
         priority = self.task_priority.get(pid, "Other")
         if priority == "HP":
             self.node_hp_running[action] += 1
@@ -812,174 +283,21 @@ class GpuSchedEnv:
             self.step(self.choose_action(policy))
         return self.summary()
 
-    def _counts(self):
-        return dict(self.status_counts)
-
-    def _fragmentation_metrics(self):
-        """Stranded-capacity observation: how much node-time sits partially used.
-
-        A node counts as partially occupied when at least one GPU is in use but the
-        node is not saturated. Fully idle nodes are excluded: they are idle capacity,
-        not fragmentation. This is the quantity IPC is reported against ("reduces the
-        number of not-fully-occupied nodes by 20.2%"), so it is recorded even when no
-        defragmentation policy is active.
-        """
-        idle = partial = full = 0
-        for j, node in enumerate(self.nodes):
-            used = node.gpu_capacity-self.free_gpu[j]
-            if used <= EPS:
-                idle += 1
-            elif used >= node.gpu_capacity-EPS:
-                full += 1
-            else:
-                partial += 1
-        return {"node_count": len(self.nodes), "nodes_idle_end": idle,
-                "nodes_partially_occupied_end": partial, "nodes_fully_occupied_end": full,
-                "partial_node_time_sec": self.partial_node_time,
-                "stranded_gpu_time_sec": self.stranded_gpu_time}
-
-    def _topology_metrics(self):
-        """GPU entropy of workload placement over ASW domains (observational only).
-
-        Entropy is a property of a group: in the ASI trace one multi-node job appears
-        as several pods sharing a workload_id, and a single pod always lives in one
-        node hence one ASW. So this metric is only meaningful when the input carries
-        workload_id on tasks and asw_id on nodes; coverage counts are reported so the
-        reader can see how much of the load the number actually covers.
-
-        Placement means the final assigned server per pod. It is not a simultaneous
-        co-residency measure, and it does not claim the pods ran at the same instant.
-        Logarithm base is natural (nats); the field name states it explicitly.
-        """
-        index_of = {node.server_id: j for j, node in enumerate(self.nodes)}
-        groups = {}
-        for pid, task in self.by_id.items():
-            if not task.workload_id:
-                continue
-            sid = self.records[pid]["server_id"]
-            if sid is None:
-                continue
-            j = index_of.get(sid)
-            if j is None:
-                continue
-            groups.setdefault(task.workload_id, []).append((self.nodes[j].asw_id, task.gpu))
-        spanned, entropies, multi_asw_gpu, group_gpu = {}, [], 0., 0.
-        unknown_asw_gpu = 0.
-        for workload, placements in groups.items():
-            total = sum(gpu for _, gpu in placements)
-            if total <= EPS:
-                continue
-            by_asw = {}
-            for asw, gpu in placements:
-                if asw:
-                    by_asw[asw] = by_asw.get(asw, 0.)+gpu
-                else:
-                    unknown_asw_gpu += gpu
-            if not by_asw:
-                continue
-            known = sum(by_asw.values())
-            n_asw = len(by_asw)
-            spanned[n_asw] = spanned.get(n_asw, 0)+1
-            if n_asw > 1:
-                multi_asw_gpu += known
-            group_gpu += known
-            entropies.append(-sum((gpu/known)*math.log(gpu/known) for gpu in by_asw.values()))
-        entropies.sort()
-        labeled = sum(1 for task in self.tasks if task.workload_id)
-        return {"nodes_with_asw": sum(1 for node in self.nodes if node.asw_id),
-                "tasks_with_workload_id": labeled, "task_count": len(self.tasks),
-                "workloads_placed": len(groups), "workloads_with_known_gpu_total": len(entropies),
-                "asw_span_histogram": {str(k): v for k, v in sorted(spanned.items())},
-                "workload_gpu_sec_in_multi_asw_workloads": multi_asw_gpu,
-                "workload_gpu_in_measurable_groups": group_gpu,
-                "gpu_on_nodes_without_asw": unknown_asw_gpu,
-                "gpu_entropy_nats_mean": (sum(entropies)/len(entropies)) if entropies else 0.,
-                "gpu_entropy_nats_p95": entropies[max(0, math.ceil(.95*len(entropies)))-1] if entropies else 0.,
-                "gpu_entropy_nats_max": entropies[-1] if entropies else 0.,
-                "topology_metrics_are_final_placement_not_coresidency": True}
-
-    def _block_classification(self):
-        """Aggregate of the first observed blocking reason per task that reached a
-        decision point. Tasks never reached (still waiting at the horizon, or
-        permanently rejected before any decision) are reported as uncovered rather
-        than silently omitted."""
-        counts = {}
-        for reason in self.first_block_class.values():
-            counts[reason] = counts.get(reason, 0)+1
-        for reason in ("direct", "model_unavailable", "gpu_capacity_shortage",
-                       "cpu_capacity_shortage", "fragmentation"):
-            counts.setdefault(reason, 0)
-        classified = len(self.first_block_class)
-        return {"first_attempt_classes": counts, "tasks_classified": classified,
-                "task_count": len(self.tasks),
-                "tasks_never_reaching_a_decision": len(self.tasks)-classified,
-                "fragmentation_share_of_classified": (counts["fragmentation"]/classified
-                                                      if classified else 0.),
-                "classification_is_instant_state_not_permanence": True}
-
-    def summary(self):
+    def observation(self):
         with self.lock:
-            duration = self.measure_end-self.measure_start
-            counts = self._counts()
-            waits = sorted(r["wait_sec"] for r in self.records.values() if r["wait_sec"] is not None)
-            offered_gpu = offered_cpu = 0.
-            for task in self.tasks:
-                overlap = max(0., min(self.measure_end, task.submit_time+task.service_time)-max(self.measure_start, task.submit_time))
-                offered_gpu += task.gpu*overlap
-                offered_cpu += task.cpu*overlap
-            # Snapshot includes reservations during current wall time, even between events.
-            extra = 0.
-            if self.clock == "realtime" and not self.done:
-                now = min(self.max_sim_time, max(self.current_time, (time.monotonic()-self.wall_start)*self.speed))
-                extra = max(0., min(now, self.measure_end)-max(self.current_time, self.measure_start))
-            gpu_area = self.gpu_area+(self.total_gpu-sum(self.free_gpu))*extra
-            cpu_area = self.cpu_area+(self.total_cpu*(1-self.background)-sum(self.free_cpu))*extra
-            end = self.current_time if self.done else min(self.max_sim_time, (time.monotonic()-self.wall_start)*self.speed) if self.clock == "realtime" else self.current_time
-            measurement_covered = max(0., min(end, self.measure_end)-self.measure_start)
-            # Completed runs have zero foreground after draining; incomplete runs are partial.
-            denominator_sec = duration if self.end_reason == "drained" else measurement_covered
-            per_model = {}
-            for model, idxs in self.model_nodes.items():
-                cap_g = sum(self.nodes[j].gpu_capacity for j in idxs)
-                cap_c = sum(self.nodes[j].cpu_capacity for j in idxs)
-                offered = sum(t.gpu*max(0., min(self.measure_end, t.submit_time+t.service_time)
-                                        - max(self.measure_start, t.submit_time))
-                              for t in self.tasks if t.gpu > 0 and t.allowed_gpu_types == (model,))
-                per_model[model] = {
-                    "gpu_capacity": cap_g, "cpu_capacity_cores": cap_c,
-                    "offered_gpu_ratio": offered/(cap_g*duration) if cap_g else 0.,
-                    "reserved_gpu_ratio": (self.model_gpu_area.get(model, 0.)/(cap_g*denominator_sec)
-                                           if cap_g*denominator_sec else 0.),
-                    "reserved_cpu_ratio": (self.model_cpu_area.get(model, 0.)/(cap_c*denominator_sec)+self.background
-                                           if cap_c*denominator_sec else 0.)}
-            return {"task_count": len(self.tasks), "node_count": len(self.nodes), "gpu_capacity": self.total_gpu,
-                    "cpu_capacity_cores": self.total_cpu, **counts,
-                    "unfinished": counts["not_arrived"]+counts["waiting"]+counts["running"],
-                    "sim_time_sec": end, "wall_time_sec": (self.wall_end if self.wall_end is not None else time.monotonic())-self.wall_start,
-                    "clock": self.clock, "speed": self.speed, "end_reason": self.end_reason,
-                    "measurement_window_sec": [self.measure_start, self.measure_end],
-                    "measurement_denominator_sec": denominator_sec,
-                    "offered_gpu_ratio": offered_gpu/(self.total_gpu*duration),
-                    "offered_cpu_ratio": offered_cpu/(self.total_cpu*duration)+self.background,
-                    "reserved_gpu_ratio": gpu_area/(self.total_gpu*denominator_sec) if denominator_sec else 0.,
-                    "reserved_cpu_ratio": cpu_area/(self.total_cpu*denominator_sec)+self.background if denominator_sec else 0.,
-                    "per_model": per_model,
-                    "preemptions": sum(r["preemption_count"] for r in self.records.values()),
-                    "preempted_task_count": sum(1 for r in self.records.values() if r["preemption_count"] > 0),
-                    "wasted_gpu_sec": sum(r["wasted_sec"]*t.gpu for r, t in zip(self.records.values(), self.tasks)),
-                    "mean_wait_sec_started": sum(waits)/len(waits) if waits else 0.,
-                    "p95_wait_sec_started": waits[max(0, math.ceil(.95*len(waits))-1)] if waits else 0.,
-                    "peak_queue_length": int(self.peak_queue),
-                    "peak_gpu_reserved": self.peak_gpu, "peak_cpu_reserved_cores": self.peak_cpu,
-                    "cpu_background_fraction": self.background,
-                    "fragmentation": dict(self._fragmentation_metrics(),
-                        partial_node_time_ratio=(self.partial_node_time/(len(self.nodes)*denominator_sec)
-                                                 if denominator_sec else 0.),
-                        stranded_gpu_time_ratio=(self.stranded_gpu_time/(self.total_gpu*denominator_sec)
-                                                 if self.total_gpu and denominator_sec else 0.)),
-                    "topology": self._topology_metrics(),
-                    "block_classification": self._block_classification(),
-                    "reservation_metrics_are_not_SM_or_CPU_execution_utilization": True}
+            task = self.by_id[self.pending_id] if self.pending_id else None
+            return {"time_sec": self.current_time,
+                    "obs": [[self.free_gpu[j]/n.gpu_capacity, self.free_cpu[j]/n.cpu_capacity] for j, n in enumerate(self.nodes)],
+                    "feat": [task.gpu, task.cpu] if task else [0., 0.],
+                    "avail": [int(task is not None and self._fits(task, j)) for j in range(len(self.nodes))],
+                    "node_ids": [n.server_id for n in self.nodes], "gpu_models": [n.gpu_type for n in self.nodes],
+                    "task": {"pod_id": task.pod_id, "gpu_request": task.gpu, "cpu_request_cores": task.cpu,
+                             "allowed_gpu_types": list(task.allowed_gpu_types)} if task else None,
+                    "queue_length": len(self.waiting), "done": self.done}
+
+    def get_attr(self, name):
+        obs = self.observation()
+        return obs[{"req": "feat"}.get(name, name)]
 
     def snapshot(self):
         with self.lock:
@@ -1007,3 +325,7 @@ class GpuSchedEnv:
                         writer.writeheader()
                         writer.writerows(rows)
             return summary
+
+
+__all__ = ["GpuSchedEnv", "NodeSpec", "TaskSpec", "EPS", "ROOT", "DEFAULT_NODES", "DEFAULT_TASKS",
+           "number", "required", "optional_label", "read_records", "load_nodes", "load_workload"]
