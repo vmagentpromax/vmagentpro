@@ -36,7 +36,42 @@ REPO = Path(__file__).resolve().parents[1]
 
 # `foo.py:12`, `foo.py:12-30`, and the Chinese-text variant `foo.py 第 12 行` are all
 # written by hand; only the colon forms are machine-checkable without parsing prose.
-CITATION = re.compile(r"([A-Za-z0-9_\-./\u4e00-\u9fff]+\.py):(\d+)(?:-(\d+))?")
+#
+# A citation may be revision-pinned: `1ffabd6:schedgym/sched_env.py:39-43`. That form
+# exists because the upstream half of the tree was removed from the working copy on
+# 2026-11-22, and documents that describe it still have to cite it. Those are checked
+# against `git show`, not against the checkout - a historical citation that no longer
+# resolves on disk is correct, and must not be reported as stale.
+CITATION = re.compile(r"(?:([0-9a-f]{7,40}):)?"
+                      r"([A-Za-z0-9_\-./\u4e00-\u9fff]+\.py):(\d+)(?:-(\d+))?")
+
+_rev_lines = {}
+
+
+def revision_length(rev, name):
+    """Lines in `name` as of `rev`, or None when git says the path did not exist."""
+    key = (rev, name)
+    if key not in _rev_lines:
+        import subprocess
+        out = subprocess.run(["git", "-C", str(REPO), "show", "%s:%s" % (rev, name)],
+                             capture_output=True)
+        _rev_lines[key] = None if out.returncode else \
+            len(out.stdout.decode("utf-8", "replace").splitlines())
+    return _rev_lines[key]
+
+
+def revision_exists(rev, name):
+    """Any suffix match: docs cite `sched_env.py` bare as well as by full path."""
+    import subprocess
+    listing = _rev_lines.get((rev, "__list__"))
+    if listing is None:
+        out = subprocess.run(["git", "-C", str(REPO), "ls-tree", "-r", "--name-only", rev],
+                             capture_output=True)
+        listing = out.stdout.decode("utf-8", "replace").splitlines()
+        _rev_lines[(rev, "__list__")] = listing
+    wanted = name.replace("\\", "/")
+    return any(p == wanted or p.endswith("/" + wanted) for p in listing)
+
 
 
 def index_sources(roots):
@@ -100,20 +135,37 @@ def main():
         text = document.read_text(encoding="utf-8", errors="replace")
         rows = []
         for number, line in enumerate(text.splitlines(), 1):
-            for name, start, end in CITATION.findall(line):
+            for rev, name, start, end in CITATION.findall(line):
                 refs += 1
+                low = int(start)
+                high = int(end) if end else low
+                cited = name+":"+start+("-"+end if end else "")
+                if rev:
+                    # Revision-pinned: the working copy is irrelevant, git is the source.
+                    if not revision_exists(rev, name):
+                        rows.append((number, "REV MISSING", name, " @ %s" % rev))
+                    elif "/" in name:
+                        length = revision_length(rev, name)
+                        if length is None:
+                            rows.append((number, "REV MISSING", name, " @ %s" % rev))
+                        elif high > length:
+                            rows.append((number, "REV OUT OF RANGE", cited,
+                                         " @ %s (%d lines)" % (rev, length)))
+                    continue
                 candidates = sources.get(Path(name).name, [])
                 if len(name) > len(Path(name).name):
                     wanted = name.replace("\\", "/")
-                    # An explicit relative path is a stronger statement than a basename.
+                    # An explicit relative path is a stronger statement than a basename:
+                    # if nothing ends with that path the citation is wrong, and matching
+                    # some other same-named file would hide the mistake.
                     narrowed = [c for c in candidates if c[0].as_posix().endswith(wanted)]
-                    if narrowed:
-                        candidates = narrowed
+                    if not narrowed:
+                        rows.append((number, "MISSING", cited, " (no file ends with %s)" % wanted))
+                        continue
+                    candidates = narrowed
                 if not candidates:
                     rows.append((number, "MISSING", name, ""))
                     continue
-                low = int(start)
-                high = int(end) if end else low
                 # A bare basename that matches two files is only worth reporting when the
                 # citation cannot be true of either of them; `sched_env.py` exists twice in
                 # this checkout (upstream and packaged) and the reader's question is
@@ -122,12 +174,12 @@ def main():
                     detail = ("  (%d candidates, longest has %d lines)"
                               % (len(candidates), max(len(lines) for _, lines in candidates))
                               if len(candidates) > 1 else "")
-                    rows.append((number, "OUT OF RANGE", name+":"+start+("-"+end if end else ""),
+                    rows.append((number, "OUT OF RANGE", cited,
                                  " -> %s%s" % (candidates[0][0].as_posix(), detail)))
                 elif len(candidates) > 1 and len(name) == len(Path(name).name):
                     rows.append((number, "BARE AMBIGUOUS (in range)", name, ""))
                 if args.explain:
-                    rows.append((number, "explain", name+":"+start+("-"+end if end else ""),
+                    rows.append((number, "explain", cited,
                                  enclosing(candidates[0][1], low)
                                  + ("   ..   "+enclosing(candidates[0][1], high)
                                     if high != low else "")))
