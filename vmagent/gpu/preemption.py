@@ -66,6 +66,18 @@ class PreemptionMixin:
             spot = sorted(self.node_spot_pids[j])
             if not spot:
                 continue
+            if self.migration_current is not None:
+                # Evicting a pod whose move is in flight cannot be given a defensible
+                # meaning here: its completion event is already queued against a node it
+                # is leaving or arriving at, so it would end up in `waiting` and `running`
+                # at once. "Preemption interrupts a migration" has no basis in the paper
+                # and is deliberately unspecified (see this module's header), so the
+                # in-flight pod is left alone rather than given a made-up semantics.
+                # With the default `block_admission_during_plan=True` this cannot be
+                # reached at all; it is reachable via --no-block-admission.
+                spot = [pid for pid in spot if pid != self.migration_current["pod_id"]]
+                if not spot:
+                    continue
             if self.victim_selection == "random":
                 self.rng.shuffle(spot)
             else:
@@ -87,10 +99,21 @@ class PreemptionMixin:
             return self.rng.choice(plans)
         return min(plans, key=lambda plan: (plan[2], plan[0]))
 
-    def _evict(self, victims, node):
-        """Preempt running LP spot tasks and return them to the waiting queue."""
+    def _evict(self, victims, node=None):
+        """Preempt running LP spot tasks and return them to the waiting queue.
+
+        Releases each victim from `self.running[pid]`, not from the `node` the caller
+        passed. The two are the same until a migration is in flight, and reading the
+        argument for a pod that has already moved would release capacity on a node it
+        left - inflating that node's free resources while the node actually holding the
+        reservation keeps it. `_check_resources` compares the incremental totals against
+        the free vectors on both sides of the ledger, so it does not catch a symmetric
+        swap of the two. `node` stays as the fallback so existing callers are unchanged
+        in behaviour when the bookkeeping is consistent.
+        """
         for pid in victims:
             task = self.by_id[pid]
+            here = self.running.get(pid, node)
             elapsed = self.current_time - self.running_start[pid]
             checkpoints = int(elapsed // self.checkpoint_interval)
             preserved_now = checkpoints * self.checkpoint_interval
@@ -115,10 +138,10 @@ class PreemptionMixin:
             # Invalidate the pending completion event; a new one is pushed on
             # the next placement.
             self.completion_counter.pop(pid, None)
-            self.release(pid, node)
-            self.node_lp_running[node] -= 1
-            self.node_spot_pids[node].discard(pid)
-            self.node_evictions[node] += 1
+            self.release(pid, here)
+            self.node_lp_running[here] -= 1
+            self.node_spot_pids[here].discard(pid)
+            self.node_evictions[here] += 1
             self._enqueue(pid)
             record["status"] = "waiting"
             self._record("preempt", pid)

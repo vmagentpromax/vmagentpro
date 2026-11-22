@@ -56,7 +56,15 @@ class ClockMixin:
                     # waited and then started keeps the reason it waited for.
                     self.first_block_class.setdefault(self.pending_id, "direct")
                     return
-                if self.preempt_enabled and self._try_preempt():
+                # `blocked_by_migration` is the documented "no admissions while a plan is
+                # executing" freeze, and a preemption-driven placement is an admission:
+                # this path used to bypass it entirely, so the engine could evict into
+                # capacity that the plan had already reserved at the destination. That is
+                # not a new migration/preemption semantics - the freeze is off by design
+                # when `block_admission_during_plan=False` - it is the guard respecting
+                # the one switch it was given.
+                if (self.preempt_enabled and not self.blocked_by_migration()
+                        and self._try_preempt()):
                     continue
                 if self.try_defragment():
                     continue

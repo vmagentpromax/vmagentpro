@@ -13,8 +13,9 @@ each of them:
                              event and accumulates blocked-seconds per class. The main
                              engine records the first observed reason per task,
                              because the former is O(queue x nodes) per event and
-                             scenario F peaks at 89,127 queued tasks over 30 nodes
-                             across 119,495 events. Same vocabulary, different metric.
+                             scenario F holds 119,495 tasks whose waiting queue peaks
+                             at 119,164 of them over 30 nodes. Same vocabulary,
+                             different metric.
     blocked_request_seconds  the same construction, in seconds rather than counts.
 
     C:/Users/trw/anaconda3/python.exe tools/benchmark_runner.py            # all instances

@@ -7,7 +7,9 @@ arrived still waiting" is answerable without scanning the queue:
 - CPU-only backfill needs the minimum enqueue sequence at or below a given CPU
   demand, which is a prefix-minimum query: a segment tree over demand buckets
   (`_cpu_wait_tree`), because scanning every waiting task per decision made the
-  89,127-deep scenario F queue quadratic.
+  ~10^5-deep scenario F queue quadratic. Worst recorded cell: 119,164 waiting
+  tasks, `runs/hetero8d_20261101/metrics/summaries/F-worst_fit-fcfs`; even the
+  best-placed first_fit+fcfs cell reaches 89,127.
 - GPU backfill groups tasks by identical (gpu, cpu, models) demand and keeps a
   cursor per group. A group's blocked head stays blocked while the resources are
   unchanged, so the cursor advances once instead of rescanning the group per event.

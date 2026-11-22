@@ -339,8 +339,13 @@ class MetricsMixin:
                     "reserved_cpu_ratio": cpu_area/(self.total_cpu*denominator_sec)+self.background if denominator_sec else 0.,
                     # Her benchmark's A_GPU: allocated GPU with a mid-migration pod
                     # discounted, because its service is paused while it holds two
-                    # slots. Equal to reserved_gpu_ratio whenever nothing is migrating,
-                    # which is why the two only diverge on the migration cells.
+                    # slots. `paused(t)` is zero except while a move is in flight, but
+                    # the reported field is an integral, so one completed move is enough
+                    # to make the two ratios differ - the identity to hold is
+                    # gpu_area - effective_gpu_area == Σ pause × GPUs × times-counted
+                    # (112 GPU·s for one 4-GPU make-before-break move of 14 s, asserted
+                    # in tools/verify_metric_formulas.py), not "equal when nothing is
+                    # migrating".
                     "effective_gpu_ratio": (self.effective_gpu_area
                                             / (self.total_gpu*denominator_sec) if denominator_sec else 0.),
                     # Full-horizon, not full-episode: her denominator is the horizon

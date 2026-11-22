@@ -269,6 +269,14 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             self.running_start[pid] = 0.
             record = self.records[pid]
             record.update(status="running", start_time_sec=0., wait_sec=0., server_id=sid)
+            # `status_counts` was initialised to "everything not_arrived" above, before
+            # this layout was loaded, and `_record("reset")` at the end of reset() carries
+            # no pod_id so it does not reconcile either. Without this the summary of a run
+            # cut short reports `running: 0, not_arrived: N` for pods that are demonstrably
+            # placed - measured with two laid-out pods still running at max_sim_time.
+            self.status_counts["not_arrived"] -= 1
+            self.status_counts["running"] += 1
+            self.last_recorded_status[pid] = "running"
             self.completion_counter[pid] = self._push(task.service_time, 0, "complete", pid)
             self.finish_at[pid] = task.service_time
         self._check_resources()

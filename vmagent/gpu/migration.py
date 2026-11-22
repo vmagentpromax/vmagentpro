@@ -195,6 +195,39 @@ class MigrationMixin:
             return
         self.migration_operation = None
 
+    def _transfer_node_membership(self, pid, source, destination):
+        """Move the per-node priority and spot bookkeeping along with the pod.
+
+        `_place` and the completion branch both maintain `node_hp_running`,
+        `node_lp_running` and `node_spot_pids`, and until now nothing did on a move.
+        The drift is permanent and it is not cosmetic. Measured mid-run with three LP
+        pods and one move completed (`tests -k spot_membership`), the truth is
+        `node_lp_running == [0, 2, 1]` while the counter reads `[1, 1, 1]`, and
+        `node_spot_pids` still lists the moved pod on the node it left; measured after
+        everything drains, the counters do not return to zero at all. So SpotGPU's
+        `co_locate` and `history` placement terms rank on figures that are wrong for
+        every cell combining migration with LP/HP pods, and a later eviction of the
+        phantom entry would `release(pid, source)` capacity the pod no longer holds
+        there. (That last step is the reachable consequence, not a measured crash -
+        nothing in the suite gets there, which is itself covered by `_evict` reading
+        `self.running[pid]` instead of the caller's node.)
+        """
+        if source == destination:
+            return
+        priority = self.task_priority.get(pid)
+        if priority == "HP":
+            self.node_hp_running[source] -= 1
+            self.node_hp_running[destination] += 1
+        elif priority == "LP":
+            self.node_lp_running[source] -= 1
+            self.node_lp_running[destination] += 1
+        if self.by_id[pid].gpu > 0 and priority == "LP":
+            self.node_spot_pids[source].discard(pid)
+            self.node_spot_pids[destination].add(pid)
+            # Spot membership changed, so a previously impossible eviction may now be
+            # possible; without this the generation guard suppresses the retry.
+            self._preempt_generation += 1
+
     def _complete_migration(self, pid, ev_counter):
         """Land an in-flight move; return False when the event no longer refers to it.
 
@@ -223,6 +256,7 @@ class MigrationMixin:
             self.running.pop(pid, None)
             self.release(pid, source)
         self.running[pid] = destination
+        self._transfer_node_membership(pid, source, destination)
         self.records[pid]["server_id"] = self.nodes[destination].server_id
         self.migration_completed_moves += 1
         self.migration_current = None

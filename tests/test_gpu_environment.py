@@ -639,6 +639,89 @@ class ReactiveMigrationTests(unittest.TestCase):
         settings.update(options)
         return GpuSchedEnv(self.NODES, pods, **settings)
 
+    def lp_env(self, **options):
+        """The same fragmented pool, but with the resident pods marked LP.
+
+        Every existing migration test uses priority "Other", which is precisely why the
+        bookkeeping drift below was never observed: `node_lp_running` and
+        `node_spot_pids` are only maintained for HP/LP pods.
+        """
+        pods = [TaskSpec("A", 4., 4., ("H20",), 0., 1000., "LP", {"migratable": True}),
+                TaskSpec("B", 4., 4., ("H20",), 0., 1000., "LP", {"migratable": True}),
+                TaskSpec("C", 4., 4., ("H20",), 0., 1000., "LP", {"migratable": True}),
+                TaskSpec("big", 5., 5., ("H20",), 1., 10., "HP", {"migratable": False})]
+        settings = dict(clock="fast", measurement_window=(0., 2000.), max_sim_time=4000.,
+                        initial_placement={"A": "n1", "B": "n2", "C": "n3"})
+        settings.update(options)
+        return GpuSchedEnv(self.NODES, pods, **settings)
+
+    def test_a_move_carries_the_priority_and_spot_bookkeeping_to_the_new_node(self):
+        env = self.lp_env(migration="cheap_multi")
+        env.run("first_fit")
+        # Every pod has completed by now, so all three per-node counters must be back to
+        # zero. They were not: a move left a phantom +1 on the source node and a -1 on the
+        # destination, because only the resource ledger followed the pod.
+        self.assertEqual([0, 0, 0], env.node_lp_running,
+                         "non-zero after everything drained means the two nodes kept "
+                         "different books")
+        self.assertEqual([0, 0, 0], env.node_hp_running)
+        self.assertEqual([set(), set(), set()], [set(s) for s in env.node_spot_pids])
+
+    def assert_node_books_match_the_running_set(self, env):
+        """The per-node priority and spot counters must agree with `env.running`.
+
+        Asserted as a distribution rather than `[1, 1, 1]`: after a successful evacuation
+        the three LP pods are deliberately not one-per-node any more, and the whole point
+        is that the books follow the pods.
+        """
+        lp = [0]*len(self.NODES)
+        hp = [0]*len(self.NODES)
+        spot = [set() for _ in self.NODES]
+        for pid, j in env.running.items():
+            priority = env.task_priority.get(pid)
+            if priority == "LP":
+                lp[j] += 1
+                if env.by_id[pid].gpu > 0:
+                    spot[j].add(pid)
+            elif priority == "HP":
+                hp[j] += 1
+        self.assertEqual(lp, env.node_lp_running, "node_lp_running disagrees with running")
+        self.assertEqual(hp, env.node_hp_running, "node_hp_running disagrees with running")
+        self.assertEqual([set(s) for s in spot], [set(s) for s in env.node_spot_pids],
+                         "a preemptible pod is listed on a node it is not on")
+
+    def test_spot_membership_moves_so_a_later_eviction_releases_the_right_node(self):
+        # Mid-run, with A relocated and the others still up: the spot sets must name the
+        # node each pod is actually on. Getting this wrong makes SpotGPU evict a phantom
+        # and `release()` a node the pod left.
+        env = self.lp_env(migration="cheap_multi", max_sim_time=400.)
+        env.run("first_fit")
+        self.assertGreater(env.migration_completed_moves, 0)
+        self.assert_node_books_match_the_running_set(env)
+
+    def test_preemption_and_migration_together_still_satisfy_the_ledger(self):
+        # The documented CLI allows `--policy spotgpu --migration cheap_multi`. The
+        # per-node books used to drift under exactly that combination. Nothing here
+        # invents a combined semantics - admission is frozen during a plan by default,
+        # and an in-flight pod is never a victim - the point is that the combination
+        # must not corrupt the accounting. The same scenario under first_fit, where the
+        # move does happen, is the test above.
+        env = self.lp_env(migration="cheap_multi", max_sim_time=400.)
+        result = env.run("spotgpu")
+        # Not "a move must happen": with preemption switched on the HP request is usually
+        # satisfied by an eviction, and `_advance_until_ready` tries preemption before
+        # defragmentation, so the migration path can legitimately stay idle. What is not
+        # acceptable is either mechanism leaving the per-node books inconsistent, which is
+        # what this asserts. The same scenario under first_fit, where the move does happen,
+        # is the test above.
+        self.assertTrue(result["migration"]["count"] or result["preemptions"],
+                        "neither mechanism acted, so the case tests nothing")
+        self.assert_node_books_match_the_running_set(env)
+        for j, node in enumerate(self.NODES):
+            self.assertLessEqual(env.node_gpu_used[j], node.gpu_capacity+1e-9)
+            self.assertGreaterEqual(env.free_gpu[j], -1e-9)
+            self.assertGreaterEqual(env.free_cpu[j], -1e-9)
+
     def test_without_migration_the_fragmented_request_waits(self):
         env = self.env()
         result = env.run("first_fit")

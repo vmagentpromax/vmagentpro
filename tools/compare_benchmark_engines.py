@@ -5,9 +5,13 @@ scenario. This checks whether they then *agree*, by recomputing the benchmark's 
 metric definitions from the main engine's per-task records and comparing them with
 `baseline_results.csv`, which the collaborator's engine produced.
 
-Only the `migration=none` cells are comparable today. The main engine has no
-migration yet (M10/M11/M12), so the one_move / cheap_multi / first_multi rows are
-reported as not-yet-comparable rather than skipped silently.
+Every `migration` mode is compared, not just `none`: the main engine grew the
+defragmentation semantics in a9eb231, and the residual that made 31 of the 112
+migration cells disagree was located with tools/diff_migration_integral.py and fixed
+in 87b9f2a. first_fit now agrees on 112/112 cells with zero field differences;
+best_fit does not, because the two engines' "best fit" are different algorithms
+(runs/benchmark_s1s4_20261122/README.md section 4), and those rows are skipped here by
+the placement filter rather than counted as a failure.
 
 Metric definitions are taken from her engine, not invented here:
 
@@ -66,15 +70,22 @@ def engine_metrics(env, arrivals, horizon, deadline_sec, window_sec):
             "migration_inflight_at_horizon": int(migration["inflight_at_horizon"])}
 
 
-# Every column her baseline carries now has a counterpart on the main engine side,
-# including A_GPU in both its window and full-horizon forms and the time-integrated
-# accrued pause.
+# Three different reasons a column is not diffed here, so do not read the set as one
+# kind of exclusion:
 #
-# Still out of the comparison, and the reason is a definition difference rather than a
-# missing number: first_attempt_classes and blocked_request_seconds are her per-event
-# re-classification of the entire queue, an O(queue x nodes) construction the main
-# engine deliberately replaced with a first-observed-per-task classifier because
-# scenario F peaks at 89,127 queued tasks over 30 nodes across 119,495 events.
+#   placement, migration, all_resource_checks_passed - row labels and a constant, not
+#   measurements, so there is nothing to compare.
+#
+#   first_attempt_classes, blocked_request_seconds - a definition difference, not a
+#   missing number. These are her per-event re-classification of the entire queue, an
+#   O(queue x nodes) construction the main engine deliberately replaced with a
+#   first-observed-per-task classifier because scenario F holds 119,495 tasks and its
+#   waiting queue peaks at 119,164 of them over 30 nodes.
+#
+#   migration_gpu_pause_accrued_sec, migration_inflight_at_horizon - her engine never
+#   produced these; they are the time-integrated and still-in-flight views that only the
+#   main engine has. `migration_gpu_pause_sec`, the planned figure her baseline does
+#   carry, IS diffed, and it is the one that matches.
 NOT_COMPARABLE = {"placement", "migration", "all_resource_checks_passed",
                   "first_attempt_classes", "blocked_request_seconds",
                   "migration_gpu_pause_accrued_sec", "migration_inflight_at_horizon"}
