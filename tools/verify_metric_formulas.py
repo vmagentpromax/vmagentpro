@@ -132,6 +132,11 @@ def preemption_case():
           record["wait_sec"])
     check("total occupancy is service plus the one lost second", 31.,
           sum(end-start for start, end, _ in segments["spot"]))
+    # The published `running_total_sec` must be the same 31 s. It used to be 30 s minus
+    # the first segment, because the completion branch read `start_time_sec` through an
+    # `or` and a segment starting at t=0 is falsy.
+    check("running_total_sec on the record equals the occupied time from events", 31.,
+          env.records["spot"]["running_total_sec"])
     check("records are positionally aligned with the sorted task list - the basis of the"
           " wasted_gpu_sec zip", 1.,
           float(all(r["pod_id"] == t.pod_id for r, t in zip(env.records.values(), env.tasks))))

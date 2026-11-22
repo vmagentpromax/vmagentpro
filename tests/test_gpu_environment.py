@@ -153,6 +153,58 @@ class GpuEnvironmentTests(unittest.TestCase):
         self.assertAlmostEqual(2., env.records["spot"]["start_time_sec"])
         self.assertAlmostEqual(12., env.records["spot"]["finish_time_sec"])
 
+    def test_reusing_an_environment_does_not_carry_preemption_into_another_policy(self):
+        # `run("spotgpu")` turned preemption on and nothing turned it back off, so a
+        # second run on the same object under a non-preempting policy silently evicted
+        # LP tasks. Every recorded pipeline builds a fresh environment, which is exactly
+        # why this survived: the bug only appears when the object is reused, and the
+        # Gym-style reset()/step() API invites reuse.
+        def build():
+            spot = TaskSpec("spot", 8., 8., ("H20",), 0., 20., "LP", {})
+            urgent = TaskSpec("hp", 8., 8., ("H20",), 1., 1., "HP", {})
+            return GpuSchedEnv([NodeSpec("n1", "cluster", "H20", 8., 8.)], [spot, urgent],
+                               clock="fast", queue_policy="fcfs", checkpoint_interval=3600.,
+                               measurement_window=(0., 60.), max_sim_time=1000.)
+        pristine = build().run("first_fit")
+        shared = build()
+        shared.run("spotgpu")
+        reused = shared.run("first_fit")
+        self.assertEqual(0, pristine["preemptions"])
+        self.assertGreater(shared.run("spotgpu")["preemptions"], 0)
+        self.assertEqual(pristine["preemptions"], reused["preemptions"])
+        self.assertEqual(pristine["wasted_gpu_sec"], reused["wasted_gpu_sec"])
+        self.assertEqual(pristine["reserved_gpu_ratio"], reused["reserved_gpu_ratio"])
+
+    def test_running_total_sec_counts_the_segment_that_started_at_zero(self):
+        # `record["start_time_sec"] or self.current_time` looks like a null guard and is
+        # a falsy-zero bug: a task whose last placement was at t=0 has start_time_sec
+        # 0.0, so the whole final segment was added as zero. Every warm-up task of
+        # scenario F and every pod of an --initial-placement layout hit it. The field is
+        # published in tasks.csv, where it is the only way to see how long a task really
+        # held its resources as opposed to how long it was asked to run.
+        env = self.env([task("a", 4, 4, service=10), task("b", 4, 4, service=10)])
+        env.run("first_fit")
+        for pid in ("a", "b"):
+            self.assertEqual(0., env.records[pid]["start_time_sec"])
+            self.assertEqual(10., env.records[pid]["running_total_sec"])
+
+    def test_completed_task_has_run_exactly_its_service_time_once_per_segment(self):
+        # Cross-check the record field against the event log on a run where the two
+        # could disagree: preemption at t=0+epsilon would expose a mis-summed segment.
+        spot = task("spot", 8, 8, service=20)
+        spot = TaskSpec(spot.pod_id, spot.gpu, spot.cpu, spot.allowed_gpu_types,
+                        spot.submit_time, spot.service_time, "LP")
+        urgent = task("hp", 8, 8, arrival=1, service=1)
+        urgent = TaskSpec(urgent.pod_id, urgent.gpu, urgent.cpu, urgent.allowed_gpu_types,
+                          urgent.submit_time, urgent.service_time, "HP")
+        env = self.env([spot, urgent])
+        env.run("spotgpu")
+        occupied = sum(end-start for start, end, _ in run_segments(env.events)["spot"])
+        self.assertAlmostEqual(env.records["spot"]["running_total_sec"], occupied)
+        # 20 s of service plus the one second lost to the eviction, in a run that
+        # started at t=0 - the case the falsy-zero bug used to report as 20 rather than 21.
+        self.assertAlmostEqual(21., occupied)
+
     def test_completion_precedes_arrival_at_same_time(self):
         env = self.env([task("a", 8, 8, service=1), task("b", 8, 8, arrival=1)])
         env.run()

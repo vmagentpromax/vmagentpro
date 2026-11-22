@@ -285,7 +285,15 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
                 if self.completion_counter.get(pid) != ev_counter:
                     continue  # stale event from before a preemption
                 index = self.running.pop(pid)
-                self.running_start.pop(pid, None)
+                # Take the start of this run segment from `running_start`, which is what
+                # `_evict` also uses. Reading `record["start_time_sec"]` instead looked
+                # equivalent and was not: a task whose final placement was at t=0 has
+                # start_time_sec == 0.0, and `0.0 or self.current_time` yields
+                # current_time, so the whole last segment was added as zero and
+                # `running_total_sec` was published as 0.0 for every task that started at
+                # the beginning of the episode - which is the entire warm-up cohort of
+                # scenario F and every pod of an `--initial-placement` layout.
+                started = self.running_start.pop(pid, self.current_time)
                 self.release(pid, index)
                 if self.task_priority.get(pid) == "HP":
                     self.node_hp_running[index] -= 1
@@ -293,7 +301,7 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
                     self.node_lp_running[index] -= 1
                 if task.gpu > 0 and self.task_priority.get(pid) == "LP":
                     self.node_spot_pids[index].discard(pid)
-                record["running_total_sec"] += self.current_time - (record["start_time_sec"] or self.current_time)
+                record["running_total_sec"] += self.current_time - started
                 record.update(status="completed", finish_time_sec=self.current_time)
                 self._preempt_generation += 1
             elif kind == "migration_complete":
@@ -370,8 +378,16 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
         return self.observation(), 1., self.done, {"scheduled_pod_id": pid, "end_reason": self.end_reason}
 
     def run(self, policy="first_fit"):
+        # Preemption is a property of the policy being run, not of the object. It used
+        # to be set only on the spotgpu branch, so an environment reused for a second
+        # run kept `preempt_enabled=True` and `first_fit` silently evicted LP tasks:
+        # measured on a one-node case, preemptions 0 -> 1 and reserved_gpu_ratio
+        # 0.350 -> 0.366667 for a run whose policy never preempts. Nothing in the
+        # recorded pipelines reuses an environment, which is why no archived number
+        # moves - but the Gym-style reset()/step() API and `schedgym/gpu_env.py` both
+        # invite exactly that reuse. Assign unconditionally, on both branches.
+        self.preempt_enabled = policy == "spotgpu" and self.spotgpu["preemption"]
         if policy == "spotgpu":
-            self.preempt_enabled = self.spotgpu["preemption"]
             self.reset()
             while not self.done:
                 self.step(self._spotgpu_choose_action())
