@@ -192,13 +192,20 @@ python -m vmagent.gpu.run --clock fast --policy first_fit --queue-policy backfil
   --output outputs/gpu/S2_first_fit
 ```
 
-## 7. 已知不可比的部分（写清楚，别当成已对齐）
+## 8. 仍然不可比的部分（2026-11-22 按当前代码逐条重核）
 
-- **迁移相关四个指标**（`migration_count` / `gpu_units_moved` / `migration_gpu_pause_sec` /
-  `gpu_effective_allocation_rate` 的"扣除迁移暂停"口径）：主引擎尚无迁移能力，M10/M11/M12 之后才可比。
-- **`start_deadline_sec=300` 的达成率**：主引擎 `summary()` 里没有这个指标，上面的核对脚本是用 records 现算的。
-- **`decision_interval_sec=30`**：她的引擎每 30 秒做一次决策，主引擎是事件驱动。这不影响 `none` 列的结果
-  （实测完全一致），但会影响迁移触发时机。
-- **`migratable` 列被丢弃**：她的实例里所有 Pod 都标 `migratable=True`（config 里
-  `all_pods_assumed_migratable`），所以丢弃不改变现状；一旦引入"部分可迁移"就必须补回来。
-- **`asw_id` 全为空**：拓扑/熵指标在这些实例上覆盖率为 0，不能用来评价拓扑感知策略。
+这一节原先写于 M10 之前，**其中三条已经过期**，过期内容会把人往回带，所以整节按代码现状重写。
+判据是"仓库里现在有没有这段代码 + 实测跑没跑过"，不是记忆。
+
+| 项 | 原状态 | 现在的真实状态 |
+|---|---|---|
+| 迁移四个指标（`migration_count` / `gpu_units_moved` / `migration_gpu_pause_sec` / 扣除迁移暂停的 A_GPU） | "主引擎尚无迁移能力" | **已可比**。M10/M11 之后主引擎有迁移与四个预留开关，112 格跨引擎核对**逐格完全一致**（见第 6 节），`tools/benchmark_runner.py` 直接输出这些列 |
+| `start_deadline_sec=300` 的达成率 | "主引擎 summary() 里没有，核对脚本用 records 现算" | **仍在脚本里算，不在 `summary()` 里**。`benchmark_runner.py:79` 按 config 的 deadline 现算 `start_within_deadline_rate`，28 个实例可复现；但它不是引擎原生指标，换别人调引擎拿不到 |
+| `decision_interval_sec=30`（她的引擎每 30 秒决策一次，主引擎事件驱动） | 会影响迁移触发时机 | **仍然是语义差异，但在这些实例上没有产生任何可观测差异**：112 格（含开启迁移的格子）迁移次数、搬运 GPU 数、暂停 GPU·秒全部逐格相同。所以这是一个"潜在差异、实测未触发"，不是"已知偏差" |
+| `migratable` 列被丢弃 | 丢弃不改变现状 | **不再丢弃**。转换器写出该列（`convert_benchmark_instances.py:102`），引擎从 `task.metadata` 读取并解析文本 `"False"`。**注意**：这些实例里所有 Pod 仍是 `migratable=True`（她的 config 里 `all_pods_assumed_migratable`），所以这条修复目前不改变任何数字，它改变的是"引入部分可迁移时必须回头改转换器"这件事 |
+| `asw_id` 全为空，拓扑/熵指标覆盖率 0 | 不能评价拓扑感知策略 | **仍然成立**，未变 |
+| 她的 `engine.py` 本体 | 归档在 `benchmark任务/…` | **仍未处置**，删除需要她签字。但"删了会丢能力"这个理由已经不成立：`tools/benchmark_runner.py` 能在 her 的表头、her 的列序上产出 first_fit 112 格 0 差异、best_fit 83 格有差异（差异来源是两套 best_fit 定义不同，见第 4 节，不是能力缺失） |
+
+一句话结论：**能力差异已经清零，剩下的全是"定义还没统一"和"数字对不对得上"两类。**
+前者是 best_fit 的权威定义（需她定），后者是 `runs/old_gpu_only_20261025/` 与十场景表这类
+已汇报数字是否要用主引擎重出（需你点头）。
