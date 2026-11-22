@@ -205,6 +205,30 @@ class GpuEnvironmentTests(unittest.TestCase):
         # started at t=0 - the case the falsy-zero bug used to report as 20 rather than 21.
         self.assertAlmostEqual(21., occupied)
 
+    def test_an_eviction_that_cost_nothing_is_not_counted_as_a_loss(self):
+        # Under FCFS the admission path puts a waiting LP task onto capacity freed at this
+        # instant and the preemption path takes it back at the same instant, so
+        # `preemptions` counts an event that disturbed nobody. Scenario F measured 244
+        # evictions of which only 22 lost any work, so the two figures have to be
+        # reportable separately rather than reconciled by quietly changing the old one.
+        spot = task("spot", 8, 8, service=20)
+        spot = TaskSpec(spot.pod_id, spot.gpu, spot.cpu, spot.allowed_gpu_types,
+                        spot.submit_time, spot.service_time, "LP")
+        first = task("hp1", 8, 8, arrival=1, service=1)
+        first = TaskSpec(first.pod_id, first.gpu, first.cpu, first.allowed_gpu_types,
+                         first.submit_time, first.service_time, "HP")
+        second = task("hp2", 8, 8, arrival=2, service=1)
+        second = TaskSpec(second.pod_id, second.gpu, second.cpu, second.allowed_gpu_types,
+                          second.submit_time, second.service_time, "HP")
+        env = self.env([spot, first, second])
+        result = env.run("spotgpu")
+        self.assertEqual(2, result["preemptions"])
+        self.assertEqual(1, result["preemptions_with_loss"])
+        self.assertEqual(1, result["disturbed_task_count"])
+        self.assertEqual(1, result["preempted_task_count"], "the churned task was still "
+                         "evicted twice, so the old count keeps counting it")
+        self.assertEqual(1, env.records["spot"]["costly_preemptions"])
+
     def test_completion_precedes_arrival_at_same_time(self):
         env = self.env([task("a", 8, 8, service=1), task("b", 8, 8, arrival=1)])
         env.run()

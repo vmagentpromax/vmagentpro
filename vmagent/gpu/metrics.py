@@ -353,7 +353,12 @@ class MetricsMixin:
                                                          if self.total_gpu else 0.),
                     "per_model": per_model,
                     "preemptions": sum(r["preemption_count"] for r in self.records.values()),
+                    # See preemption.py: an eviction that cost the victim nothing still
+                    # counts above. This one does not, and on scenario F the two differ by
+                    # an order of magnitude (244 vs 22 under FCFS).
+                    "preemptions_with_loss": sum(r["costly_preemptions"] for r in self.records.values()),
                     "preempted_task_count": sum(1 for r in self.records.values() if r["preemption_count"] > 0),
+                    "disturbed_task_count": sum(1 for r in self.records.values() if r["costly_preemptions"] > 0),
                     "wasted_gpu_sec": sum(r["wasted_sec"]*t.gpu for r, t in zip(self.records.values(), self.tasks)),
                     "mean_wait_sec_started": sum(waits)/len(waits) if waits else 0.,
                     "p95_wait_sec_started": percentile_nearest_rank(waits, .95),

@@ -98,6 +98,16 @@ class PreemptionMixin:
             self.preserved_progress[pid] = self.preserved_progress.get(pid, 0.0) + preserved_now
             record = self.records[pid]
             record["preemption_count"] += 1
+            # Counted separately from `preemption_count` because most evictions cost
+            # nothing: under FCFS on scenario F, 210 of 244 evictions took a task that had
+            # run 0 seconds - the admission path puts a waiting LP task on the freed
+            # capacity and this path takes it back within the same timestamp - and 12 more
+            # landed exactly on a checkpoint boundary. Only 22 lost any work, and they
+            # account for all of `wasted_gpu_sec`. `preemptions` remains what it always
+            # was so archived figures still reproduce; this is the number that says how
+            # much disruption the policy actually caused.
+            if wasted > EPS:
+                record["costly_preemptions"] += 1
             record["wasted_sec"] += wasted
             record["running_total_sec"] += elapsed
             self.running.pop(pid, None)

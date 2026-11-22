@@ -151,7 +151,8 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
                             "status": "not_arrived", "start_time_sec": None,
                             "finish_time_sec": None, "wait_sec": None, "server_id": None,
                             "rejection_reason": None, "duration_match_status": t.metadata.get("duration_match_status", "unspecified"),
-                            "preemption_count": 0, "wasted_sec": 0.0, "running_total_sec": 0.0}
+                            "preemption_count": 0, "costly_preemptions": 0,
+                            "wasted_sec": 0.0, "running_total_sec": 0.0}
                             for t in self.tasks}
             self.by_id = {t.pod_id: t for t in self.tasks}
             self.task_priority = {t.pod_id: t.priority for t in self.tasks}
