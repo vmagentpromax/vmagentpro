@@ -78,6 +78,23 @@ python --version
 
 ### 3.1 启动服务
 
+**双击 `launcher.bat` 就行**（仓库根目录）。它会问你要开哪个前端：
+
+| 选项 | 开什么 | 端口 |
+|---|---|---|
+| 1 | 本项目的 GPU 调度前端（推荐） | 8765 |
+| 2 | 原版 VMAgent 的 SchedVis 前端（`schedvis/`，需要它自己的 Python 3.11 虚拟环境） | 8050 |
+| 3 | 两个都开 | — |
+
+也可以不选，直接带参数：`launcher.bat dashboard`、`launcher.bat schedvis`、`launcher.bat both`。
+端口已经在监听时它不会重复起服务，直接开页面。
+
+`打开前端.bat`、`打开原版前端.bat`、`启动器.bat`、`start_dashboard.bat` 现在都只是**一行转调 `launcher.bat` 的壳**，为的是你桌面上已有的快捷方式继续能用；启动逻辑（解释器选择、端口探测、等待、报错文案）只在 `launcher.bat` 里有一份。
+
+> `.bat` 文件内容必须保持纯 ASCII——cmd.exe 按 ANSI 代码页读取，文件里出现非 ASCII 字节会把解析器打断在半行上。文件名用中文没问题，文件内容不行。
+
+命令行启动也照旧可用：
+
 ```powershell
 python -m vmagent.gpu.dashboard --port 8765
 ```
@@ -383,6 +400,7 @@ vmagent/gpu/matrix.py         多进程策略矩阵（放置 × 队列 × 优先
 vmagent/gpu/compare.py        两次运行的容差对比（屏蔽跨解释器末位 ULP 噪声）
 vmagent/gpu/dashboard.py      本地上传、内置数据集、后台运行、状态与下载接口
 vmagent/gpu/static/           可视化网页
+launcher.bat                  两个前端共用的启动器（唯一实现）
 schedgym/gpu_env.py           新环境导入入口
 tests/test_gpu_environment.py 关键行为验证
 tests/test_gpu_dashboard.py   上传、内置数据、运行、停止与下载验证
