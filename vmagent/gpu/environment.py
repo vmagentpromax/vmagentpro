@@ -46,13 +46,14 @@ from .contract import (DEFAULT_NODES, DEFAULT_TASKS, EPS, ROOT, NodeSpec, TaskSp
                        optional_label, read_records, required)
 from .ledger import LedgerMixin
 from .metrics import MetricsMixin
+from .migration import MigrationMixin
 from .placement import PlacementMixin
 from .preemption import PreemptionMixin
 from .queues import QueueMixin
 
 
 class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, PreemptionMixin,
-                  MetricsMixin):
+                  MigrationMixin, MetricsMixin):
     """One action selects one server. reset/step expose a four-return Gym-style API.
 
     Tasks that cannot currently fit wait for future arrivals/completions. Invalid
@@ -61,9 +62,17 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
     """
     def __init__(self, nodes, tasks, clock="realtime", speed=1., queue_policy="backfill",
                  measurement_window=(0., 120.), max_sim_time=600., cpu_background_fraction=0., seed=42,
-                 checkpoint_interval=3600., initial_placement=None):
+                 checkpoint_interval=3600., initial_placement=None,
+                 migration="none", migration_base_sec=20., migration_per_gpu_sec=8.,
+                 migration_per_cpu_core_sec=0.1, migration_max_plan_moves=6,
+                 migration_max_total_moves=80, reserve_destination=True,
+                 release_source_when="end", pause_service=True, block_admission_during_plan=True):
         if clock not in ("realtime", "fast") or queue_policy not in ("backfill", "fcfs"):
             raise ValueError("Unknown clock or queue policy")
+        if migration not in ("none", "one_move", "cheap_multi", "first_multi"):
+            raise ValueError("Unknown migration mode")
+        if release_source_when not in ("end", "start"):
+            raise ValueError("release_source_when must be 'end' or 'start'")
         self.nodes, self.tasks = list(nodes), list(tasks)
         # pod_id -> server_id for tasks that are already running at t=0. Absent means
         # the engine places everything itself, which is the behaviour every scenario in
@@ -100,6 +109,17 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             raise ValueError("seed must be an integer")
         self.seed = int(seed_number)
         self.checkpoint_interval = number(checkpoint_interval, "checkpoint_interval", True)
+        self.migration_mode = migration
+        self.migration_base_sec = number(migration_base_sec, "migration_base_sec")
+        self.migration_per_gpu_sec = number(migration_per_gpu_sec, "migration_per_gpu_sec")
+        self.migration_per_cpu_core_sec = number(migration_per_cpu_core_sec,
+                                                 "migration_per_cpu_core_sec")
+        self.migration_max_plan_moves = int(migration_max_plan_moves)
+        self.migration_max_total_moves = int(migration_max_total_moves)
+        self.reserve_destination = bool(reserve_destination)
+        self.release_source_when = release_source_when
+        self.pause_service = bool(pause_service)
+        self.block_admission_during_plan = bool(block_admission_during_plan)
         self.preempt_enabled = False
         self.total_gpu = sum(n.gpu_capacity for n in nodes)
         self.total_cpu = sum(n.cpu_capacity for n in nodes)
@@ -176,6 +196,14 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             self.running_start = {}
             self.completion_counter = {}
             self.preserved_progress = {t.pod_id: 0.0 for t in self.tasks}
+            self.migration_operation = None
+            self.migration_current = None
+            self.migration_reserved = None
+            self.migration_moves_done = 0
+            self.migration_completed_moves = 0
+            self.migration_gpu_units_moved = 0.
+            self.migration_gpu_pause_sec = 0.
+            self.migration_plans_considered = 0
             self._bootstrap_initial()
             self.rng = random.Random(self.seed)
             self.wall_start = time.monotonic()
@@ -254,6 +282,8 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
                 record["running_total_sec"] += self.current_time - (record["start_time_sec"] or self.current_time)
                 record.update(status="completed", finish_time_sec=self.current_time)
                 self._preempt_generation += 1
+            elif kind == "migration_complete":
+                self._complete_migration(pid, ev_counter)
             elif not any(self._fits(task, j, empty=True) for j in range(len(self.nodes))):
                 record.update(status="rejected", rejection_reason=self._rejection_reason(task))
                 kind = "reject"

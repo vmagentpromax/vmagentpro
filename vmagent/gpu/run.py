@@ -58,11 +58,35 @@ def main():
     parser.add_argument("--checkpoint-interval", type=float, default=3600.,
                         help="SpotGPU checkpoint interval in simulated seconds (default 3600)")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--migration", choices=["none", "one_move", "cheap_multi", "first_multi"],
+                        default="none", help="reactive defragmentation mode (default off)")
+    parser.add_argument("--migration-max-plan-moves", type=int, default=6)
+    parser.add_argument("--migration-max-total-moves", type=int, default=80)
+    parser.add_argument("--migration-base-sec", type=float, default=20.)
+    parser.add_argument("--migration-per-gpu-sec", type=float, default=8.)
+    parser.add_argument("--migration-per-cpu-core-sec", type=float, default=0.1)
+    parser.add_argument("--release-source-when", choices=["end", "start"], default="end",
+                        help="'end' is make-before-break with the source held through the "
+                             "pause, which is what the benchmark archive was produced with")
+    parser.add_argument("--no-pause-service", action="store_false", dest="pause_service",
+                        help="do not extend the task's finish time by the migration pause")
+    parser.add_argument("--no-block-admission", action="store_false", dest="block_admission",
+                        help="keep admitting other tasks while a plan is executing")
+    parser.add_argument("--no-reserve-destination", action="store_false", dest="reserve_destination",
+                        help="break before make: book the destination only when the move lands")
     parser.add_argument("--output", type=Path, default=ROOT/"outputs/gpu/latest")
     args = parser.parse_args()
     options = dict(clock=args.clock, speed=args.speed, queue_policy=args.queue_policy,
                    max_sim_time=args.max_sim_time, cpu_background_fraction=args.cpu_background_fraction,
-                   checkpoint_interval=args.checkpoint_interval, seed=args.seed)
+                   checkpoint_interval=args.checkpoint_interval, seed=args.seed,
+                   migration=args.migration, migration_max_plan_moves=args.migration_max_plan_moves,
+                   migration_max_total_moves=args.migration_max_total_moves,
+                   migration_base_sec=args.migration_base_sec,
+                   migration_per_gpu_sec=args.migration_per_gpu_sec,
+                   migration_per_cpu_core_sec=args.migration_per_cpu_core_sec,
+                   release_source_when=args.release_source_when, pause_service=args.pause_service,
+                   block_admission_during_plan=args.block_admission,
+                   reserve_destination=args.reserve_destination)
     if args.measurement_seconds is not None:
         options["measurement_window"] = [args.measurement_start_seconds,
                                          args.measurement_start_seconds+args.measurement_seconds]

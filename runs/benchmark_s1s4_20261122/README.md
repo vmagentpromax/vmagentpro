@@ -87,7 +87,46 @@ M10 合并前必须先定一件事：**哪个 best_fit 是权威定义**。三�
 我倾向 **3**：这两条本来回答的是不同的问题（"整体剩余最少" vs "GPU 剩余最少"），而 GPU 碎片是这个项目的
 研究对象，把 GPU 优先那条单独立名反而更有解释力；且不需要重跑任何已有结果。
 
-## 6. 复跑命令
+## 6. M10/M11：她的响应式碎片整理已经进主引擎，实测对齐
+
+`vmagent/gpu/migration.py` 把她 `engine.py` 的核心机制移植进主引擎，跑在主引擎的**增量账本、事件堆、队列索引与指标层**上，
+不再有自己的 `st.used` 全量重算。触发条件用 `queues.py` 的分类器（只对 `fragmentation` 反应，不对容量短缺反应）。
+四个开关即 M11，默认值 = 她的现行为：
+
+| 开关 | 默认 | 她的 config 字段 |
+|---|---|---|
+| `migration` | `none` | 策略参数 `one_move/cheap_multi/first_multi` |
+| `reserve_destination` | `True` | `destination_reserved_before_source_release` |
+| `release_source_when` | `"end"` | （隐含：源在迁移落地时才释放） |
+| `pause_service` | `True` | `pause_service` |
+| `block_admission_during_plan` | `True` | `admission_paused_during_plan` |
+
+### 对齐结果（112 格 = 28 实例 × 4 个迁移模式，只比 first_fit）
+
+| 指标 | 结果 |
+|---|---|
+| `migration_count` / `migration_completed_count` / `gpu_units_moved` / `migration_gpu_pause_sec` | **全部逐格完全一致** |
+| `started` / `completed` / `unstarted` / `p95_wait_censored_sec` / `start_within_deadline_rate` | **全部逐格完全一致** |
+| `mean_wait_censored_sec` | 111/112 一致，1 格差 1.32 秒 |
+| `gpu_reserved_allocation_rate` | `none` 28/28 一致；`one_move` 27/28；`cheap_multi` 12/28；`first_multi` 14/28。**合计 81/112 一致，31 格差 ≤ 2.2e-4（0.022 个百分点）** |
+
+也就是说：**迁移决策完全对上了**（移动次数、搬运 GPU 数、暂停 GPU·秒一个不差），
+残余差异只在"迁移暂停期间那段 GPU·秒怎么积分"这一个量上，且不超过 0.022 个百分点，
+`none` 模式零差异。这个残余**尚未定位**，不假装它不存在；范围已经缩到很窄。
+
+### 四个开关确实改变结论（S1/first_fit/cheap_multi 实测）
+
+| `release_source_when` | `reserve_destination` | GPU 预留率 |
+|---|---|---:|
+| end | True（她的默认，make-before-break 双占） | 0.856123 |
+| end | False | 0.855598 |
+| start | True | 0.855598 |
+| start | False（暂停期两头都不占） | 0.855073 |
+
+中间两行相等不是巧合：一头占与另一头占在总量上等价，这本身就是对实现的一次交叉校验。
+四个组合给出四个不同结果，说明 M11 要暴露的敏感性是真实的，而不是文档上的假设。
+
+## 7. 复跑命令
 
 ```bash
 # 1) 转换全部 28 个实例（需要 pandas + pyarrow）

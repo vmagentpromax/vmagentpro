@@ -495,5 +495,73 @@ class InitialPlacementTests(unittest.TestCase):
         self.assertGreater(env.records["lp1"]["preemption_count"] + env.records["lp2"]["preemption_count"], 0)
 
 
+class ReactiveMigrationTests(unittest.TestCase):
+    """The ported defragmentation policy, tested on a hand-built fragmented pool.
+
+    Three nodes of 8 GPU each holding 4 GPU apiece: 12 GPU are free in total but no
+    single node can host a 5-GPU request, which is fragmentation rather than a
+    capacity shortage - the only condition the policy is allowed to react to.
+    Evacuating one 4-GPU pod onto a neighbour frees a whole node.
+    """
+    NODES = [NodeSpec("n%d" % i, "cluster", "H20", 8., 192.) for i in range(1, 4)]
+    PAUSE = 20. + 8.*4 + 0.1*4          # one 4-GPU / 4-core pod, her cost model
+
+    def env(self, **options):
+        pods = [TaskSpec("A", 4., 4., ("H20",), 0., 1000., "Other", {"migratable": True}),
+                TaskSpec("B", 4., 4., ("H20",), 0., 1000., "Other", {"migratable": True}),
+                TaskSpec("C", 4., 4., ("H20",), 0., 1000., "Other", {"migratable": True}),
+                TaskSpec("big", 5., 5., ("H20",), 1., 10., "Other", {"migratable": False})]
+        settings = dict(clock="fast", measurement_window=(0., 2000.), max_sim_time=4000.,
+                        initial_placement={"A": "n1", "B": "n2", "C": "n3"})
+        settings.update(options)
+        return GpuSchedEnv(self.NODES, pods, **settings)
+
+    def test_without_migration_the_fragmented_request_waits(self):
+        env = self.env()
+        result = env.run("first_fit")
+        self.assertEqual(0, result["migration"]["count"])
+        self.assertGreater(env.records["big"]["start_time_sec"], 900.)
+
+    def test_one_move_evacuates_a_pod_and_unblocks_the_request(self):
+        env = self.env(migration="one_move")
+        result = env.run("first_fit")
+        self.assertEqual(1, result["migration"]["count"])
+        self.assertEqual(1, result["migration"]["completed_count"])
+        self.assertEqual(4., result["migration"]["gpu_units_moved"])
+        self.assertAlmostEqual(result["migration"]["gpu_pause_sec"], 4.*self.PAUSE, places=9)
+        self.assertNotEqual("n1", env.records["A"]["server_id"])
+        self.assertEqual("n1", env.records["big"]["server_id"])
+        # The request starts one pause after the move begins, not instantly.
+        self.assertAlmostEqual(1.+self.PAUSE, env.records["big"]["start_time_sec"], places=9)
+
+    def test_pause_service_extends_the_moved_task(self):
+        # The pause is service downtime: with pause_service the moved task finishes
+        # one pause later than it would have; without it the pause is free.
+        paused = self.env(migration="one_move", pause_service=True)
+        paused.run("first_fit")
+        free = self.env(migration="one_move", pause_service=False)
+        free.run("first_fit")
+        self.assertAlmostEqual(1000.+self.PAUSE, paused.records["A"]["finish_time_sec"], places=9)
+        self.assertEqual(1000., free.records["A"]["finish_time_sec"])
+
+    def test_reserve_destination_double_books_only_when_asked(self):
+        # make-before-break charges the pod at both ends for the pause, so the
+        # reservation integral is exactly one pod-times-pause of GPU-seconds higher
+        # than break-before-make. That is the whole quantity M11 is about.
+        held = self.env(migration="one_move").run("first_fit")
+        loose = self.env(migration="one_move", reserve_destination=False).run("first_fit")
+        self.assertGreater(held["reserved_gpu_ratio"], loose["reserved_gpu_ratio"])
+        extra = (held["reserved_gpu_ratio"]-loose["reserved_gpu_ratio"]) \
+            * held["gpu_capacity"] * held["measurement_denominator_sec"]
+        self.assertAlmostEqual(extra, 4.*self.PAUSE, places=6)
+
+    def test_a_pod_that_may_not_move_is_never_evacuated(self):
+        env = self.env(migration="one_move")
+        for task in env.tasks[:3]:
+            task.metadata["migratable"] = "False"
+        result = env.run("first_fit")
+        self.assertEqual(0, result["migration"]["count"])
+
+
 if __name__ == "__main__":
     unittest.main()

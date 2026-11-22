@@ -59,7 +59,7 @@ except ImportError:
 
 JOB_FIELDS = ("pod_id", "gpu_spec_public", "gpu_request", "cpu_request_cores", "submit_time_sec",
               "service_sec", "cluster_id", "duration_match_status", "job_type_public",
-              "priority_class", "workload_id")
+              "priority_class", "migratable", "workload_id")
 NODE_FIELDS = ("server_id", "cluster_id", "gpu_spec_public", "gpu_count", "cpu_capacity_cores", "asw_id")
 DROP_COLUMNS = ("migratable", "gpu_mem_request_trace", "source_server_id", "source_cluster_id",
                 "source_day", "source_hour", "source_gpu_request", "source_state_public",
@@ -97,7 +97,9 @@ def convert(instance, output):
                 "cluster_id": pod.source_cluster_id,
                 "duration_match_status": blank(pod.duration_source_method),
                 "job_type_public": blank(pod.job_type_public), "priority_class": blank(pod.priority_class),
-                "workload_id": blank(pod.workload_id)}
+                # Kept, not dropped: migration may only move pods the instance says are
+                # migratable. The engine reads it from task.metadata, so no schema change.
+                "migratable": bool(pod.migratable), "workload_id": blank(pod.workload_id)}
 
     jobs = pd.DataFrame([row(pod, pod.simulation_start_sec, pod.remaining_duration_sec)
                          for _, pod in initial.iterrows()]

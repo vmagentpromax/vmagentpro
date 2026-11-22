@@ -233,4 +233,5 @@ class MetricsMixin:
                                                  if self.total_gpu and denominator_sec else 0.)),
                     "topology": self._topology_metrics(),
                     "block_classification": self._block_classification(),
+                    "migration": self._migration_metrics(),
                     "reservation_metrics_are_not_SM_or_CPU_execution_utilization": True}

@@ -55,14 +55,30 @@ def engine_metrics(env, arrivals, horizon, deadline_sec, window_sec):
         waits.append((record["start_time_sec"] if record["start_time_sec"] is not None else horizon)
                      - record["submit_time_sec"])
     summary = env.summary()
+    migration = summary["migration"]
     return {"requests": len(arrivals),
             "started": len(started),
+            "completed": sum(1 for pid in arrivals
+                             if env.records[pid]["status"] == "completed"),
+            "unstarted": sum(1 for pid in arrivals
+                             if env.records[pid]["start_time_sec"] is None),
             "p95_wait_censored_sec": quantile_linear(waits, .95),
             "mean_wait_censored_sec": sum(waits)/len(waits) if waits else 0.,
             "start_within_deadline_rate": sum(1 for wait in waits if wait <= deadline_sec+1e-9)/len(arrivals),
             "gpu_reserved_allocation_rate": summary["reserved_gpu_ratio"],
+            "migration_count": migration["count"],
+            "migration_completed_count": migration["completed_count"],
+            "gpu_units_moved": migration["gpu_units_moved"],
+            "migration_gpu_pause_sec": migration["gpu_pause_sec"],
             "gpu_effective_allocation_full_horizon_rate": summary["reserved_gpu_ratio"]
                 if window_sec == horizon else None}
+
+
+# Her A_GPU excludes the GPU of a pod that is mid-migration; the engine's reserved
+# ratio double-books it (source still held, destination reserved). Until the engine
+# integrates an effective allocation as well, those two numbers are not the same
+# quantity, so the comparison reports them apart rather than forcing a match.
+NOT_COMPARABLE = {"gpu_effective_allocation_rate"}
 
 
 def compare(instance, converted, rel_tol=REL_TOL):
@@ -71,26 +87,37 @@ def compare(instance, converted, rel_tol=REL_TOL):
     horizon, window = config["horizon_sec"], config["allocation_window_sec"]
     deadline = config["start_deadline_sec"]
     with (instance/"baseline_results.csv").open(encoding="utf-8-sig", newline="") as handle:
-        rows = [row for row in csv.DictReader(handle) if row["migration"] == "none"]
+        rows = list(csv.DictReader(handle))
     inputs = converted/"inputs"
     results = []
     for row in rows:
+        if row["placement"] != "first_fit":
+            continue  # known divergence: the two best_fit rules differ (see README 4)
         env, _ = make_environment(inputs/"nodes.csv", inputs/"jobs.csv",
                                   initial_placement=inputs/"initial_placement.csv",
                                   clock="fast", queue_policy="backfill",
-                                  max_sim_time=horizon, measurement_window=[0., window])
+                                  max_sim_time=horizon, measurement_window=[0., window],
+                                  migration=row["migration"],
+                                  migration_max_plan_moves=config["migration"]["max_plan_moves"],
+                                  migration_max_total_moves=config["migration"]["max_total_moves"],
+                                  migration_base_sec=config["migration"]["base_sec"],
+                                  migration_per_gpu_sec=config["migration"]["per_gpu_sec"],
+                                  migration_per_cpu_core_sec=config["migration"]["per_cpu_core_sec"],
+                                  reserve_destination=config["migration"]["destination_reserved_before_source_release"],
+                                  pause_service=config["migration"]["pause_service"],
+                                  block_admission_during_plan=config["migration"]["admission_paused_during_plan"])
         env.run(row["placement"])
         arrivals = [pid for pid, task in env.by_id.items()
                     if pid not in env.initial_placement]
         measured = engine_metrics(env, arrivals, horizon, deadline, window)
         differences = []
         for key, reference in row.items():
-            if key not in measured or measured[key] is None:
+            if key in NOT_COMPARABLE or key not in measured or measured[key] is None:
                 continue
             want, got = float(reference), float(measured[key])
             if abs(want-got) > rel_tol*max(1., abs(want)):
                 differences.append((key, want, got))
-        results.append((row["placement"], measured, differences))
+        results.append((row["placement"], row["migration"], measured, differences))
     return results
 
 
@@ -111,13 +138,17 @@ def main():
         if not (out/"inputs/jobs.csv").is_file():
             print("[skip] %s/%s not converted yet" % (instance.parent.name, instance.name))
             continue
-        for placement, measured, differences in compare(instance, out, args.rel_tol):
+        for placement, migration, measured, differences in compare(instance, out, args.rel_tol):
             total += 1
             tag = "agree" if not differences else "DIFF"
-            print("[%s] %-32s %-9s requests=%d started=%d p95=%.4f mean=%.4f deadline=%.4f reserved=%.15f"
-                  % (tag, instance.parent.name+"/"+instance.name, placement, measured["requests"],
-                     measured["started"], measured["p95_wait_censored_sec"], measured["mean_wait_censored_sec"],
-                     measured["start_within_deadline_rate"], measured["gpu_reserved_allocation_rate"]))
+            print("[%s] %-32s %-9s/%-12s requests=%d started=%d completed=%d unstarted=%d "
+                  "p95=%.4f mean=%.4f deadline=%.4f reserved=%.12f moves=%d gpu_moved=%.1f"
+                  % (tag, instance.parent.name+"/"+instance.name, placement, migration,
+                     measured["requests"], measured["started"], measured["completed"],
+                     measured["unstarted"], measured["p95_wait_censored_sec"],
+                     measured["mean_wait_censored_sec"], measured["start_within_deadline_rate"],
+                     measured["gpu_reserved_allocation_rate"], measured["migration_count"],
+                     measured["gpu_units_moved"]))
             for key, want, got in differences:
                 print("        %-40s benchmark=%r engine=%r delta=%r" % (key, want, got, got-want))
                 bad += 1

@@ -49,7 +49,7 @@ class ClockMixin:
                 if self.current_time >= self.max_sim_time:
                     self._finish("drained" if not self.heap and not self.waiting and not self.running else "max_sim_time")
                     return
-                self.pending_id = self._next_ready()
+                self.pending_id = None if self.blocked_by_migration() else self._next_ready()
                 if self.pending_id is not None:
                     # Reaching a decision point means the task fits now. Record
                     # "direct" only if it was never seen blocked, so a task that
@@ -57,6 +57,8 @@ class ClockMixin:
                     self.first_block_class.setdefault(self.pending_id, "direct")
                     return
                 if self.preempt_enabled and self._try_preempt():
+                    continue
+                if self.try_defragment():
                     continue
                 if not self.heap:
                     self._finish("drained" if not self.waiting and not self.running else "blocked")
