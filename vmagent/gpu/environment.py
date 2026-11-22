@@ -206,6 +206,7 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             self.running_start = {}
             self.completion_counter = {}
             self.preserved_progress = {t.pod_id: 0.0 for t in self.tasks}
+            self.finish_at = {}
             self.migration_operation = None
             self.migration_current = None
             self.migration_reserved = None
@@ -266,6 +267,7 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             record = self.records[pid]
             record.update(status="running", start_time_sec=0., wait_sec=0., server_id=sid)
             self.completion_counter[pid] = self._push(task.service_time, 0, "complete", pid)
+            self.finish_at[pid] = task.service_time
         self._check_resources()
 
     def _process_due(self):
@@ -293,7 +295,8 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
                 record.update(status="completed", finish_time_sec=self.current_time)
                 self._preempt_generation += 1
             elif kind == "migration_complete":
-                self._complete_migration(pid, ev_counter)
+                if not self._complete_migration(pid, ev_counter):
+                    continue  # stale: the pod was re-planned before this move landed
             elif not any(self._fits(task, j, empty=True) for j in range(len(self.nodes))):
                 record.update(status="rejected", rejection_reason=self._rejection_reason(task))
                 kind = "reject"
@@ -330,6 +333,7 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
                       wait_sec=max(0., self.current_time-task.submit_time-record["running_total_sec"]),
                       server_id=self.nodes[action].server_id)
         self.completion_counter[pid] = self._push(self.current_time+remaining, 0, "complete", pid)
+        self.finish_at[pid] = self.current_time + remaining
         self._record("start", pid)
         self._check_resources()
 

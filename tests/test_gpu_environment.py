@@ -5,6 +5,7 @@ import tempfile
 import threading
 import time
 import unittest
+from collections import OrderedDict
 from pathlib import Path
 
 from vmagent.gpu.environment import GpuSchedEnv, NodeSpec, TaskSpec, DEFAULT_TASKS, EPS, load_workload, load_nodes
@@ -561,6 +562,67 @@ class ReactiveMigrationTests(unittest.TestCase):
             task.metadata["migratable"] = "False"
         result = env.run("first_fit")
         self.assertEqual(0, result["migration"]["count"])
+
+    def stage_move(self):
+        # reset() under clock="fast" runs the whole episode, so the state has to be
+        # restored by hand to the moment right after the layout was loaded: A running
+        # on n1 with its finish still ahead.
+        env = self.env()
+        env.reset()
+        env.current_time = 0.
+        env.done = False
+        env.running = {"A": 0, "B": 1, "C": 2}
+        env.running_start = {pid: 0. for pid in env.running}
+        env.finish_at = {pid: 1000. for pid in env.running}
+        env.free_gpu, env.free_cpu = [4., 4., 4.], [188., 188., 188.]
+        env.node_gpu_used, env.node_cpu_used, env.node_running_count = [4.]*3, [4.]*3, [1, 1, 1]
+        env.waiting, env.waiting_set = OrderedDict(), set()
+        env.heap, env.counter = [], 0
+        for task in env.tasks:
+            if task.pod_id in env.running:
+                env.completion_counter[task.pod_id] = env._push(1000., 0, "complete", task.pod_id)
+            else:
+                env._push(task.submit_time, 1, "arrival", task.pod_id)
+        env._check_resources()
+        return env, env.by_id["A"], env._move_pause(env.by_id["A"])
+
+    def plan(self, env, pod_id, source, destination, pause):
+        return {"pod_id": "trigger", "moves": [{"pod_id": pod_id, "source": source,
+                                                "destination": destination,
+                                                "gpu": env.by_id[pod_id].gpu,
+                                                "pause_sec": pause}]}
+
+    def test_two_moves_of_one_pod_pay_two_pauses(self):
+        # Regression for the residual that kept the two engines apart: the pause has
+        # to extend the pod's *current* finish. Deriving it from
+        # running_start + service - preserved instead drops the first pause when a
+        # pod is evacuated a second time, and S1/cheap_multi showed three pods
+        # finishing exactly one pause early against the benchmark engine.
+        env, task, pause = self.stage_move()
+        original = env.finish_at["A"]
+        env.migration_operation = self.plan(env, "A", "n1", "n2", pause)
+        env._begin_next_move()
+        self.assertAlmostEqual(original+pause, env.finish_at["A"], places=9)
+        env.current_time = pause
+        env._complete_migration("A", env.completion_counter["A"])
+        env.migration_operation = self.plan(env, "A", "n2", "n3", pause)
+        env._begin_next_move()
+        self.assertAlmostEqual(original+2*pause, env.finish_at["A"], places=9)
+
+    def test_a_stale_move_event_is_recorded_only_once(self):
+        # The heap keeps the move event even when the pod has been re-planned out of
+        # it. Recording that stale event put two migration_complete rows in the trace
+        # for one move.
+        env, task, pause = self.stage_move()
+        before = len(env.events)
+        env.migration_operation = self.plan(env, "A", "n1", "n2", pause)
+        env._begin_next_move()
+        env.migration_current = None            # the move was invalidated
+        env.current_time = pause
+        env._process_due()
+        self.assertEqual(0, sum(1 for e in env.events[before:] if e["event"] == "migration_complete"))
+
+
 
 
 class SpotGpuKnobTests(unittest.TestCase):

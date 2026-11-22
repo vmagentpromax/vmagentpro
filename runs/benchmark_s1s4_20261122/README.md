@@ -106,13 +106,30 @@ M10 合并前必须先定一件事：**哪个 best_fit 是权威定义**。三�
 | 指标 | 结果 |
 |---|---|
 | `migration_count` / `migration_completed_count` / `gpu_units_moved` / `migration_gpu_pause_sec` | **全部逐格完全一致** |
-| `started` / `completed` / `unstarted` / `p95_wait_censored_sec` / `start_within_deadline_rate` | **全部逐格完全一致** |
-| `mean_wait_censored_sec` | 111/112 一致，1 格差 1.32 秒 |
-| `gpu_reserved_allocation_rate` | `none` 28/28 一致；`one_move` 27/28；`cheap_multi` 12/28；`first_multi` 14/28。**合计 81/112 一致，31 格差 ≤ 2.2e-4（0.022 个百分点）** |
+| `started` / `completed` / `unstarted` / `p95_wait_censored_sec` / `mean_wait_censored_sec` / `start_within_deadline_rate` / `gpu_reserved_allocation_rate` | **全部逐格完全一致** |
 
-也就是说：**迁移决策完全对上了**（移动次数、搬运 GPU 数、暂停 GPU·秒一个不差），
-残余差异只在"迁移暂停期间那段 GPU·秒怎么积分"这一个量上，且不超过 0.022 个百分点，
-`none` 模式零差异。这个残余**尚未定位**，不假装它不存在；范围已经缩到很窄。
+**112/112 格、0 个字段差异**（28 实例 × 4 个迁移模式，first_fit；相对容差 1e-9）。
+
+### 曾经存在的 31 格残差是怎么定位并修掉的
+
+第一轮核对是 81/112 一致，31 格 `gpu_reserved_allocation_rate` 差 ≤2.2e-4，且只在迁移格出现，`none` 模式零差异。定位工具 `tools/diff_migration_integral.py` 的做法是：从**两边各自的事件日志重建"已分配 GPU 随时间的阶梯函数"**，再逐区间比对。用它重建她的日志能精确复算出她 `summary` 里的数字（0.856133310105783 对 0.856133310105783），重建主引擎的事件也能复算出主引擎的数字，所以差异被压到具体的时间区间：
+
+```text
+S1 / cheap_multi：3 个差异区间，每个恰好差 1.0 GPU，合计 28.8000 GPU·秒
+  [1539.448387, 1545.974937)   6.53 s   benchmark=740  engine=739
+  [1545.974937, 1567.428328)  21.45 s   benchmark=739  engine=738
+  [1567.428328, 1568.248387)   0.82 s   benchmark=739  engine=738
+```
+
+再往下查发现：两边**移动次数相同、被移动的 Pod 及各自次数相同、到达与启动时刻全部相同**，只有 3 个 Pod 的**完成时刻**分别晚了 28.8 / 28.8 / 31.2 秒——正好等于这三个 1-GPU Pod 各自的迁移暂停时长（`20 + 8×1 + 0.1×核数`）。
+
+根因：主引擎在迁移落地时是**用 `running_start + service − preserved` 重算完成时刻**，而不是在 Pod 当前的完成时刻上加暂停。第一次移动两者相同；**同一个 Pod 被移动第二次时，重算会把第一次的暂停丢掉**。她的引擎写的是 `p['finish'] += pause`，累加在当前完成时刻上。
+
+修法：引擎现在维护 `finish_at[pid]`（`_place` 与初始布局写入，迁移在其上累加暂停），迁移不再重算。修完 112/112 全一致。
+
+顺带修掉一个事件日志污染：`migration_complete` 被记录**两次**（`_complete_migration` 内部记一次，`_process_due` 弹出该事件后又记一次），而且已经失效的迁移事件也会被记成"某次迁移完成了"其实什么都没完成。现在 `_complete_migration` 返回是否真的落地，调用方据此跳过记录，与 `complete` 事件用 `completion_counter` 判旧的处理方式一致。这个不影响占用积分（`_record` 写的是当时的真实状态），但影响事件日志可信度。
+
+回归测试：`test_two_moves_of_one_pod_pay_two_pauses`（一个 Pod 两次迁移必须付两次暂停）、`test_a_stale_move_event_is_recorded_only_once`。
 
 ### 四个开关确实改变结论（S1/first_fit/cheap_multi 实测）
 

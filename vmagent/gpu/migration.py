@@ -182,8 +182,13 @@ class MigrationMixin:
             self.migration_gpu_pause_sec += pause*task.gpu
             self._push(self.current_time+pause, 0, "migration_complete", pid)
             if self.pause_service:
-                finish = (self.running_start[pid] + task.service_time
-                          - self.preserved_progress.get(pid, 0.))
+                # Extend the task's *current* finish, not its original one. A pod
+                # moved twice must pay two pauses: recomputing from
+                # running_start + service - preserved silently drops the first,
+                # which is what made three pods in S1/cheap_multi finish exactly one
+                # pause earlier than the benchmark engine had them.
+                finish = self.finish_at[pid]
+                self.finish_at[pid] = finish + pause
                 self.completion_counter[pid] = self._push(finish+pause, 0, "complete", pid)
             self._record("migration_start", pid)
             self._check_resources()
@@ -191,8 +196,16 @@ class MigrationMixin:
         self.migration_operation = None
 
     def _complete_migration(self, pid, ev_counter):
+        """Land an in-flight move; return False when the event no longer refers to it.
+
+        The caller must not record the event in that case. A queued move event
+        survives the move it was created for whenever the pod is re-planned first, so
+        recording it anyway puts a `migration_complete` in the trace at a moment when
+        nothing completed - a phantom event, and precisely the kind that makes a
+        metric derived from the event log disagree with one derived from the state.
+        """
         if self.migration_current is None or self.migration_current["pod_id"] != pid:
-            return  # stale: the pod was preempted or re-planned out of the move
+            return False
         move = self.migration_current
         task = self.by_id[pid]
         destination = move["destination"]
@@ -213,7 +226,9 @@ class MigrationMixin:
         self.records[pid]["server_id"] = self.nodes[destination].server_id
         self.migration_completed_moves += 1
         self.migration_current = None
-        self._record("migration_complete", pid)
+        # No _record here: this event came out of the heap, and _process_due records
+        # every event it pops. Recording in both places put two migration_complete
+        # rows in the trace for one move.
         self._check_resources()
         if self.migration_operation is not None:
             self._begin_next_move()
