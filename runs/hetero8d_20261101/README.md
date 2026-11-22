@@ -192,6 +192,46 @@ python -m vmagent.gpu.run --clock fast --seed 42 --policy spotgpu --queue-policy
 
 墙钟时间受本机负载影响，只描述当次实验成本，**不用于评判策略好坏**。完成数、未完成数、结束原因是可复现的判定项。
 
+### ★ 2026-11-22 全量复现核验：12 组可复现，2 组 SpotGPU 结果不可复现
+
+`tools/verify_golden_runs.py` 把 14 组归档结果按各自的 `run_manifest.json` + `provenance.json` 参数从仓库内输入重跑并逐字段比对，结论：
+
+| 组别 | 结果 |
+|---|---|
+| first_fit / best_fit / worst_fit / random × fcfs / backfill（含 rerun，共 12 组） | **32 项记录字段全部复现**（容差 1e-12，仅跳过 `wall_time_sec`） |
+| **spotgpu × fcfs、spotgpu × backfill** | **不复现**，而且**同一次代码、同一份输入，重跑之间也不一致** |
+
+不复现的原因有两条，都必须写清楚，否则很容易被当成"数据错了"：
+
+1. **归档时间早于实现时间。** 这两组 summary 记录于 2026-11-01，而 SpotGPU 抢占是 `d20f8b1`（2026-11-08）才进入引擎的。也就是说，仓库历史里**没有任何一个 commit 能产出这两组数字**——它们来自当时未入库的本地代码。
+2. **旧实现本身不可复现。** `node_spot_pids` 是 pod_id 字符串集合，CPython 每个进程随机化字符串哈希，而 `sorted` 是稳定排序，所以**代价相同的受害者顺序取决于进程**。场景 F 的预热任务全部在 t=0 启动，代价完全相等是常态而非边角。实测（spotgpu + fcfs，全量 119,495 任务）：
+
+   | `PYTHONHASHSEED` | 抢占次数 | `wasted_gpu_sec` | `reserved_gpu_ratio` |
+   |---|---:|---:|---:|
+   | 0 | 232 | 32,401.262 | 0.812763 |
+   | 1 | 242 | 25,983.937 | 0.780526 |
+
+   同一份代码、同一份输入，**GPU 预留率差 3.2 个百分点**。
+
+`2315feb` 已把受害者排序改为 `(代价, pod_id)` 全序。修复后的确定性结果（不同 `PYTHONHASHSEED` 完全一致）：
+
+| 组合 | 抢占次数 | 被抢占任务 | `wasted_gpu_sec` | GPU 预留率 | CPU 预留率 | 平均等待 |
+|---|---:|---:|---:|---:|---:|---:|
+| spotgpu + fcfs | **244** | 233 | 35,641.262 | 0.812687804603 | — | — |
+| spotgpu + backfill | **220** | 207 | 100,251.026 | 0.867575152079 | 0.999938 | 65.59 h |
+
+对照原表（fcfs 232 次 / 28,701.262 / 81.3%，backfill 226 次 / 140,907.468 / 86.7%）：**预留率在新旧之间接近，但抢占次数与浪费量差别明显**——backfill 的浪费从 39.14 GPU·小时降到 27.85 GPU·小时。所以原表 spotgpu 两行只能当历史单次抽样，新数据以上表为准。
+
+**因此 `metrics/策略对比结果.md` 里 spotgpu 两行的 232 / 226 次抢占、8.0 / 39.1 GPU·小时浪费、81.3% / 86.7% 预留率，是那次随机抽样得到的单点值，不能当作可复现结果引用。** 其余九组不受影响。要在新代码下重出这两组数字：
+
+```bash
+python tools/verify_golden_runs.py --only spotgpu   # 会报 DIFF，DIFF 就是当前正确值
+python -m vmagent.gpu.run --clock fast --seed 42 --policy spotgpu --queue-policy fcfs ^
+  --measurement-seconds 691200 --max-sim-time 4000000 --checkpoint-interval 3600 ^
+  --nodes runs/hetero8d_20261101/inputs/nodes.csv ^
+  --tasks runs/hetero8d_20261101/inputs/jobs_F.csv --output outputs/gpu/F-spotgpu-fcfs
+```
+
 ### 收录后的复现校验（2026-11-12，本机实测）
 
 从**仓库内路径**跑 `first_fit + fcfs`，与 D 盘原结果 `metrics/summaries/F-first_fit-fcfs/summary.json` 逐字段对比：
