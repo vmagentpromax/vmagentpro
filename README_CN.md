@@ -43,20 +43,31 @@
 
 ```text
 vmagentpro/
-├─ README.md                 英文原版说明
-├─ README_GPU.md             GPU/CPU 改造的详细中文说明
+├─ README.md                 本仓库首页（简短版）
+├─ README_GPU.md             GPU/CPU 引擎的详细中文说明（字段、网页、命令行、验证）
 ├─ README_CN.md              本文件
-├─ docs/server_selection/    内置 20 台 H20 节点、场景 A 计时数据、来源审计
-├─ vmagent/gpu/              GPU 环境、命令行入口、网页入口、静态资源
-│  ├─ environment.py         数据读取、资源账本、时钟、队列、完成释放、统计
-│  ├─ run.py                 命令行入口
-│  ├─ dashboard.py           本机网页服务
-│  └─ static/                网页前端
-├─ schedgym/gpu_env.py       新环境导入入口
-├─ tests/test_gpu_*.py       GPU 环境与网页测试
-├─ conda_env.yml             原版 VMAgent 的训练环境（不是 GPU 入口必需）
-└─ runs/allpods_20261025/    五场景输入与转换脚本（运行输出本地生成）
+├─ launcher.bat              GPU 前端启动器（唯一实现；另 3 个 .bat 各一行转调）
+├─ vmagent/gpu/              引擎本体：15 个文件 2,662 行，纯标准库
+│  ├─ contract.py            输入契约：CSV/JSON → 节点与任务，拒绝什么
+│  ├─ ledger.py queues.py clock.py     单节点账本 / 等待队列 / 事件堆与时间推进
+│  ├─ placement.py preemption.py migration.py   放置 / 抢占 / 碎片整理
+│  ├─ metrics.py             时间积分、事件流重建、summary()
+│  ├─ environment.py         编排层：状态机 + 三个输出面
+│  ├─ run.py matrix.py compare.py    命令行入口 / 并行策略矩阵 / 容差对比
+│  ├─ dashboard.py static/   本机网页服务与前端
+│  └─ spotgpu.py             SpotGPU 六个开关的登记表与默认值
+├─ docs/server_selection/    场景构建脚本与选点证据（H20 节点、计时数据、来源审计）
+├─ tools/                    16 个核对与实测脚本（golden、等价性、公式断言、内存实测）
+├─ tests/                    100 项测试
+├─ runs/                     五组场景：输入 + 归档指标 + README
+└─ experiments/              十场景与抢占实验存档
 ```
+
+> **上游那半棵树已经移除**（`schedvis/` 前端、`schedgym/` 的 CPU-NUMA 环境、
+> `vmagent/{learners,modules,components,controllers,config,data,utils}` 与 `train.py` 等 RL 侧、
+> `docs/source/`、`conda_env.yml`/`require_sched.txt`/`setup.py`）。删除前对上游已发布代码的实质
+> 改动只有 17 行；这不是历史重写，`git checkout 1ffabd6 -- schedvis/` 随时取回，
+> 其中值得抄的设计已逐条留档在 `README_GPU.md` §8.3 指向的那份清单里。
 
 ---
 
@@ -66,7 +77,7 @@ vmagentpro/
 
 不需要安装 TensorFlow、PyTorch、Gym、stable-baselines 就能运行 GPU 页面或命令行入口。
 
-`conda_env.yml` 和 `require_sched.txt` 是原版 VMAgent 训练环境的依赖（其中 `numpy==1.16.5`、`gym==0.10.9` 等版本很旧），与本次 GPU 入口无关；不要为了运行 GPU 环境去强行安装它们。
+原版训练环境的依赖清单（`conda_env.yml`、`require_sched.txt`，里面 `numpy==1.16.5`、`gym==0.10.9` 等版本很旧）已随上游那半棵树一起移除，不需要为运行本引擎安装它们；要参考时从 `1ffabd6` 取回。
 
 ---
 

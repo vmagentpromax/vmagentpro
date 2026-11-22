@@ -1,3 +1,0 @@
-mac: 'sacmac'
-learner: 'a2c_learner'
-agent: 'NormalACAgent'

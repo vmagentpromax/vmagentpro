@@ -422,8 +422,10 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
         # measured on a one-node case, preemptions 0 -> 1 and reserved_gpu_ratio
         # 0.350 -> 0.366667 for a run whose policy never preempts. Nothing in the
         # recorded pipelines reuses an environment, which is why no archived number
-        # moves - but the Gym-style reset()/step() API and `schedgym/gpu_env.py` both
-        # invite exactly that reuse. Assign unconditionally, on both branches.
+        # moves - but the Gym-style reset()/step() API invites exactly that reuse.
+        # Until 2026-11-22 a `schedgym/gpu_env.py` import shim made reuse even
+        # easier; it went with the rest of the upstream tree. Assign
+        # unconditionally, on both branches.
         self.preempt_enabled = policy == "spotgpu" and self.spotgpu["preemption"]
         if policy == "spotgpu":
             self.reset()

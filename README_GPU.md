@@ -47,7 +47,7 @@
 
 环境每次动作选择一台服务器，20 台节点对应 20 个动作。`observation()` 提供节点剩余资源比例、当前任务的 GPU/CPU 请求、节点型号、可行动作掩码和队列长度，不向策略输入未来真实服务时长或完成时间。
 
-`schedgym/gpu_env.py` 提供新环境导入入口。原有训练网络的 `2N` 个 NUMA 动作、CPU/内存状态形状和 CUDA 依赖与本环境不相同；当前完成了可运行的 GPU 环境、三种启发式策略、数据接口和可视化，旧 DQN/PPO/SAC 模型不能直接加载到新动作空间。
+新环境的导入路径就是 `from vmagent.gpu.environment import GpuSchedEnv`（原先还有一个 `schedgym/gpu_env.py` 转调垫片，2026-11-22 随上游半棵树一起移除，见 §8.3）。原有训练网络的 `2N` 个 NUMA 动作、CPU/内存状态形状和 CUDA 依赖与本环境不相同；当前完成了可运行的 GPU 环境、四种队列/放置轴与六个 SpotGPU 开关、数据接口和可视化，旧 DQN/PPO/SAC 模型不能直接加载到新动作空间。
 
 ### 第六步：增加网页导入、可视化与结果导出
 
@@ -78,26 +78,23 @@ python --version
 
 ### 3.1 启动服务
 
-**双击 `launcher.bat` 就行**（仓库根目录）。它会问你要开哪个前端：
+**双击 `launcher.bat` 就行**（仓库根目录）。它只做一件事：起本项目的 GPU 调度前端并打开页面。
 
-| 选项 | 开什么 | 端口 |
-|---|---|---|
-| 1 | 本项目的 GPU 调度前端（推荐） | 8765 |
-| 2 | 原版 VMAgent 的 SchedVis 前端（`schedvis/`，需要它自己的 Python 3.11 虚拟环境） | 8050 |
-| 3 | 两个都开 | — |
+| 情况 | 行为 |
+|---|---|
+| 端口 8765 空闲 | 在一个最小化窗口里起服务，等它应答（最多 20 秒），然后打开 `http://127.0.0.1:8765/` |
+| 端口 8765 已在监听 | **不重复起服务**，直接开页面 |
+| 起不来 | 打印原因并 `pause`，不会静默失败 |
 
-也可以不选，直接带参数：`launcher.bat dashboard`、`launcher.bat schedvis`、`launcher.bat both`。
-端口已经在监听时它不会重复起服务，直接开页面。
+也可以带参数：`launcher.bat dashboard`（与不带参数完全相同，给旧脚本和快捷方式用）。
+`打开前端.bat`、`启动器.bat`、`start_dashboard.bat` 都只是**一行转调 `launcher.bat` 的壳**，为的是桌面上已有的快捷方式继续能用；启动逻辑（解释器选择、端口探测、等待、报错文案）只在 `launcher.bat` 里有一份。
 
-> **关于选项 [2] 的一句事实**：原版 SchedVis **读不到本项目任何一个 GPU 结果**——它只 `pickle.load`
-> 原版 CPU/MEM 双 NUMA 环境的轨迹（`schedvis/dashboard/callbacks.py:35`、`data.py:30-38`），数据模型里
-> 没有 GPU、卡型、优先级，也没有"谁被驱逐、谁被搬走"。它仍挂在入口上只是为了方便对比着看，
-> **不代表这里有两套可用的系统**；要不要从入口摘掉，等问过师兄/老师再定
-> （记录见 `vmagentpro准备工作/引擎与文档改动详录_20261122.md` §七）。
+> 以前这个启动器还有一个选项 [2] 去开原版 VMAgent 的 SchedVis 前端。**那条路已经不存在了**：
+> 上游那半棵树在 2026-11-22 被移除（§8.3）。要说明的是，SchedVis 本来也**读不到本项目任何一个
+> GPU 结果**——它只 `pickle.load` 原版 CPU/MEM 双 NUMA 环境的轨迹，数据模型里没有 GPU、卡型、
+> 优先级，也没有"谁被驱逐、谁被搬走"。所以摘掉它没有损失任何能力，只是少了一个误导。
 
-`打开前端.bat`、`打开原版前端.bat`、`启动器.bat`、`start_dashboard.bat` 现在都只是**一行转调 `launcher.bat` 的壳**，为的是你桌面上已有的快捷方式继续能用；启动逻辑（解释器选择、端口探测、等待、报错文案）只在 `launcher.bat` 里有一份。
-
-> `.bat` 文件内容必须保持纯 ASCII——cmd.exe 按 ANSI 代码页读取，文件里出现非 ASCII 字节会把解析器打断在半行上。文件名用中文没问题，文件内容不行。
+> `.bat` 文件内容必须保持纯 ASCII——cmd.exe 按 ANSI 代码页读取，文件里出现非 ASCII 字节会把解析器打断在半行上。文件名用中文没问题，文件内容不行。**这个文件也不要经由 shell 的 here-doc 重写**：丢弃输出的重定向目标会被改写成"一个不存在的目录"，表现为每次运行都打印一行"系统找不到指定的路径"。
 
 命令行启动也照旧可用：
 
@@ -320,7 +317,37 @@ env.export("outputs/gpu/my-policy")
 
 观察中的 `obs` 是 N×2 的 `[剩余GPU/总GPU, 剩余CPU/总CPU]`；`feat` 是 `[GPU请求, CPU请求]`；`avail` 是 N 个节点的动作掩码。环境自行等待并推进到下一个可放置决策，策略不需要输出虚假的“拒绝”动作来跳过暂时缺资源的任务。`reward` 当前是每次成功开始任务 +1，尚未设计等待时间等 RL 奖励。
 
-旧 `vmagent/train.py` 的网络维度和经验回放依赖旧状态接口。若后续接入 DQN/PPO/SAC，需要适配网络输入、N 个动作、掩码、终止转移和奖励，并重新训练；不能用原 NUMA 模型权重直接评估 H20 场景。
+旧 `vmagent/train.py` 的网络维度和经验回放依赖旧状态接口；该文件与整个 RL 训练侧已在 2026-11-22 移出工作树（§8.3）。若后续接入 DQN/PPO/SAC，需要重新适配网络输入、N 个动作、掩码、终止转移和奖励并重新训练，不能用原 NUMA 模型权重直接评估 H20 场景——需要参考时按 §8.3 的命令从 git 历史里取回。
+
+## 8.3 与上游 VMAgent 的关系：那半棵树去哪了（2026-11-22）
+
+本仓库脱胎于 https://github.com/mail-ecnu/VMAgent （基线提交 `1ffabd6`）。在删之前，我们对上游已发布代码的**实质改动只有 17 行**（`.gitignore` +12、`README.md` +5），其余全是新增。
+
+现在**上游那半棵树已从工作树移除**，因为它是 CPU/内存 + NUMA 的强化学习那套，与本项目要做的事情（阿里 ASI trace 上的 GPU/CPU 时序资源调度仿真）已经不相交，留着只会让人以为这里有两套可用的系统。移除的内容：
+
+| 路径 | 原来是什么 |
+|---|---|
+| `schedvis/` | 上游自带的 Dash 前端（CPU/MEM 双 NUMA 视图，1,701 行）。只能吃它自己那个环境的 pickle 轨迹，**一个 GPU 结果都画不出来** |
+| `schedgym/`、`vmagent/schedgym/` | 上游的 CPU/NUMA  gym 环境（无时钟、无等待队列、放不下就结束 episode，`reward()` 恒为 1）；含我们加的 4 行导入垫片 `schedgym/gpu_env.py` |
+| `vmagent/{learners,modules,components,controllers,config,data,utils}`、`vmagent/{train,test,baselines}.py` | 强化学习训练侧（DQN/PPO/SAC/Qmix、回放、控制器）与上游自带的华为数据集 |
+| `docs/source/`、`docs/{Makefile,make.bat,requirements.docs.txt}` | 上游 sphinx 文档（讲的就是上面那些） |
+| `conda_env.yml`、`require_sched.txt`、`setup.py` | 上游训练环境依赖清单（`numpy==1.16.5`、`gym==0.10.9` 等）与打包脚本 |
+
+**没有删的**：`LICENSE`、`.gitignore`、`docs/server_selection/`（我们自己的场景构建脚本与数据）；`README.md` 改成本仓库的首页说明。
+
+**这只是一次普通提交，不是历史重写**——111 个文件全在 git 里，随时取回：
+
+```bash
+git show 1ffabd6:schedvis/dashboard/callbacks.py      # 看某个文件原文
+git checkout 1ffabd6 -- schedvis/ vmagent/config/     # 整目录取回工作树
+```
+
+删之前把里面**值得抄的设计**逐条抄成了一份清单（含每个文件的路径与行号、搬过来对应哪个待办编号）：
+`vmagentpro调研与改进方案/02_外部调研/原版VMAgent可借鉴点_删除前逐条抄下的清单.md`。
+其中最有价值的三条：SchedVis 的"两条轨迹共用一根时间轴的 A/B 对比回放"（→ M34）、
+它的"整集群剩余资源矩阵 + 可拖动回放"（→ M33）、以及 `vmagent/config` 那套
+`default.yaml → envs/<场景>.yaml → algs/<策略>.yaml` 三层深合并的配置（→ M18，
+我们目前 ~25 个命令行参数正需要它）。
 
 ## 8.1 SpotGPU 的六个开关
 
@@ -422,7 +449,7 @@ vmagent/gpu/matrix.py         多进程策略矩阵（放置 × 队列 × 优先
 vmagent/gpu/compare.py        两次运行的容差对比（屏蔽跨解释器末位 ULP 噪声）
 vmagent/gpu/dashboard.py      本地上传、内置数据集、后台运行、状态与下载接口
 vmagent/gpu/static/           可视化网页
-launcher.bat                  两个前端共用的启动器（唯一实现）
+launcher.bat                  GPU 前端启动器（唯一实现；另外 3 个 .bat 各是一行转调）
 tools/ab_engine_diff.py       新旧引擎等价性核对：summary + 全部 records + 全部 events 精确比对
 tools/verify_golden_runs.py   按归档 manifest 重跑 14 组场景 F golden 并逐字段对比
 tools/verify_spotgpu_variants.py 六开关实现 vs 原子类实现，逐字段核对六个变体
@@ -430,7 +457,8 @@ tools/audit_metric_derivations.py 四处"预留 GPU·秒"算法互相对比（M1
 tools/trace_fidelity_probe.py     上游 ASI v2026 trace 的延迟与利用率实测
 tools/extract_scene_truth_from_trace.py 把某个场景用过的机器在 trace 里的观测行取回来
 tools/calibrate_replay_delay.py     仿真排队延迟 vs trace 实测调度延迟
-schedgym/gpu_env.py           新环境导入入口
+tools/measure_workload_footprint.py 每任务保留字节、整局墙钟与工作集实测（规模数字的来源）
+tools/check_doc_line_references.py  文档里每条 文件.py:行号 引用是否还落在文件内
 tests/test_gpu_environment.py 关键行为验证
 tests/test_gpu_dashboard.py   上传、内置数据、运行、停止与下载验证
 tests/test_gpu_matrix.py      并行矩阵与串行结果逐字段一致性
