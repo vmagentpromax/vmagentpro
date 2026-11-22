@@ -367,6 +367,12 @@ python -m unittest discover -s tests -v
 
 `test_request_scenes.py` 用到 numpy 和 pandas（只有 `docs/server_selection/` 的场景构建脚本需要），本机没装时会自动跳过——GPU 引擎与它的其余测试只用标准库。
 
+**指标口径已经收敛，并且收敛的依据是实测。** 仓库里一度有四段代码各自计算"预留 GPU·秒"：引擎的增量账本、`docs/server_selection/run_request_scenes.py` 的重建、`experiments/preemption_20261107/harness.py` 的区间重建、以及对比工具里的换算。`tools/audit_metric_derivations.py` 在同一批运行上把它们并排跑了一遍，结论是**从 `records[pid]["server_id"]` 反推节点空闲这一种在抢占下会多算**：不抢占时与引擎逐位相同，一旦 SpotGPU 真抢占就多算 10,494.678 GPU·秒（演示场景，+2.5%）和 582,374.015 GPU·秒（场景 F 切片，+0.5%），而且不会报错。原因是抢占会改写 `server_id`，而被驱逐的任务仍留在它重建出的 `running` 集合里。
+
+因此现在统一走事件流：`vmagent/gpu/metrics.py` 提供 `run_segments()`（按 `start` / `complete` / `preempt` 重建每个 Pod 真正占用资源的区间）和 `integrate_events()`（对 `_record` 在每次状态转移时快照下来的账本总量做时间积分）。`tools/audit_metric_derivations.py` 的四张表与 `tests/test_gpu_environment.py`、`tests/test_request_scenes.py` 一起把这件事钉住：这两种原语在有抢占的运行上也与引擎完全一致，而 `run_request_scenes.metrics()` 中确实需要逐节点状态的那一半（AFR、碎片率）现在会在检测到任务换过节点时**直接报错**，而不是给一个看起来正常的数字。
+
+顺带记录一个踩过的坑：`env.gpu_area` 是**测量窗内**的积分，`env.gpu_area_full` 是**整段仿真**的积分，两者在窗口不覆盖全程时能差几个百分点。任何"两边对不上"的结论都要先确认两边的时间跨度一致。
+
 场景 A 的 First Fit、Best Fit、Random 在快速模式下均完成全部 50 个任务、拒绝 0、未完成 0，结束时所有节点资源释放。模拟完成时刻约 105.740805 秒；GPU/CPU 提供负载约 5.7416% / 3.8292%，无等待时资源预留率与此相符。真实时间模式也完成过完整的 50 个 Pod；系统唤醒与调度计算会带来小幅时间差。
 
 这批任务属于双低场景，不是严格 30%/30% 时间平均负载；原清单 30%/30% 指所有请求总和与容量的比例。
@@ -394,18 +400,36 @@ python -m unittest discover -s tests -v
 ## 11. 代码位置
 
 ```text
-vmagent/gpu/environment.py    数据读取、GPU/CPU模型、时钟、队列、完成释放、抢占、统计
+vmagent/gpu/contract.py       输入契约：CSV/JSON 字段、数值校验、节点与工作负载装载、初始布局
+vmagent/gpu/ledger.py         整机 GPU+CPU 账本：能不能放、放、释放、越界检查、拒绝原因
+vmagent/gpu/queues.py         等待队列：FCFS/回填、按需求分组的游标扫描、CPU 段树、阻塞归因
+vmagent/gpu/clock.py          时间推进：事件堆、fast/realtime 两种时钟、同刻先释放后准入
+vmagent/gpu/placement.py      放置策略：first/best/worst/random，以及 SpotGPU 的三项排序
+vmagent/gpu/preemption.py     SpotGPU 受害者代价、前缀判定、驱逐与抢占决策
+vmagent/gpu/migration.py      响应式碎片整理：撤离计划、迁移执行、四个预留语义开关
+vmagent/gpu/metrics.py        指标层：时间积分、事件流重建（run_segments / integrate_events）、
+                              两种 p95 定义、summary
+vmagent/gpu/spotgpu.py        SpotGPU 六个开关的登记表与默认值
+vmagent/gpu/environment.py    编排层：把上面几块拼成 GpuSchedEnv，并对外保留旧导入名
 vmagent/gpu/run.py            命令行实验入口
 vmagent/gpu/matrix.py         多进程策略矩阵（放置 × 队列 × 优先级开关并行）
 vmagent/gpu/compare.py        两次运行的容差对比（屏蔽跨解释器末位 ULP 噪声）
 vmagent/gpu/dashboard.py      本地上传、内置数据集、后台运行、状态与下载接口
 vmagent/gpu/static/           可视化网页
 launcher.bat                  两个前端共用的启动器（唯一实现）
+tools/ab_engine_diff.py       新旧引擎等价性核对：summary + 全部 records + 全部 events 精确比对
+tools/verify_golden_runs.py   按归档 manifest 重跑 14 组场景 F golden 并逐字段对比
+tools/verify_spotgpu_variants.py 六开关实现 vs 原子类实现，逐字段核对六个变体
+tools/audit_metric_derivations.py 四处"预留 GPU·秒"算法互相对比（M1 收敛的依据）
+tools/trace_fidelity_probe.py     上游 ASI v2026 trace 的延迟与利用率实测
+tools/extract_scene_truth_from_trace.py 把某个场景用过的机器在 trace 里的观测行取回来
+tools/calibrate_replay_delay.py     仿真排队延迟 vs trace 实测调度延迟
 schedgym/gpu_env.py           新环境导入入口
 tests/test_gpu_environment.py 关键行为验证
 tests/test_gpu_dashboard.py   上传、内置数据、运行、停止与下载验证
 tests/test_gpu_matrix.py      并行矩阵与串行结果逐字段一致性
 tests/test_spotgpu_demo_scene.py 抢占演示场景的行为契约
+tests/test_request_scenes.py  场景构建与指标口径（需要 numpy/pandas，缺了就跳过）
 experiments/spotgpu_demo/     演示场景构建脚本
 runs/hetero8d_20261101/       异构 8 天场景 F 输入与指标
 runs/spotgpu_demo_20261121/   抢占演示场景输入与说明
