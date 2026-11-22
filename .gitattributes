@@ -1,1 +1,18 @@
+# The one LFS rule this repository has ever needed.
 docs/server_selection/request_load_scenes/fixed20_observations.parquet filter=lfs diff=lfs merge=lfs -text
+
+# Batch files must arrive as CRLF on every machine, not only on the ones whose user
+# set core.autocrlf=true. cmd.exe parses the label/goto-dense launchers wrongly when
+# they come out of a clone with LF endings, and the failure is silent and depends on
+# the cloner's git config rather than on anything in the repository.
+#
+# Measured on the committed blobs before this rule existed: launcher.bat and
+# start_dashboard.bat are stored LF (163 and 4 bare-LF lines, no CRLF at all), while
+# docs/make.bat is stored CRLF - so the repository disagreed with itself about which
+# convention batch files use, and only a working copy with autocrlf=true ever saw
+# working launchers. `text eol=crlf` fixes the checkout for both conventions at once, so
+# docs/make.bat is deliberately left as it is: re-normalising an upstream Sphinx file to
+# buy nothing but a tidier index would inflate this repository's diff against upstream,
+# which is a number the project tracks on purpose.
+*.bat text eol=crlf
+*.cmd text eol=crlf

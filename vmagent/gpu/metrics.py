@@ -286,6 +286,13 @@ class MetricsMixin:
         classified = len(self.first_block_class)
         return {"first_attempt_classes": counts, "tasks_classified": classified,
                 "task_count": len(self.tasks),
+                # Two different reasons a task carries no classification, and lumping
+                # them together makes the coverage look worse than it is: a pod that came
+                # in through `initial_placement` was placed by the *input*, so it never
+                # had a decision to reach, while one still queued at the horizon was
+                # denied one by the scheduler. `tasks_never_reaching_a_decision` counts
+                # both; subtract this to get the second alone.
+                "tasks_placed_by_input": len(self.initial_placement),
                 "tasks_never_reaching_a_decision": len(self.tasks)-classified,
                 "fragmentation_share_of_classified": (counts["fragmentation"]/classified
                                                       if classified else 0.),

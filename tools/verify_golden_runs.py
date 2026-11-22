@@ -121,7 +121,8 @@ def main():
                                        % (len(replacement), path.parent.relative_to(REPO)))
         else:
             status, detail = "DIFF", format_diff(differences)
-        print("[%s] %-26s %5.1fs  %s" % (status, name, time.monotonic()-clock, detail))
+        print("[%s] %-26s %5.1fs  %s" % (status, name, time.monotonic()-clock, detail),
+              flush=True)
         if status == "DIFF":
             failures.append(name)
     if args.record_replacement:

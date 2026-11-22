@@ -564,16 +564,27 @@ class InitialPlacementTests(unittest.TestCase):
 
     def test_prescribed_node_wins_over_the_policy(self):
         # best_fit would fill s1 first (both are empty, so it takes the lowest index);
-        # the layout says s2, and the layout has to be what runs.
+        # the layout says s2, and the layout has to be what runs. Asserting live
+        # free_gpu here would not work: clock="fast" advances through the only completion
+        # event before anything can be observed, so the evidence has to come from the trace.
         tasks = [TaskSpec("p1", 4., 4., ("H20",), 0., 10., "Other")]
         env = self.env(tasks, {"p1": "s2"})
         env.run("best_fit")
-        # The reset event is recorded after the layout is loaded, so it already shows
-        # 4 GPU reserved. Asserting live free_gpu here would not work: clock="fast"
-        # advances through the only completion event before anything can be observed.
-        reset = [e for e in env.events if e["event"] == "reset"][0]
-        self.assertEqual(4., reset["gpu_reserved"])
-        self.assertEqual(1, reset["running"])
+        kinds = [e["event"] for e in env.events]
+        self.assertEqual("reset", kinds[0], "reset must stay the first event")
+        # A laid-out pod gets a `start` like any other running task. Without it the trace
+        # claims nothing was occupying anything until the first arrival, so anything that
+        # rebuilds intervals from the event log - run_segments(), the harness's work
+        # conservation check, the "did anything move" guard in run_request_scenes - is
+        # wrong about exactly the pods a defragmentation benchmark starts with.
+        self.assertIn("start", kinds)
+        start = env.events[kinds.index("start")]
+        self.assertEqual("p1", start["pod_id"])
+        self.assertEqual(4., start["gpu_reserved"])
+        self.assertEqual(1, start["running"])
+        # `reset` is the clean slate, so it must NOT already show the layout.
+        self.assertEqual(0., env.events[0]["gpu_reserved"])
+        self.assertEqual(0, env.events[0]["running"])
         self.assertEqual("s2", env.records["p1"]["server_id"])
         self.assertEqual(0., env.records["p1"]["start_time_sec"])
         self.assertEqual(0., env.records["p1"]["wait_sec"])
@@ -585,6 +596,36 @@ class InitialPlacementTests(unittest.TestCase):
         env.run("first_fit")
         arrivals = [e for e in env.events if e["event"] == "arrival"]
         self.assertEqual(["p2"], [e["pod_id"] for e in arrivals])
+
+    def test_event_reconstruction_covers_the_warm_up_pods(self):
+        """`run_segments` is how everything outside the engine re-derives occupancy.
+
+        It reads the trace, not the ledger, so before the laid-out pods emitted a `start`
+        event they simply did not exist for it - and the two consumers that matter,
+        `harness.evaluate()`'s work-conservation check and
+        `run_request_scenes.metrics()`'s "did anything move" guard, were therefore blind
+        to exactly the pods a defragmentation benchmark starts with. The guard false
+        negatived; the harness raised KeyError.
+        """
+        tasks = [TaskSpec("p1", 4., 4., ("H20",), 0., 10., "Other"),
+                 TaskSpec("p2", 1., 1., ("H20",), 5., 1., "Other")]
+        env = self.env(tasks, {"p1": "s1"})
+        summary = env.run("first_fit")
+        segments = run_segments(env.events)
+        self.assertIn("p1", segments, "a pod the engine held from t=0 is invisible to "
+                                      "anything reading occupancy from the trace")
+        self.assertEqual([(0., 10., "complete")], segments["p1"])
+        # The engine's own integral and the reconstruction from events must agree, which
+        # is the property the whole of M1 rests on: 4 GPUs for p1's 10 s of warm-up, plus
+        # 1 GPU for p2's single second, and the p1 term only exists because the layout
+        # now emits a start event.
+        self.assertEqual(4.*10. + 1.*1., integrate_events(env.events, "gpu_reserved", (0., 100.)))
+        self.assertEqual(integrate_events(env.events, "gpu_reserved", (0., 100.)),
+                         env.gpu_area,
+                         "re-deriving occupancy from the trace must reproduce the ledger")
+        self.assertEqual(2, summary["running"]+summary["completed"],
+                         "status_counts must reconcile through the start event, the same "
+                         "way it does for every other transition")
 
     def test_layout_capacity_is_summed_across_pods_on_one_node(self):
         tasks = [TaskSpec("a", 5., 1., ("H20",), 0., 10., "Other"),
@@ -639,7 +680,7 @@ class ReactiveMigrationTests(unittest.TestCase):
         settings.update(options)
         return GpuSchedEnv(self.NODES, pods, **settings)
 
-    def lp_env(self, **options):
+    def lp_env(self, env_class=None, **options):
         """The same fragmented pool, but with the resident pods marked LP.
 
         Every existing migration test uses priority "Other", which is precisely why the
@@ -653,7 +694,7 @@ class ReactiveMigrationTests(unittest.TestCase):
         settings = dict(clock="fast", measurement_window=(0., 2000.), max_sim_time=4000.,
                         initial_placement={"A": "n1", "B": "n2", "C": "n3"})
         settings.update(options)
-        return GpuSchedEnv(self.NODES, pods, **settings)
+        return (env_class or GpuSchedEnv)(self.NODES, pods, **settings)
 
     def test_a_move_carries_the_priority_and_spot_bookkeeping_to_the_new_node(self):
         env = self.lp_env(migration="cheap_multi")
@@ -700,20 +741,18 @@ class ReactiveMigrationTests(unittest.TestCase):
         self.assert_node_books_match_the_running_set(env)
 
     def test_preemption_and_migration_together_still_satisfy_the_ledger(self):
-        # The documented CLI allows `--policy spotgpu --migration cheap_multi`. The
-        # per-node books used to drift under exactly that combination. Nothing here
-        # invents a combined semantics - admission is frozen during a plan by default,
-        # and an in-flight pod is never a victim - the point is that the combination
-        # must not corrupt the accounting. The same scenario under first_fit, where the
-        # move does happen, is the test above.
+        # The documented CLI allows `--policy spotgpu --migration cheap_multi`. Nothing
+        # here invents a combined semantics - admission is frozen during a plan by
+        # default, and an in-flight pod is never a victim - the point is that the
+        # combination must not corrupt the accounting.
         env = self.lp_env(migration="cheap_multi", max_sim_time=400.)
         result = env.run("spotgpu")
         # Not "a move must happen": with preemption switched on the HP request is usually
         # satisfied by an eviction, and `_advance_until_ready` tries preemption before
         # defragmentation, so the migration path can legitimately stay idle. What is not
         # acceptable is either mechanism leaving the per-node books inconsistent, which is
-        # what this asserts. The same scenario under first_fit, where the move does happen,
-        # is the test above.
+        # what this asserts. The case where the move does happen is the first_fit test
+        # above.
         self.assertTrue(result["migration"]["count"] or result["preemptions"],
                         "neither mechanism acted, so the case tests nothing")
         self.assert_node_books_match_the_running_set(env)
@@ -721,6 +760,38 @@ class ReactiveMigrationTests(unittest.TestCase):
             self.assertLessEqual(env.node_gpu_used[j], node.gpu_capacity+1e-9)
             self.assertGreaterEqual(env.free_gpu[j], -1e-9)
             self.assertGreaterEqual(env.free_cpu[j], -1e-9)
+
+    def test_the_books_agree_with_running_at_every_invariant_checkpoint(self):
+        """A snapshot at the horizon misses the one window that matters.
+
+        Break-before-make (`release_source_when="start"`) moves `running` at the start of
+        a move and lands it a pause later, so probing after the run sees two consistent
+        states and never the inconsistent one in between - measured here, every horizon
+        from 200 s to 700 s reported a match while the pause was still mis-booked.
+        `_check_resources` is the engine's own checkpoint: it runs at the end of
+        `_begin_next_move`, at the end of `_complete_migration`, and after every popped
+        event, so asserting there covers the whole timeline instead of one instant.
+        """
+        outer = self
+
+        class Watched(GpuSchedEnv):
+            seen_inflight = 0
+
+            def _check_resources(self):
+                if self.migration_current is not None:
+                    Watched.seen_inflight += 1
+                outer.assert_node_books_match_the_running_set(self)
+                super()._check_resources()
+
+        for release_when in ("end", "start"):
+            for policy in ("first_fit", "spotgpu"):
+                env = self.lp_env(env_class=Watched, migration="cheap_multi",
+                                  release_source_when=release_when)
+                env.run(policy)
+        # Without this the loop could pass by never entering the window it is about.
+        self.assertGreater(Watched.seen_inflight, 0,
+                           "no checkpoint ever ran while a move was in flight, so the "
+                           "assertion above tested nothing")
 
     def test_without_migration_the_fragmented_request_waits(self):
         env = self.env()

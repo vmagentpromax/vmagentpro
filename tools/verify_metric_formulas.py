@@ -204,7 +204,14 @@ def reservation_semantics_case():
     up here rather than in a paper.
     """
     results = {}
+    # All four combinations, not just the two extremes: the documented claim is that the
+    # pause charge depends on `counted` alone, and the only way to assert that is to
+    # include the two `counted == 1` cases and require them to agree with each other.
+    # This is exactly the 2x2 that the S1/first_fit/cheap_multi table reports as three
+    # distinct reservation ratios out of four combinations.
     for label, reserve, release in (("make-before-break", True, "end"),
+                                    ("source only (counted=1)", False, "end"),
+                                    ("destination only (counted=1)", True, "start"),
                                     ("break-before-make", False, "start")):
         nodes = [NodeSpec("n1", "c", "H20", 8., 40.), NodeSpec("n2", "c", "H20", 8., 40.),
                  NodeSpec("n3", "c", "H20", 8., 40.)]
@@ -226,6 +233,13 @@ def reservation_semantics_case():
         check("%s: reserved - effective area == pause x GPUs x %d" % (label, counted),
               summary["migration"]["gpu_pause_sec"]*counted,
               env.gpu_area - env.effective_gpu_area, tol=1e-6)
+    single = [results["source only (counted=1)"][0]["reserved_gpu_ratio"],
+              results["destination only (counted=1)"][0]["reserved_gpu_ratio"]]
+    check("the two counted==1 switch combinations give the SAME reservation ratio",
+          single[0], single[1], tol=0.)
+    print("      counted=1 both ways: %.6f and %.6f"
+          "  <- this is why the documented 2x2 has three values, not four"
+          % (single[0], single[1]))
     print("      reserved  make=%.6f break=%.6f | effective make=%.6f break=%.6f"
           % (results["make-before-break"][0]["reserved_gpu_ratio"],
              results["break-before-make"][0]["reserved_gpu_ratio"],
@@ -236,9 +250,64 @@ def reservation_semantics_case():
           "one, which is why this is asserted as an identity rather than as an ordering)")
 
 
+def no_migration_identity_case():
+    """The one place where "A_GPU equals reserved" is actually a true statement.
+
+    The doc's shorthand "when nothing is migrating the two are equal" is false as written
+    for any run that *did* migrate, because the reported fields are integrals - see
+    `migration_case`, where the horizon is clean and the two areas still differ by 112
+    GPU-seconds. What is true, and worth pinning, is that with `migration="none"` the
+    integrand is never discounted at all, so the two areas and both ratios are identical
+    to the last bit for every placement and queue rule.
+    """
+    nodes = [NodeSpec("n1", "c", "H20", 8., 40.), NodeSpec("n2", "c", "H20", 8., 40.)]
+    for queue in ("fcfs", "backfill"):
+        for placement in ("first_fit", "best_fit", "spotgpu"):
+            env = GpuSchedEnv(nodes, [spec("a", 4., 4.), spec("b", 4., 4.),
+                                      spec("c", 6., 4., submit=1., service=20.)],
+                              clock="fast", queue_policy=queue,
+                              measurement_window=(0., 200.), max_sim_time=5000.)
+            summary = env.run(placement)
+            check("%s/%s: no migration means gpu_area == effective_gpu_area exactly"
+                  % (placement, queue), env.gpu_area, env.effective_gpu_area, tol=0.)
+            expect("%s/%s: and so are both ratios, bit for bit" % (placement, queue),
+                   summary["reserved_gpu_ratio"] == summary["effective_gpu_ratio"]
+                   and summary["reserved_gpu_ratio"] != 0.,
+                   "reserved=%.12g effective=%.12g" % (summary["reserved_gpu_ratio"],
+                                                       summary["effective_gpu_ratio"]))
+
+
+def block_coverage_case():
+    """`tasks_never_reaching_a_decision` mixes two different reasons; separate them.
+
+    A pod that arrived with the input layout was placed by the *scenario*, not by the
+    scheduler, so it never had a decision to reach. A pod still queued at the horizon was
+    denied one. Reporting only the sum makes the first look like the second.
+    """
+    nodes = [NodeSpec("n1", "c", "H20", 8., 40.), NodeSpec("n2", "c", "H20", 8., 40.)]
+    tasks = [spec("laid", 4., 4.), spec("late", 4., 4., submit=1e6, service=10.)]
+    env = GpuSchedEnv(nodes, tasks, clock="fast", queue_policy="fcfs",
+                      measurement_window=(0., 200.), max_sim_time=500.,
+                      initial_placement={"laid": "n1"})
+    summary = env.run("first_fit")
+    block = summary["block_classification"]
+    check("the laid-out pod is counted as placed by the input", 1,
+          block["tasks_placed_by_input"])
+    expect("the laid-out pod is in neither class of *decision* coverage",
+           "laid" not in env.first_block_class, sorted(env.first_block_class))
+    check("never-reaching = task_count - classified, exactly as documented",
+          len(tasks)-block["tasks_classified"], block["tasks_never_reaching_a_decision"])
+    print("      never_reaching=%d of which placed_by_input=%d, so %d were genuinely "
+          "denied a decision" % (block["tasks_never_reaching_a_decision"],
+                                 block["tasks_placed_by_input"],
+                                 block["tasks_never_reaching_a_decision"]
+                                 - block["tasks_placed_by_input"]))
+
+
 def main():
     for case in (background_case, rejection_case, preemption_case, migration_case,
-                 reservation_semantics_case):
+                 reservation_semantics_case, no_migration_identity_case,
+                 block_coverage_case):
         print("\n--- %s" % case.__name__)
         case()
     failed = [name for name, _, _, ok in checks if not ok]

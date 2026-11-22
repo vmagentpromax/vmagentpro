@@ -43,7 +43,13 @@
 
 `tools/compare_benchmark_engines.py` 用**她引擎的指标定义**（等待右删失到 horizon、p95 用 numpy linear 分位、
 deadline 率按全部到达算、预留率按 `[0, allocation_window]` 积分）从主引擎的 records 重算，再与实例自带的
-`baseline_results.csv` 比对。只比 `migration=none` 的格子——主引擎还没有迁移能力，其余 4 个迁移策略列不可比。
+`baseline_results.csv` 比对。
+
+> **本节这张 28 分母的表只统计 `migration=none` 的格子**，它是在主引擎还没有迁移能力时做的（当时
+> `compare()` 读基表时带着 `rows = [row for row in ... if row["migration"] == "none"]`）。
+> 那行在 `a9eb231` 删掉了，工具现在跑全部四个迁移模式，也就是第 6 节那张
+> **112 格 = 28 实例 × 4 模式** 的表。
+> 两节分母不同，不是互相矛盾：本节说"best_fit 28 个实例里 9 个一致"，第 6 节说"112 格里 29 格相同"。
 
 | 放置策略 | 一致 | 不一致 |
 |---|---:|---:|
@@ -141,7 +147,10 @@ S1 / cheap_multi：3 个差异区间，每个恰好差 1.0 GPU，合计 28.8000 
 | start | False（暂停期两头都不占） | 0.855073 |
 
 中间两行相等不是巧合：一头占与另一头占在总量上等价，这本身就是对实现的一次交叉校验。
-四个组合给出四个不同结果，说明 M11 要暴露的敏感性是真实的，而不是文档上的假设。
+四个组合给出**三个不同的值**（0.856123 / 0.855598 / 0.855598 / 0.855073）——
+**注意这不同于"四个组合全都相同"**：`counted=2`、`counted=1`、`counted=0` 三档互相分开，
+所以 M11 要暴露的敏感性是真实的，而不是文档上的假设。
+（本段先前写的是"四个组合给出四个不同结果"，与上面这张表自己矛盾，是复查时发现的笔误。）
 
 ## 6.5 主引擎现在能直接产出她那张结果表（2026-11-22 补充）
 
@@ -171,6 +180,21 @@ S1 / cheap_multi：3 个差异区间，每个恰好差 1.0 GPU，合计 28.8000 
 |---|---|
 | `first_fit` × 4 迁移模式 × 28 实例 = 112 格 | **0 个字段差异** |
 | `best_fit` × 同上 = 112 格 | **83 格有差异，共 643 个字段**；另外 29 格相同（两种规则在那格上恰好选了同一个节点）。差异范围从 `mean_wait` 几秒到 `migration_count` 31 对 35，原因见第 4 节：两套 best_fit 不是同一个算法 |
+
+> **这两行的复现命令（2026-11-22 晚补，之前只写了结论没写怎么复算）：**
+> ```
+> python tools/compare_benchmark_engines.py                        # first_fit，应当 0 差异
+> python tools/compare_benchmark_engines.py --placements best_fit  # 112 格：29 同 / 83 差 / 579 字段
+> python tools/compare_benchmark_engines.py --placements best_fit \
+>     --also-compare migration_gpu_pause_accrued_sec               # ……/ 643 字段  ← 本表这个数
+> ```
+> **643 与 579 的差正好是 64**，就是 `migration_gpu_pause_accrued_sec` 一列的贡献——
+> 记这张表时它还在被对比，后来因为"她的引擎没有这一列"被放进了 `NOT_COMPARABLE`。
+> 所以**今天的正确口径是 579**，643 只有加 `--also-compare` 才能得到；两个数都对，
+> 但要指明是哪一种列集合下的数。（`migration_inflight_at_horizon` 无法这样补回来：
+> 她的基表里那列是文本 `True`/`False`，`float()` 直接抛错——这也是它被排除的真实原因。）
+> 另外注意做这个对比的是 `tools/compare_benchmark_engines.py`（用她的指标定义从主引擎 records 重算），
+> `tools/benchmark_runner.py` 只负责按她的表头产表，不负责比对。
 
 也就是说：**在 best_fit 的定义定下来之前，主引擎可以完全替代她的引擎跑 first_fit 那一半；best_fit 那一半替代不了。** 这正是第 5 节那个决定为什么必须先做。
 

@@ -75,6 +75,28 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             raise ValueError("Unknown migration mode")
         if release_source_when not in ("end", "start"):
             raise ValueError("release_source_when must be 'end' or 'start'")
+        # Numeric arguments are rejected here rather than at the CLI so that every caller -
+        # dashboard, matrix runner, benchmark runner, a notebook - gets the same guard.
+        # The class of bug this closes is a parameter that is accepted, does nothing, and
+        # reports no error: `--migration-max-total-moves -1` used to make
+        # `migration_moves_done >= max` true at zero, so the engine reported
+        # `migration="cheap_multi"` with `mode: cheap_multi` and never planned a single
+        # move. A limit of 0 did the same through the empty `range(1, 1)`.
+        if speed <= 0:
+            raise ValueError("speed must be positive (realtime simulated seconds per wall second)")
+        if max_sim_time <= 0:
+            raise ValueError("max_sim_time must be positive")
+        if measurement_window[1] <= measurement_window[0]:
+            raise ValueError("measurement_window must be [start, end] with end > start")
+        if checkpoint_interval <= 0:
+            raise ValueError("checkpoint_interval must be positive; it is a divisor in the "
+                             "victim cost (elapsed // checkpoint_interval)")
+        if migration_base_sec < 0 or migration_per_gpu_sec < 0 or migration_per_cpu_core_sec < 0:
+            raise ValueError("migration pause parameters must be nonnegative")
+        if int(migration_max_plan_moves) < 1 or int(migration_max_total_moves) < 1:
+            raise ValueError("migration move limits must be >= 1; 0 or a negative value "
+                             "silently disables defragmentation, which is what "
+                             "migration=\"none\" is for")
         self.nodes, self.tasks = list(nodes), list(tasks)
         # pod_id -> server_id for tasks that are already running at t=0. Absent means
         # the engine places everything itself, which is the behaviour every scenario in
@@ -218,12 +240,18 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             self.migration_gpu_pause_sec = 0.
             self.migration_pause_accrued = 0.
             self.migration_plans_considered = 0
+            # Recorded before the layout is loaded so that `reset` stays the first event
+            # and the laid-out pods' `start` events follow it, in that order, rather than
+            # appearing before the state they are supposed to be transitions out of. All
+            # of these share timestamp 0, so no integral changes: the step function that
+            # `integrate_events` reads takes the value of the *last* event at each
+            # instant, which is the loaded one either way.
+            self._record("reset")
             self._bootstrap_initial()
             self.rng = random.Random(self.seed)
             self.wall_start = time.monotonic()
             self.wall_end = None
             self.initialized = True
-            self._record("reset")
         self._advance_until_ready()
         return self.observation()
 
@@ -269,14 +297,15 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             self.running_start[pid] = 0.
             record = self.records[pid]
             record.update(status="running", start_time_sec=0., wait_sec=0., server_id=sid)
-            # `status_counts` was initialised to "everything not_arrived" above, before
-            # this layout was loaded, and `_record("reset")` at the end of reset() carries
-            # no pod_id so it does not reconcile either. Without this the summary of a run
-            # cut short reports `running: 0, not_arrived: N` for pods that are demonstrably
-            # placed - measured with two laid-out pods still running at max_sim_time.
-            self.status_counts["not_arrived"] -= 1
-            self.status_counts["running"] += 1
-            self.last_recorded_status[pid] = "running"
+            # A `start` event like any other running task's, for two reasons that are not
+            # cosmetic. `run_segments()` rebuilds occupancy from the trace, and without
+            # this the warm-up pods have no interval at all - which made
+            # `run_request_scenes.metrics()` believe nothing had moved when a laid-out pod
+            # *had* been relocated, and made `harness.evaluate()` raise KeyError. And
+            # `_record` reconciles `status_counts` from `last_recorded_status`, so the
+            # counters are now maintained the same way every other transition maintains
+            # them instead of by hand here.
+            self._record("start", pid)
             self.completion_counter[pid] = self._push(task.service_time, 0, "complete", pid)
             self.finish_at[pid] = task.service_time
         self._check_resources()

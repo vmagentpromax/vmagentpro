@@ -175,6 +175,12 @@ class MigrationMixin:
                 # of the question M11 asks, not because it is the default.
                 self.release(pid, source)
                 self.running[pid] = destination
+                # The per-node priority and spot books have to follow `running` the
+                # moment it changes, which for this mode is *here* rather than at
+                # landing. Deferring both modes to `_complete_migration` left a window
+                # exactly one pause long in which `node_lp_running` named the source
+                # while `running` named the destination.
+                self._transfer_node_membership(pid, source, destination)
             self.migration_current = {"pod_id": pid, "source": source,
                                       "destination": destination, "pause_sec": pause}
             self.migration_moves_done += 1
@@ -256,7 +262,12 @@ class MigrationMixin:
             self.running.pop(pid, None)
             self.release(pid, source)
         self.running[pid] = destination
-        self._transfer_node_membership(pid, source, destination)
+        if self.release_source_when == "end":
+            # Only for make-before-break: `running` moved here, so the per-node books
+            # move here too. Under "start" they already followed it in
+            # `_begin_next_move`, and transferring twice would push one extra count
+            # onto the destination and take one off a node the pod left long ago.
+            self._transfer_node_membership(pid, source, destination)
         self.records[pid]["server_id"] = self.nodes[destination].server_id
         self.migration_completed_moves += 1
         self.migration_current = None
