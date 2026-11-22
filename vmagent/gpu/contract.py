@@ -117,6 +117,29 @@ def load_nodes(path):
     return result
 
 
+def load_initial_placement(path):
+    """Read a prescribed t=0 layout: pod_id -> server_id.
+
+    Needed to run the defragmentation benchmark at all. Those instances start from a
+    deliberately fragmented layout, and the engine's normal path re-derives placement
+    from the policy, which would silently un-fragment the starting state and turn the
+    experiment into a different one. Rows are `{pod_id, server_id}`; extra columns are
+    ignored so the benchmark's own files can be passed directly.
+    """
+    rows, _ = read_records(path, "initial_pods")
+    result, seen = {}, set()
+    for row in rows:
+        pid = required(row, "pod_id")
+        sid = required(row, "server_id")
+        if pid in seen:
+            raise ValueError("Duplicate pod_id in initial placement: " + pid)
+        seen.add(pid)
+        result[pid] = sid
+    if not result:
+        raise ValueError("initial placement must not be empty")
+    return result
+
+
 def load_workload(path):
     rows, metadata = read_records(path, "tasks")
     result, seen = [], set()

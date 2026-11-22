@@ -5,7 +5,7 @@ import platform
 import sys
 from pathlib import Path
 
-from .environment import DEFAULT_NODES, DEFAULT_TASKS, ROOT, GpuSchedEnv, load_nodes, load_workload
+from .environment import DEFAULT_NODES, DEFAULT_TASKS, ROOT, GpuSchedEnv, load_initial_placement, load_nodes, load_workload
 
 
 def environment_stamp():
@@ -21,9 +21,10 @@ def environment_stamp():
             "platform": platform.platform()}
 
 
-def make_environment(nodes_path, tasks_path, **options):
+def make_environment(nodes_path, tasks_path, initial_placement=None, **options):
     nodes = load_nodes(nodes_path)
     tasks, metadata = load_workload(tasks_path)
+    placement = load_initial_placement(initial_placement) if initial_placement else None
     window = options.pop("measurement_window", metadata.get("measurement_window_sec", [0., 120.]))
     for key, actual in [("gpu_capacity", sum(n.gpu_capacity for n in nodes)),
                         ("cpu_capacity_cores", sum(n.cpu_capacity for n in nodes))]:
@@ -31,13 +32,18 @@ def make_environment(nodes_path, tasks_path, **options):
             raise ValueError("Task JSON {} disagrees with node inventory".format(key))
     if float(metadata.get("synthetic_cpu_background_cores", 0)) != 0:
         raise ValueError("Use cpu_background_fraction explicitly; nonzero background in task JSON is not silently applied")
-    return GpuSchedEnv(nodes, tasks, measurement_window=window, **options), metadata
+    return GpuSchedEnv(nodes, tasks, measurement_window=window, initial_placement=placement,
+                       **options), metadata
 
 
 def main():
     parser = argparse.ArgumentParser(description="Timed H20/CPU resource scheduling")
     parser.add_argument("--nodes", type=Path, default=DEFAULT_NODES)
     parser.add_argument("--tasks", type=Path, default=DEFAULT_TASKS)
+    parser.add_argument("--initial-placement", type=Path, default=None,
+                        help="CSV/JSON of {pod_id, server_id} already running at t=0; the policy "
+                             "does not get to re-place these, which is what makes the "
+                             "defragmentation benchmark's starting state survive")
     parser.add_argument("--policy", choices=["first_fit", "best_fit", "worst_fit", "random", "spotgpu"], default="first_fit")
     parser.add_argument("--clock", choices=["realtime", "fast"], default="realtime")
     parser.add_argument("--speed", type=float, default=1., help="realtime simulated seconds per wall-clock second")
@@ -61,7 +67,8 @@ def main():
         options["measurement_window"] = [args.measurement_start_seconds,
                                          args.measurement_start_seconds+args.measurement_seconds]
     try:
-        env, metadata = make_environment(args.nodes, args.tasks, **options)
+        env, metadata = make_environment(args.nodes, args.tasks,
+                                         initial_placement=args.initial_placement, **options)
         print("Loaded {} nodes, {} unique pods; clock={}, policy={}".format(len(env.nodes), len(env.tasks), args.clock, args.policy), flush=True)
         try:
             env.run(args.policy)
@@ -71,6 +78,7 @@ def main():
                 env._finish("cancelled")
         summary = env.export(args.output)
         manifest = {"nodes": str(args.nodes.resolve()), "tasks": str(args.tasks.resolve()),
+                    "initial_placement": str(args.initial_placement.resolve()) if args.initial_placement else None,
                     "policy": args.policy, "queue_policy": args.queue_policy,
                     "workload_metadata": metadata, "seed": args.seed,
                     "environment": environment_stamp()}

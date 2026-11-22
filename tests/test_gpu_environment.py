@@ -425,5 +425,75 @@ class SpotGpuVictimTieBreakTests(unittest.TestCase):
         self.assertEqual(0, node)
 
 
+class InitialPlacementTests(unittest.TestCase):
+    """A prescribed t=0 layout is an input, not a decision.
+
+    The defragmentation benchmark starts from a deliberately fragmented layout. If
+    the policy re-derived placement for those pods they would compact, and the
+    experiment would measure something else - so the layout has to survive, and every
+    contradiction between layout and workload has to raise rather than be repaired.
+    """
+    NODES = [NodeSpec("s1", "cluster", "H20", 8., 8.), NodeSpec("s2", "cluster", "H20", 8., 8.)]
+
+    def env(self, tasks, placement):
+        return GpuSchedEnv(self.NODES, tasks, clock="fast", measurement_window=(0., 100.),
+                           max_sim_time=500., initial_placement=placement)
+
+    def test_prescribed_node_wins_over_the_policy(self):
+        # best_fit would fill s1 first (both are empty, so it takes the lowest index);
+        # the layout says s2, and the layout has to be what runs.
+        tasks = [TaskSpec("p1", 4., 4., ("H20",), 0., 10., "Other")]
+        env = self.env(tasks, {"p1": "s2"})
+        env.run("best_fit")
+        # The reset event is recorded after the layout is loaded, so it already shows
+        # 4 GPU reserved. Asserting live free_gpu here would not work: clock="fast"
+        # advances through the only completion event before anything can be observed.
+        reset = [e for e in env.events if e["event"] == "reset"][0]
+        self.assertEqual(4., reset["gpu_reserved"])
+        self.assertEqual(1, reset["running"])
+        self.assertEqual("s2", env.records["p1"]["server_id"])
+        self.assertEqual(0., env.records["p1"]["start_time_sec"])
+        self.assertEqual(0., env.records["p1"]["wait_sec"])
+
+    def test_placed_pods_never_emit_an_arrival_event(self):
+        tasks = [TaskSpec("p1", 4., 4., ("H20",), 0., 10., "Other"),
+                 TaskSpec("p2", 1., 1., ("H20",), 5., 1., "Other")]
+        env = self.env(tasks, {"p1": "s1"})
+        env.run("first_fit")
+        arrivals = [e for e in env.events if e["event"] == "arrival"]
+        self.assertEqual(["p2"], [e["pod_id"] for e in arrivals])
+
+    def test_layout_capacity_is_summed_across_pods_on_one_node(self):
+        tasks = [TaskSpec("a", 5., 1., ("H20",), 0., 10., "Other"),
+                 TaskSpec("b", 5., 1., ("H20",), 0., 10., "Other")]
+        with self.assertRaises(ValueError):
+            self.env(tasks, {"a": "s1", "b": "s1"}).run("first_fit")
+
+    def test_contradictions_raise_instead_of_re_placing(self):
+        late = [TaskSpec("p1", 4., 4., ("H20",), 30., 10., "Other")]
+        with self.assertRaises(ValueError):
+            self.env(late, {"p1": "s1"}).run("first_fit")
+        with self.assertRaises(ValueError):
+            self.env(late, {"p1": "nosuch"}).run("first_fit")
+        with self.assertRaises(ValueError):
+            self.env(late, {"nosuch": "s1"}).run("first_fit")
+
+    def test_spot_tasks_from_the_layout_are_still_preemptible(self):
+        # LP pods that arrived through the layout must join node_spot_pids, or an HP
+        # task could never evict them and the benchmark's spot capacity would be
+        # silently immune to preemption. One node, so there is nowhere to put HP
+        # without preempting.
+        tasks = [TaskSpec("lp1", 4., 4., ("H20",), 0., 40., "LP"),
+                 TaskSpec("lp2", 4., 4., ("H20",), 0., 40., "LP"),
+                 TaskSpec("hp", 4., 4., ("H20",), 1., 1., "HP")]
+        env = GpuSchedEnv([NodeSpec("s1", "cluster", "H20", 8., 8.)], tasks, clock="fast",
+                          measurement_window=(0., 100.), max_sim_time=500.,
+                          initial_placement={"lp1": "s1", "lp2": "s1"})
+        result = env.run("spotgpu")
+        self.assertEqual(1, result["preemptions"])
+        self.assertEqual(1., env.records["hp"]["start_time_sec"])
+        self.assertGreater(env.records["lp1"]["preemption_count"] + env.records["lp2"]["preemption_count"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

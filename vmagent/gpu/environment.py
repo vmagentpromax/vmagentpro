@@ -42,8 +42,8 @@ from pathlib import Path
 
 from .clock import ClockMixin
 from .contract import (DEFAULT_NODES, DEFAULT_TASKS, EPS, ROOT, NodeSpec, TaskSpec,
-                       load_nodes, load_workload, number, optional_label, read_records,
-                       required)
+                       load_initial_placement, load_nodes, load_workload, number,
+                       optional_label, read_records, required)
 from .ledger import LedgerMixin
 from .metrics import MetricsMixin
 from .placement import PlacementMixin
@@ -61,10 +61,14 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
     """
     def __init__(self, nodes, tasks, clock="realtime", speed=1., queue_policy="backfill",
                  measurement_window=(0., 120.), max_sim_time=600., cpu_background_fraction=0., seed=42,
-                 checkpoint_interval=3600.):
+                 checkpoint_interval=3600., initial_placement=None):
         if clock not in ("realtime", "fast") or queue_policy not in ("backfill", "fcfs"):
             raise ValueError("Unknown clock or queue policy")
         self.nodes, self.tasks = list(nodes), list(tasks)
+        # pod_id -> server_id for tasks that are already running at t=0. Absent means
+        # the engine places everything itself, which is the behaviour every scenario in
+        # runs/ depends on.
+        self.initial_placement = dict(initial_placement or {})
         self.cpu_only_demands = sorted({task.cpu for task in self.tasks if task.gpu == 0})
         self.cpu_demand_index = {demand: index for index, demand in enumerate(self.cpu_only_demands)}
         self.cpu_tree_size = 1
@@ -126,6 +130,8 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             self.last_recorded_status = {t.pod_id: "not_arrived" for t in self.tasks}
             self.heap, self.counter = [], 0
             for task in self.tasks:
+                if task.pod_id in self.initial_placement:
+                    continue  # placed by _bootstrap_initial below, never arrives
                 self._push(task.submit_time, 1, "arrival", task.pod_id)
             # Incremental per-node ledgers so _check_resources stays O(nodes)
             # instead of O(nodes x running tasks) per event.
@@ -170,6 +176,7 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             self.running_start = {}
             self.completion_counter = {}
             self.preserved_progress = {t.pod_id: 0.0 for t in self.tasks}
+            self._bootstrap_initial()
             self.rng = random.Random(self.seed)
             self.wall_start = time.monotonic()
             self.wall_end = None
@@ -177,6 +184,51 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             self._record("reset")
         self._advance_until_ready()
         return self.observation()
+
+    def _bootstrap_initial(self):
+        """Load a prescribed t=0 layout, without consulting any policy.
+
+        This exists for the defragmentation benchmark, whose whole point is a starting
+        state that is already fragmented. Routing those pods through the normal path
+        would let first_fit/best_fit compact them and silently destroy the thing being
+        measured, so the layout is treated as an input to validate, not a decision to
+        re-make. Every check below is a contradiction between the layout and the
+        workload, and raises rather than quietly re-placing the task.
+        """
+        if not self.initial_placement:
+            return
+        index_of = {node.server_id: j for j, node in enumerate(self.nodes)}
+        unknown = sorted(set(self.initial_placement) - set(self.by_id))
+        if unknown:
+            raise ValueError("Initial placement references unknown pod_id: " + ", ".join(unknown[:3]))
+        for task in self.tasks:
+            pid = task.pod_id
+            if pid not in self.initial_placement:
+                continue
+            if task.submit_time > EPS:
+                raise ValueError("Initial placement task {} arrives at {} but must start at 0".format(
+                    pid, task.submit_time))
+            sid = self.initial_placement[pid]
+            if sid not in index_of:
+                raise ValueError("Initial placement references unknown server_id: " + sid)
+            j = index_of[sid]
+            if not self._fits(task, j):
+                raise ValueError("Initial placement violates GPU model or capacity for " + pid)
+            self.allocate(pid, j)
+            priority = self.task_priority[pid]
+            if priority == "HP":
+                self.node_hp_running[j] += 1
+            elif priority == "LP":
+                self.node_lp_running[j] += 1
+            if task.gpu > 0 and priority == "LP":
+                self.node_spot_pids[j].add(pid)
+                self._preempt_generation += 1
+            self.running[pid] = j
+            self.running_start[pid] = 0.
+            record = self.records[pid]
+            record.update(status="running", start_time_sec=0., wait_sec=0., server_id=sid)
+            self.completion_counter[pid] = self._push(task.service_time, 0, "complete", pid)
+        self._check_resources()
 
     def _process_due(self):
         """Drain every event due at the current instant, in heap order.
