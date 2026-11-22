@@ -44,13 +44,18 @@ QUANTILES = (.5, .9, .95, .99)
 def quantiles(values):
     """Clipped at the trace's own ceiling, plus what the clipping is hiding.
 
+    NaN is dropped first: a priority cohort whose observed delays are all missing used to
+    print p50=nan beside a simulated p50=86399, which reads as "the model is 86399 seconds
+    worse than nothing" instead of the truth - there was nothing to compare against.
+    A quantile is only reported over values that exist.
+
     The clip is needed to make the two sides comparable, and it is also where this
     comparison became uninformative on scenario F: with a CPU-oversubscribed pool every
     simulated wait lands above 86,399 s, so all four clipped quantiles print as exactly
     the ceiling and backfill and FCFS look identical. `above_ceiling_share` and the
     unclipped p50/p90 say how much of that agreement is really saturation.
     """
-    raw = np.asarray(values, dtype=float)
+    raw = np.asarray(pd.Series(values).dropna(), dtype=float)
     if raw.size == 0:
         return {"n": 0}
     clipped = np.clip(raw, 0., CEILING)
@@ -80,11 +85,13 @@ def main():
         jobs = jobs.head(args.limit)
 
     # The replay window the observations cover, taken from the partitions that were read
-    # rather than hardcoded, because "the simulator took 46 days to drain what the trace
+    # rather than hardcoded, because "the simulator took 35 days to drain what the trace
     # served in 8" is the sentence this whole comparison is really about.
-    first = int(observed.snapshot_day.min())*24 + int(observed.snapshot_hour.min())
-    last = int(observed.snapshot_day.max())*24 + int(observed.snapshot_hour.max())
-    window_sec = float((last-first+1)*3600)
+    # Slot indices, not min(day) and min(hour) separately: the extraction starts at
+    # day=108 hour=23, and combining the two independent minima invented a first hour of
+    # 108:00 and reported 216 hours of coverage where there were 193.
+    slots = observed.snapshot_day*24 + observed.snapshot_hour
+    window_sec = float((int(slots.max()) - int(slots.min()) + 1)*3600)
 
     # schedule_delay_sec is a pod attribute copied onto each of its pod-hour rows, so
     # first-non-null is the pod's value; taking a mean over rows would just down-weight

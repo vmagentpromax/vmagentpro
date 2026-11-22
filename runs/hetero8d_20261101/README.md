@@ -270,6 +270,57 @@ python -m vmagent.gpu.run --clock fast --seed 42 --policy spotgpu --queue-policy
 
 两者的 sha256 记录在 `metrics/provenance.json` 的 `upstream_not_in_repo` 段，可用于日后核对。
 
+### 6.1 `truth/`：本场景在 trace 里的观测层（2026-11-22 新增）
+
+以前只有"转换后的工作负载"，没有"转换前集群里真实发生了什么"，所以任何保真度说法都无法被证伪。
+现在用 `tools/extract_scene_truth_from_trace.py` 把这 30 台机器在
+`day=108 hour=23` + `day=109..116`（**193 个分区，扫过 299,062,185 行**）的观测行取回本地：
+
+| 文件 | 入库 | 说明 |
+|---|---|---|
+| `truth/pod_hourly_observed.parquet` | 否（`.gitignore` 忽略 `runs/*/truth/*.parquet`） | 403,983 行 × 17 列，15,898,863 B；可由脚本从 D 盘重建，约 25 分钟 |
+| `truth/extraction_summary.json` | **是** | 行数、扫描量、分位数、覆盖率——文档引用的数字以它为准 |
+| `truth/replay_delay_calibration.json` | **是** | 仿真 `wait_sec` vs trace `schedule_delay_sec` 的分位数对比 |
+
+**对账结果（这是这一节存在的主要理由）：** 按场景 manifest 自己声明的过滤条件
+`gpu_request>0 OR cpu_request_cores>0` 重算，抽取结果与 `inputs/scenario_manifest.json` 的
+`pool_summary` **四项逐位相同**：
+
+| 项 | 抽取实测 | manifest 记录 |
+|---|---:|---:|
+| pod-hour 行数 | 339,034 | 339,034 |
+| 去重 pod 数 | 119,742 | 119,742 |
+| GPU pod 数 | 5,910 | 5,910 |
+| CPU-only pod 数 | 113,832 | 113,832 |
+
+另外 **30/30 台机器的 `server_gpu_count` 都等于 `nodes.csv` 的 `gpu_count=8`、
+`gpu_spec_public` 逐台一致（20 XPU-A + 10 H20）**，且 `jobs_F.csv` 的
+**119,495 个任务全部能在 trace 里找到对应 pod（`join_overlap=119,495`，连接覆盖率 100%）**。
+所以"场景 F 是这张公开 trace 的切片"这句话现在是**验证过的**，不是声称。
+
+**回放校准的第一个结果不漂亮，写在这是为了让它不会被忘掉：**
+按现在的负载模型，场景 F 是一个饱和队列——`first_fit/backfill` 有 **86.82%** 的任务仿真等待超过
+trace 的 24 h 截断上限，未截断中位数 **230,428 s（2.7 天）**，FCFS 下 **805,786 s（9.3 天）**；
+而 trace 实测 p50 = **0 s**、p90 = **83 s**。三个策略跑完分别用了
+34.9 天（`first_fit`/backfill）、42.0 天（`first_fit`/FCFS）、31.6 天（`spotgpu`/backfill）的模拟时间排空，
+观测窗只有 193 小时。原因不在调度器：场景自身声明 `achieved_cpu_load = 1.4389`（CPU 需求是容量的 143.89%），
+而 trace 里同批机器的 `avg_cpu_request_util` 只有 p50 = 0.11 / p90 = 0.41——
+**引擎按申请量全额预留，真实集群按 1~4 成的实际使用在跑**。
+因此本场景的**等待类指标只能做策略间相对比较，不能报绝对量级**；
+细节与判据见 `02_外部调研/ASI_v2026_trace_实测-调度延迟与利用率差距.md` 第五节。
+
+复跑：
+
+```bash
+# 1) 取回观测层（需要 D 盘 + pandas/pyarrow，约 25 分钟）
+C:/Users/trw/anaconda3/python.exe tools/extract_scene_truth_from_trace.py ^
+  --nodes runs/hetero8d_20261101/inputs/nodes.csv --start-day 108 --last-hour 23 --end-day 116
+
+# 2) 仿真 vs 实测的延迟对比（三个策略各跑一次全量，约 30 分钟）
+C:/Users/trw/anaconda3/python.exe tools/calibrate_replay_delay.py ^
+  --out runs/hetero8d_20261101/truth/replay_delay_calibration.json
+```
+
 **已知缺口（三条，都不要掩盖）：**
 
 1. **转换脚本未保留。** raw 层 → `sim_inputs/` 层的转换脚本在 D 盘不存在（`ls *.py` 为空）。对照 `runs/allpods_20261025/prepare_inputs.py` 的做法，这一步本应有脚本入库。因此 `jobs_F.csv` 目前**不能从 raw 层自动重建**，只能靠 sha256 核对身份。

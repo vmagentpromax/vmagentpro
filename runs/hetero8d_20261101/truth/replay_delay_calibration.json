@@ -1,0 +1,362 @@
+{
+  "observed_pods": 120715,
+  "scene_pods": 119495,
+  "join_overlap": 119495,
+  "observed_with_delay": 67781,
+  "policies": {
+    "first_fit:backfill": {
+      "queue_policy": "backfill",
+      "preemptions": 0,
+      "end_reason": "drained",
+      "simulated_makespan_sec": 3015960.0,
+      "trace_window_sec": 777600.0,
+      "paired_pods": 66838,
+      "simulated_all": {
+        "n": 66838,
+        "above_ceiling_share": 0.8682,
+        "unclipped": {
+          "p50": 230428.0,
+          "p90": 287043.5
+        },
+        "p50": 86399.0,
+        "p90": 86399.0,
+        "p95": 86399.0,
+        "p99": 86399.0
+      },
+      "observed_all": {
+        "n": 66838,
+        "above_ceiling_share": 0.0,
+        "unclipped": {
+          "p50": 0.0,
+          "p90": 83.0
+        },
+        "p50": 0.0,
+        "p90": 83.0,
+        "p95": 126.0,
+        "p99": 282.0
+      },
+      "ratio_p90": 3458.355,
+      "ratio_p95": 2310.05,
+      "ratio_p99": 1107.837,
+      "by_priority": {
+        "HP": {
+          "n": 9487,
+          "simulated": {
+            "n": 9487,
+            "above_ceiling_share": 0.9078,
+            "unclipped": {
+              "p50": 258037.0,
+              "p90": 290775.7
+            },
+            "p50": 86399.0,
+            "p90": 86399.0,
+            "p95": 86399.0,
+            "p99": 86399.0
+          },
+          "observed": {
+            "n": 9487,
+            "above_ceiling_share": 0.0,
+            "unclipped": {
+              "p50": NaN,
+              "p90": NaN
+            },
+            "p50": NaN,
+            "p90": NaN,
+            "p95": NaN,
+            "p99": NaN
+          }
+        },
+        "LP": {
+          "n": 5317,
+          "simulated": {
+            "n": 5317,
+            "above_ceiling_share": 0.9906,
+            "unclipped": {
+              "p50": 274033.2,
+              "p90": 299795.3
+            },
+            "p50": 86399.0,
+            "p90": 86399.0,
+            "p95": 86399.0,
+            "p99": 86399.0
+          },
+          "observed": {
+            "n": 5317,
+            "above_ceiling_share": 0.0,
+            "unclipped": {
+              "p50": NaN,
+              "p90": NaN
+            },
+            "p50": NaN,
+            "p90": NaN,
+            "p95": NaN,
+            "p99": NaN
+          }
+        },
+        "Other": {
+          "n": 104691,
+          "simulated": {
+            "n": 104691,
+            "above_ceiling_share": 0.8868,
+            "unclipped": {
+              "p50": 224586.4,
+              "p90": 286918.9
+            },
+            "p50": 86399.0,
+            "p90": 86399.0,
+            "p95": 86399.0,
+            "p99": 86399.0
+          },
+          "observed": {
+            "n": 104691,
+            "above_ceiling_share": 0.0,
+            "unclipped": {
+              "p50": NaN,
+              "p90": NaN
+            },
+            "p50": NaN,
+            "p90": NaN,
+            "p95": NaN,
+            "p99": NaN
+          }
+        }
+      }
+    },
+    "first_fit:fcfs": {
+      "queue_policy": "fcfs",
+      "preemptions": 0,
+      "end_reason": "drained",
+      "simulated_makespan_sec": 3628230.0,
+      "trace_window_sec": 777600.0,
+      "paired_pods": 66838,
+      "simulated_all": {
+        "n": 66838,
+        "above_ceiling_share": 0.9859,
+        "unclipped": {
+          "p50": 805785.5,
+          "p90": 1036129.5
+        },
+        "p50": 86399.0,
+        "p90": 86399.0,
+        "p95": 86399.0,
+        "p99": 86399.0
+      },
+      "observed_all": {
+        "n": 66838,
+        "above_ceiling_share": 0.0,
+        "unclipped": {
+          "p50": 0.0,
+          "p90": 83.0
+        },
+        "p50": 0.0,
+        "p90": 83.0,
+        "p95": 126.0,
+        "p99": 282.0
+      },
+      "ratio_p90": 12483.488,
+      "ratio_p95": 8365.699,
+      "ratio_p99": 3784.437,
+      "by_priority": {
+        "HP": {
+          "n": 9487,
+          "simulated": {
+            "n": 9487,
+            "above_ceiling_share": 0.9373,
+            "unclipped": {
+              "p50": 804692.8,
+              "p90": 1041440.3
+            },
+            "p50": 86399.0,
+            "p90": 86399.0,
+            "p95": 86399.0,
+            "p99": 86399.0
+          },
+          "observed": {
+            "n": 9487,
+            "above_ceiling_share": 0.0,
+            "unclipped": {
+              "p50": NaN,
+              "p90": NaN
+            },
+            "p50": NaN,
+            "p90": NaN,
+            "p95": NaN,
+            "p99": NaN
+          }
+        },
+        "LP": {
+          "n": 5317,
+          "simulated": {
+            "n": 5317,
+            "above_ceiling_share": 0.9979,
+            "unclipped": {
+              "p50": 836944.8,
+              "p90": 1049745.5
+            },
+            "p50": 86399.0,
+            "p90": 86399.0,
+            "p95": 86399.0,
+            "p99": 86399.0
+          },
+          "observed": {
+            "n": 5317,
+            "above_ceiling_share": 0.0,
+            "unclipped": {
+              "p50": NaN,
+              "p90": NaN
+            },
+            "p50": NaN,
+            "p90": NaN,
+            "p95": NaN,
+            "p99": NaN
+          }
+        },
+        "Other": {
+          "n": 104691,
+          "simulated": {
+            "n": 104691,
+            "above_ceiling_share": 0.9961,
+            "unclipped": {
+              "p50": 569295.0,
+              "p90": 1033098.8
+            },
+            "p50": 86399.0,
+            "p90": 86399.0,
+            "p95": 86399.0,
+            "p99": 86399.0
+          },
+          "observed": {
+            "n": 104691,
+            "above_ceiling_share": 0.0,
+            "unclipped": {
+              "p50": NaN,
+              "p90": NaN
+            },
+            "p50": NaN,
+            "p90": NaN,
+            "p95": NaN,
+            "p99": NaN
+          }
+        }
+      }
+    },
+    "spotgpu:backfill": {
+      "queue_policy": "backfill",
+      "preemptions": 220,
+      "end_reason": "drained",
+      "simulated_makespan_sec": 2725600.0,
+      "trace_window_sec": 777600.0,
+      "paired_pods": 66838,
+      "simulated_all": {
+        "n": 66838,
+        "above_ceiling_share": 0.9393,
+        "unclipped": {
+          "p50": 261520.3,
+          "p90": 308406.2
+        },
+        "p50": 86399.0,
+        "p90": 86399.0,
+        "p95": 86399.0,
+        "p99": 86399.0
+      },
+      "observed_all": {
+        "n": 66838,
+        "above_ceiling_share": 0.0,
+        "unclipped": {
+          "p50": 0.0,
+          "p90": 83.0
+        },
+        "p50": 0.0,
+        "p90": 83.0,
+        "p95": 126.0,
+        "p99": 282.0
+      },
+      "ratio_p90": 3715.737,
+      "ratio_p95": 2495.076,
+      "ratio_p99": 1221.246,
+      "by_priority": {
+        "HP": {
+          "n": 9487,
+          "simulated": {
+            "n": 9487,
+            "above_ceiling_share": 0.885,
+            "unclipped": {
+              "p50": 281150.0,
+              "p90": 309777.3
+            },
+            "p50": 86399.0,
+            "p90": 86399.0,
+            "p95": 86399.0,
+            "p99": 86399.0
+          },
+          "observed": {
+            "n": 9487,
+            "above_ceiling_share": 0.0,
+            "unclipped": {
+              "p50": NaN,
+              "p90": NaN
+            },
+            "p50": NaN,
+            "p90": NaN,
+            "p95": NaN,
+            "p99": NaN
+          }
+        },
+        "LP": {
+          "n": 5317,
+          "simulated": {
+            "n": 5317,
+            "above_ceiling_share": 0.9929,
+            "unclipped": {
+              "p50": 305159.2,
+              "p90": 353072.8
+            },
+            "p50": 86399.0,
+            "p90": 86399.0,
+            "p95": 86399.0,
+            "p99": 86399.0
+          },
+          "observed": {
+            "n": 5317,
+            "above_ceiling_share": 0.0,
+            "unclipped": {
+              "p50": NaN,
+              "p90": NaN
+            },
+            "p50": NaN,
+            "p90": NaN,
+            "p95": NaN,
+            "p99": NaN
+          }
+        },
+        "Other": {
+          "n": 104691,
+          "simulated": {
+            "n": 104691,
+            "above_ceiling_share": 0.9412,
+            "unclipped": {
+              "p50": 253338.7,
+              "p90": 307425.6
+            },
+            "p50": 86399.0,
+            "p90": 86399.0,
+            "p95": 86399.0,
+            "p99": 86399.0
+          },
+          "observed": {
+            "n": 104691,
+            "above_ceiling_share": 0.0,
+            "unclipped": {
+              "p50": NaN,
+              "p90": NaN
+            },
+            "p50": NaN,
+            "p90": NaN,
+            "p95": NaN,
+            "p99": NaN
+          }
+        }
+      }
+    }
+  }
+}
