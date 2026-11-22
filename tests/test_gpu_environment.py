@@ -10,7 +10,8 @@ from collections import OrderedDict
 from pathlib import Path
 
 from vmagent.gpu.environment import GpuSchedEnv, NodeSpec, TaskSpec, DEFAULT_TASKS, EPS, ROOT, load_workload, load_nodes
-from vmagent.gpu.metrics import interval_overlap, percentile_linear, percentile_nearest_rank
+from vmagent.gpu.metrics import (integrate_events, interval_overlap, percentile_linear,
+                                 percentile_nearest_rank, run_segments)
 from vmagent.gpu.run import make_environment
 from vmagent.gpu.environment import DEFAULT_NODES
 
@@ -108,6 +109,49 @@ class GpuEnvironmentTests(unittest.TestCase):
         self.assertEqual(result["preemptions"], 1)
         self.assertEqual(env.records["urgent"]["start_time_sec"], 2.)
         self.assertEqual(env.records["spot"]["finish_time_sec"], 13.)
+
+    def lp_and_hp(self):
+        """The one-node case where SpotGPU must preempt: 8 GPUs wanted, 8 exist."""
+        spot = task("spot", 8, 8, service=10)
+        spot = TaskSpec(spot.pod_id, spot.gpu, spot.cpu, spot.allowed_gpu_types,
+                        spot.submit_time, spot.service_time, "LP")
+        urgent = task("urgent", 8, 8, arrival=1, service=1)
+        urgent = TaskSpec(urgent.pod_id, urgent.gpu, urgent.cpu, urgent.allowed_gpu_types,
+                          urgent.submit_time, urgent.service_time, "HP")
+        return [spot, urgent]
+
+    def test_event_integrals_reproduce_the_ledger_areas_including_under_preemption(self):
+        # `integrate_events` is the primitive external re-derivations are supposed to use
+        # instead of rebuilding the ledger from records, so it has to agree with the
+        # engine's own incremental accounting on exactly the run where records lie.
+        env = self.env(self.lp_and_hp())
+        summary = env.run("spotgpu")
+        self.assertEqual(1, summary["preemptions"])
+        self.assertAlmostEqual(env.gpu_area,
+                               integrate_events(env.events, "gpu_reserved", (0., 10.)))
+        self.assertAlmostEqual(env.gpu_area_full,
+                               integrate_events(env.events, "gpu_reserved"))
+        self.assertAlmostEqual(env.cpu_area,
+                               integrate_events(env.events, "cpu_reserved_cores", (0., 10.)))
+
+    def test_run_segments_split_a_preempted_task_that_the_record_reading_cannot_see(self):
+        env = self.env(self.lp_and_hp())
+        env.run("spotgpu")
+        segments = run_segments(env.events)
+        self.assertEqual([1, 2], sorted(len(parts) for parts in segments.values()))
+        self.assertEqual(2, len(segments["spot"]), "one preemption, two occupied intervals")
+        self.assertEqual(1, len(segments["urgent"]))
+        # The victim held the node for 11s to finish 10s of work: evicted at t=1 with a
+        # 3600s checkpoint interval, none of that first second survived, so it runs again.
+        # Occupancy and service are different quantities once preemption exists, and only
+        # the event log can tell them apart.
+        self.assertAlmostEqual(11., sum(e-s for s, e, _ in segments["spot"]))
+        self.assertAlmostEqual(10., env.by_id["spot"].service_time)
+        # records only ever holds the *last* placement, which is the whole problem: read
+        # this way the first interval disappears and the eviction itself is invisible.
+        self.assertEqual(1, env.records["spot"]["preemption_count"])
+        self.assertAlmostEqual(2., env.records["spot"]["start_time_sec"])
+        self.assertAlmostEqual(12., env.records["spot"]["finish_time_sec"])
 
     def test_completion_precedes_arrival_at_same_time(self):
         env = self.env([task("a", 8, 8, service=1), task("b", 8, 8, arrival=1)])

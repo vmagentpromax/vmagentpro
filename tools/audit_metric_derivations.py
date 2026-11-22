@@ -1,22 +1,30 @@
-"""Audit the independent metric re-derivations against the engine's own state.
+"""Audit the four ways this repository computes "GPU-seconds reserved".
 
-M1 is about converging the metric code scattered across the repository, but before
-moving anything this checks whether the scattered re-derivations actually agree with
-the engine, and what precondition each one silently relies on. Two of them matter:
+M1 is about converging the metric code scattered across the repository. This is the
+measurement that decided how: the same quantity, computed from the same run by four
+different pieces of code, does not come out the same.
 
-- `docs/server_selection/run_request_scenes.py:metrics()` rebuilds per-node free
-  capacity from `records[pid]["server_id"]` for everything in its reconstructed
-  `running` set. That is only sound while a task never changes node. Preemption
-  rewrites `server_id`, so the function is preconditioned on no preemption - and the
-  script's own conservation assert is what catches a violation, loudly.
-- `experiments/preemption_20261107/harness.py:evaluate()` says so in its docstring
-  ("never use overwritten start_time or flawed run totals") and instead rebuilds
-  run segments from the event log. It is the correct pattern for a preempting engine.
+A. `legacy_rederivation` - a transcription of what
+   `docs/server_selection/run_request_scenes.py:metrics()` did until this audit fixed
+   it. It rebuilds per-node free capacity from `records[pid]["server_id"]` for
+   everything in its reconstructed `running` set. Two silent assumptions: a task never
+   changes node, and an evicted task stops running. Preemption breaks both - it
+   rewrites `server_id` and leaves the victim in `running`. Kept here so the finding
+   stays executable after the code it describes is gone.
+B. `harness.evaluate()` from `experiments/preemption_20261107/` says so in its own
+   docstring ("never use overwritten start_time or flawed run totals") and rebuilds run
+   segments from the event log. It asserts its agreement with the engine on every call.
+C. `metrics()` today: the aggregate integrals come from the event trace through
+   `vmagent.gpu.metrics.integrate_events`, and the per-node half that still needs the
+   old reading now refuses to run rather than quietly returning a wrong number.
+D. `integrate_events` itself, the primitive that A should have been using.
 
-The third re-derivation, `harness.evaluate()`, is included for contrast because it
-covers the same quantity and asserts its own agreement with the engine. Comparing all
-three on one run is what turns "these two functions differ" into a statement about
-which primitive is safe to keep.
+One trap worth naming, because the first cut of this audit fell into it: an integral has
+to be compared against the engine value covering the same span. `env.gpu_area` is clipped
+to the measurement window and `env.gpu_area_full` is not, and comparing a full-span
+re-derivation against the windowed one reported a 5% divergence on a scenario F slice
+with zero preemptions, where nothing was wrong at all. Each table below therefore names
+the span on both sides.
 
     C:/Users/trw/anaconda3/python.exe tools/audit_metric_derivations.py
 """
@@ -29,6 +37,7 @@ sys.path.insert(0, str(REPO / "docs/server_selection"))
 
 from vmagent.gpu.contract import load_nodes, load_workload
 from vmagent.gpu.environment import GpuSchedEnv
+from vmagent.gpu.metrics import integrate_events, run_segments
 
 SCENES = {
     "scene_A": (REPO/"docs/server_selection/servers_20_H20.csv",
@@ -43,25 +52,54 @@ SCENES = {
 }
 
 
-def rederived_gpu_seconds(env, metrics_fn):
-    """What run_request_scenes.metrics() integrates, in absolute GPU-seconds."""
-    result = metrics_fn(env, env.measure_start)
-    return result["agu_reserved"] * env.total_gpu * result["makespan_sec"], result
+def legacy_rederivation(env):
+    """GPU-seconds reserved, the way metrics() computed it before this audit.
+
+    Faithful to the original, including the part that is wrong: `preempt` is not one of
+    the handled kinds, so an evicted task stays in `running` and goes on being charged
+    to whichever node it lands on next.
+    """
+    running, area = set(), 0.
+    ledger = env.records
+    for index, event in enumerate(env.events[:-1]):
+        kind, pid = event["event"], event["pod_id"]
+        if kind == "start":
+            running.add(pid)
+        elif kind in ("complete", "reject"):
+            running.discard(pid)
+        left, right = event["time_sec"], env.events[index+1]["time_sec"]
+        if right <= left:
+            continue
+        free = {n.server_id: n.gpu_capacity for n in env.nodes}
+        for rid in running:
+            free[ledger[rid]["server_id"]] -= ledger[rid]["gpu_request"]
+        area += (env.total_gpu-sum(free.values()))*(right-left)
+    return area
+
+
+def table(title, basis, compute, reference, runs):
+    print(title)
+    print("%-14s %-12s %18s %18s %10s" % ("scene", "policy", "engine GPU-s", basis, "verdict"))
+    for name, policy, env, preemptions in runs:
+        truth = reference(env)
+        try:
+            derived = compute(env)
+        except Exception:
+            print("%-14s %-12s %18.3f %18s   REFUSES" % (name, policy, truth, "n/a"))
+            continue
+        gap = derived-truth
+        verdict = "agree" if abs(gap) <= max(1e-5, abs(truth)*1e-9) else "DIVERGES"
+        print("%-14s %-12s %18.3f %18.3f %10s  gap=%+.6f GPU-s  preemptions=%d"
+              % (name, policy, truth, derived, verdict, gap, preemptions))
+    print()
 
 
 def main():
-    from run_request_scenes import metrics as rederive
+    from run_request_scenes import metrics
     sys.path.insert(0, str(REPO / "experiments/preemption_20261107"))
     from harness import evaluate
 
-    # Each table compares a re-derivation against the engine integral covering the same
-    # span. metrics() integrates over [0, makespan], so its reference is gpu_area_full;
-    # evaluate() integrates over the measurement window, so its reference is gpu_area.
-    # An earlier version of this audit mixed the two and reported a 5% divergence on a
-    # scenario F slice with zero preemptions, where nothing was actually wrong.
-    print("A. run_request_scenes.metrics() over [0, makespan]  vs  env.gpu_area_full")
-    print("%-14s %-12s %18s %18s %10s" % ("scene", "policy", "engine GPU-s", "re-derived GPU-s", "verdict"))
-    rows = []
+    runs = []
     for name, (nodes_path, tasks_path, options) in SCENES.items():
         options = dict(options)
         tasks = list(load_workload(tasks_path)[0])
@@ -73,54 +111,42 @@ def main():
                               queue_policy="backfill", seed=42, cpu_background_fraction=0.,
                               checkpoint_interval=3600., **options)
             summary = env.run(policy)
-            truth = env.gpu_area_full
-            try:
-                derived, _ = rederived_gpu_seconds(env, rederive)
-            except AssertionError as exc:
-                derived = float("nan")
-                print("%-14s %-12s %18.3f %18s   CONSERVATION ASSERT FIRED (%s)"
-                      % (name, policy, truth, "n/a", str(exc)[:40]))
-                continue
-            gap = derived - truth
-            verdict = "agree" if abs(gap) <= max(1e-6, abs(truth) * 1e-9) else "DIVERGES"
-            print("%-14s %-12s %18.3f %18.3f %10s  gap=%+.3f GPU-s  preemptions=%d"
-                  % (name, policy, truth, derived, verdict, gap, summary["preemptions"]))
-            rows.append((name, policy, env, summary))
+            runs.append((name, policy, env, summary["preemptions"]))
 
-    print("\nB. harness.evaluate() over the measurement window  vs  env.gpu_area")
-    print("   (evaluate() asserts this equality itself; a fired assert is the finding)")
-    print("%-14s %-12s %18s %18s %10s" % ("scene", "policy", "engine GPU-s", "segments GPU-s", "verdict"))
-    for name, policy, env, summary in rows:
-        try:
-            result, _ = evaluate(env)
-            derived = result["allocated_gpu_ratio"] * env.total_gpu * (env.measure_end - env.measure_start)
-        except AssertionError as exc:
-            print("%-14s %-12s %18.3f %18s   ASSERT FIRED (%s)"
-                  % (name, policy, env.gpu_area, "n/a", str(exc)[:40]))
-            continue
-        gap = derived - env.gpu_area
-        print("%-14s %-12s %18.3f %18.3f %10s  gap=%+.6f GPU-s  preemptions=%d"
-              % (name, policy, env.gpu_area, derived,
-                 "agree" if abs(gap) <= max(1e-5, env.gpu_area * 1e-10) else "DIVERGES",
-                 gap, summary["preemptions"]))
+    table("A. the shortcut metrics() used to take, over [0, makespan], vs env.gpu_area_full",
+          "legacy GPU-s", legacy_rederivation, lambda env: env.gpu_area_full, runs)
+    table("B. harness.evaluate() over the measurement window, vs env.gpu_area",
+          "segments GPU-s",
+          lambda env: evaluate(env)[0]["allocated_gpu_ratio"]*env.total_gpu*(env.measure_end-env.measure_start),
+          lambda env: env.gpu_area, runs)
+    table("C. metrics() today, over [0, makespan], vs env.gpu_area_full",
+          "metrics() GPU-s",
+          lambda env: metrics(env, env.measure_start)["agu_reserved"]*env.total_gpu*env.current_time,
+          lambda env: env.gpu_area_full, runs)
+    table("D. integrate_events over the measurement window, vs env.gpu_area",
+          "events GPU-s",
+          lambda env: integrate_events(env.events, "gpu_reserved",
+                                       (env.measure_start, env.measure_end)),
+          lambda env: env.gpu_area, runs)
+
+    print("Segment counts, which is where the shortcut loses the plot:")
+    for name, policy, env, preemptions in runs:
+        segments = run_segments(env.events)
+        multi = sum(1 for parts in segments.values() if len(parts) > 1)
+        print("    %-14s %-12s pods=%-6d segments=%-6d pods that ran in >1 interval=%-3d "
+              "preemptions=%d" % (name, policy, len(segments),
+                                  sum(len(p) for p in segments.values()), multi, preemptions))
     print("""
-Reading: the two re-derivations are not equally trustworthy, and the difference is a
-real trap - the same words, "reserved GPU-seconds", computed two ways, one of which
-breaks under the feature the project added most recently.
+Reading: A is the number the ten-scenario tables would have carried the moment a
+preempting policy was added to them, and it is wrong without anything complaining. B and
+D are the same idea in two places - rebuild intervals from the event log, because
+`_record` snapshots the whole ledger while that snapshot is true, so nothing happening
+afterwards can corrupt it. C is what metrics() does now: correct where it can be, and
+loud where it cannot.
 
-- A is exact wherever no task changes node and over-counts under SpotGPU. It rebuilds
-  per-node free capacity from records[pid]["server_id"], which preemption rewrites, and
-  it keeps evicted tasks in its reconstructed `running` set, so the work a preempted
-  task re-executes is attributed to the wrong interval. run_request_scenes.py survives
-  today only because POLICIES contains no preempting policy; its conservation assert is
-  the tripwire, and it would fire the moment that changes.
-- B is exact in both cases, including with preemptions, because it rebuilds run segments
-  from the event log instead of from mutated per-task state. It costs an assert per
-  call, so a disagreement cannot be silently shipped.
-
-Consequence for M1: converging this code into vmagent/gpu/metrics.py must not reuse the
-server_id shortcut. harness.evaluate()'s event-segment reconstruction is the primitive
-that should move into the shared module, and A should be deleted rather than ported.""")
+Consequence for M1, and what this changes: `run_segments` and `integrate_events` live in
+vmagent/gpu/metrics.py, run_request_scenes.metrics() integrates through them, and the
+server_id shortcut is deleted rather than ported.""")
 
 
 if __name__ == "__main__":

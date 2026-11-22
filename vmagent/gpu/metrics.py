@@ -28,6 +28,62 @@ def interval_overlap(start_a, end_a, start_b, end_b):
     return max(0., min(end_a, end_b) - max(start_a, start_b))
 
 
+def run_segments(events, start_kind="start", end_kinds=("complete", "preempt")):
+    """Rebuild each pod's occupied intervals from the event log, preemption-aware.
+
+    A task that is preempted and restarted occupies two disjoint intervals, and a
+    migration moves it between them. Anything derived from *when a pod held
+    resources* therefore has to come from here rather than from `records[pid]`,
+    whose `server_id` and `start_time_sec` are overwritten by exactly those events.
+    The engine integrates its own ledger incrementally and so does not need this;
+    external re-derivations do, and `tools/audit_metric_derivations.py` measures how
+    badly the shortcut fails without it.
+
+    A pod still running at the end of the episode is closed at `env.current_time`, so
+    the segments cover the whole run and the integral is comparable to the engine's.
+    """
+    segments = {}
+    open_at = {}
+    for event in events:
+        pid, kind, when = event["pod_id"], event["event"], event["time_sec"]
+        if pid is None:
+            continue
+        if kind == start_kind:
+            open_at[pid] = when
+        elif kind in end_kinds and pid in open_at:
+            segments.setdefault(pid, []).append((open_at.pop(pid), when, kind))
+    for pid, when in open_at.items():
+        segments.setdefault(pid, []).append((when, events[-1]["time_sec"], "open"))
+    return segments
+
+
+def integrate_events(events, field, window=None):
+    """Area under one event-carried aggregate counter, in unit-seconds.
+
+    `_record` snapshots the whole ledger at every state transition, so the column is
+    a step function that holds from one event's timestamp to the next. This is the
+    cheap, correct way to turn it back into GPU-seconds or core-seconds: the value was
+    read when it was true, so rewriting per-task state afterwards cannot corrupt it.
+    The final event contributes nothing, matching the engine, which stops integrating
+    at the last transition.
+
+    With `window=(start, end)` only the covered part counts, which is what
+    `env.gpu_area` and `env.cpu_area` hold; without it the whole episode is covered,
+    which is what `env.gpu_area_full` holds. Comparing one against the other produced
+    a spurious 0.5% CPU gap on a scenario F slice whose window ended well before the
+    run drained, so pick the basis that matches and not whichever is nearer to hand.
+    """
+    area = 0.
+    for index in range(len(events)-1):
+        left, right = events[index]["time_sec"], events[index+1]["time_sec"]
+        if window is not None:
+            left = max(left, window[0])
+            right = min(right, window[1])
+        if right > left:
+            area += events[index][field]*(right-left)
+    return area
+
+
 def percentile_nearest_rank(ordered, fraction):
     """The p95 this project reports by default.
 

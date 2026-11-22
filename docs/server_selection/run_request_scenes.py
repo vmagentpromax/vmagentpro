@@ -11,6 +11,7 @@ from scipy.stats import t as student_t
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from vmagent.gpu.run import make_environment
+from vmagent.gpu.metrics import integrate_events, run_segments
 from rebuild_request_scenes import OUT, save_json
 
 POLICIES = ("first_fit", "best_fit", "worst_fit")
@@ -25,11 +26,33 @@ def metrics(env, cutoff):
     AFR_joint: pending, aggregate GPU AND CPU suffice for at least one waiting
     task, but no node accommodates that task. Pure aggregate CPU shortage is
     excluded. GPU fragmentation separately ignores CPU when testing packing.
+
+    The time integrals come from the event trace, not from rebuilding the ledger out
+    of `env.records`. That used to be the same loop you still see below for AFR, and it
+    silently assumed a task never changes node - `records[pid]["server_id"]` is
+    overwritten by preemption and by migration, and evicted tasks stayed in `running`.
+    `tools/audit_metric_derivations.py` measured the damage: exact on every
+    non-preempting run, +10,494.678 and +582,374.015 GPU-seconds on the two that
+    preempt. `_record` already snapshots the whole ledger at each transition, so
+    integrating those snapshots is both correct under preemption and cheaper.
+
+    What is left in the rebuild loop is genuinely per-node, and cannot come from an
+    aggregate, so its precondition is now stated rather than relied on.
     """
     end = env.current_time
+    segments = run_segments(env.events)
+    moved = [pid for pid, parts in segments.items() if len(parts) > 1]
+    if moved:
+        raise ValueError(
+            "metrics() derives per-node free capacity from records[pid]['server_id'], "
+            "which is the node a task is on *now*; %d task(s) ran in %d separate "
+            "intervals, so that reading is no longer the node they were on *then*. "
+            "Add preemption or migration to POLICIES only after this loop moves onto a "
+            "per-interval placement, e.g. by recording the node in the start event."
+            % (len(moved), max(len(segments[pid]) for pid in moved)))
     running, waiting = set(), set()
-    full_area = cpu_area = frag_area = gpu_frag_area = pending_area = 0.
-    post_area = post_frag = 0.
+    frag_area = gpu_frag_area = pending_area = 0.
+    post_frag = 0.
     ledger = env.records
     for index, event in enumerate(env.events[:-1]):
         pid, kind = event["pod_id"], event["event"]
@@ -64,26 +87,25 @@ def metrics(env, cutoff):
                 joint = True
         duration = right-left
         post = max(0., right-max(left, cutoff))
-        reserved = env.total_gpu-total_g
-        full_area += reserved*duration
-        cpu_area += (env.total_cpu-total_c)*duration
         frag_area += joint*duration
         gpu_frag_area += gpu_frag*duration
         pending_area += bool(waiting)*duration
-        post_area += reserved*post
         post_frag += joint*post
+    gpu_seconds = integrate_events(env.events, "gpu_reserved")
+    cpu_seconds = integrate_events(env.events, "cpu_reserved_cores")
+    post_gpu_seconds = integrate_events(env.events, "gpu_reserved", (cutoff, end))
     records = list(ledger.values())
     jcts = [r["finish_time_sec"]-r["submit_time_sec"] for r in records]
     cohort = [r for r in records if r["submit_time_sec"] >= cutoff]
     assert cohort and end > cutoff
     return dict(mean_jct_sec=float(np.mean(jcts)), p95_jct_sec=float(np.quantile(jcts,.95)),
         makespan_sec=end, mean_wait_sec=float(np.mean([r["wait_sec"] for r in records])),
-        agu_reserved=full_area/(env.total_gpu*end), cpu_reserved=cpu_area/(env.total_cpu*end), afr_joint=frag_area/end,
+        agu_reserved=gpu_seconds/(env.total_gpu*end), cpu_reserved=cpu_seconds/(env.total_cpu*end), afr_joint=frag_area/end,
         gpu_fragmentation_fraction=gpu_frag_area/end, pending_time_fraction=pending_area/end,
         throughput_tasks_per_sec=len(records)/end,
         post_transient_mean_jct_sec=float(np.mean([r["finish_time_sec"]-r["submit_time_sec"] for r in cohort])),
         post_transient_mean_wait_sec=float(np.mean([r["wait_sec"] for r in cohort])),
-        post_transient_agu_reserved=post_area/(env.total_gpu*(end-cutoff)),
+        post_transient_agu_reserved=post_gpu_seconds/(env.total_gpu*(end-cutoff)),
         post_transient_afr_joint=post_frag/(end-cutoff), post_transient_task_count=len(cohort))
 
 

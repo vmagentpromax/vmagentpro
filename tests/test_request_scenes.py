@@ -88,6 +88,23 @@ class RequestSceneTests(unittest.TestCase):
         self.assertEqual(result["gpu_fragmentation_fraction"],0)
         self.assertGreater(result["pending_time_fraction"],0)
 
+    def test_metrics_refuses_a_preempting_run_rather_than_guessing_node_state(self):
+        # metrics() integrates GPU/CPU-seconds from the event trace, which is exact under
+        # preemption, but its AFR and fragmentation terms need per-node free capacity and
+        # can only get it from records[pid]["server_id"]. That reading is the node a task
+        # is on *now*. Until the placement is recorded per interval, the honest output is
+        # an error, not a number that looks fine.
+        def priority(spec, value):
+            return TaskSpec(spec.pod_id,spec.gpu,spec.cpu,spec.allowed_gpu_types,
+                            spec.submit_time,spec.service_time,value)
+        nodes = [NodeSpec("n1","c","H20",8.,8.)]   # one node, so there is nowhere to go
+        tasks = [priority(self.task("spot",8,8,0,10),"LP"),
+                 priority(self.task("urgent",8,8,1,1),"HP")]
+        env = GpuSchedEnv(nodes,tasks,clock="fast",max_sim_time=100)
+        self.assertEqual(1, env.run("spotgpu")["preemptions"])
+        with self.assertRaises(ValueError):
+            metrics(env,.1)
+
     def test_worst_fit_prefers_more_remaining_joint_capacity(self):
         env = self.env([self.task("a",2,2),self.task("b",1,1)])
         env.reset()
