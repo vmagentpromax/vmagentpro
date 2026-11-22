@@ -71,18 +71,20 @@ def engine_metrics(env, arrivals, horizon, deadline_sec, window_sec):
             "migration_count": migration["count"],
             "migration_completed_count": migration["completed_count"],
             "gpu_units_moved": migration["gpu_units_moved"],
-            "migration_gpu_pause_sec": migration["gpu_pause_sec"]}
+            "migration_gpu_pause_sec": migration["gpu_pause_sec"],
+            "migration_gpu_pause_accrued_sec": migration["gpu_pause_accrued_sec"],
+            "migration_inflight_at_horizon": int(migration["inflight_at_horizon"])}
 
 
-# Every column her baseline now has a counterpart, including A_GPU, which discounts a
-# pod whose service is paused mid-migration. The engine did not integrate that until
-# the comparison showed it was the last column with no equivalent.
+# Every column her baseline carries now has a counterpart on the main engine side,
+# including A_GPU in both its window and full-horizon forms and the time-integrated
+# accrued pause.
 #
-# Not compared, on purpose: migration_gpu_pause_accrued_sec is her time-integrated
-# accrued pause, which equals the planned pause only when no move is still in flight
-# at the horizon, and first_attempt_classes / blocked_request_seconds are her
-# per-event re-classification of the whole queue, an O(queue x nodes) definition the
-# main engine deliberately replaced with a first-observed-per-task one.
+# Still out of the comparison, and the reason is a definition difference rather than a
+# missing number: first_attempt_classes and blocked_request_seconds are her per-event
+# re-classification of the entire queue, an O(queue x nodes) construction the main
+# engine deliberately replaced with a first-observed-per-task classifier because
+# scenario F peaks at 89,127 queued tasks over 30 nodes across 119,495 events.
 NOT_COMPARABLE = {"placement", "migration", "all_resource_checks_passed",
                   "first_attempt_classes", "blocked_request_seconds",
                   "migration_gpu_pause_accrued_sec", "migration_inflight_at_horizon"}

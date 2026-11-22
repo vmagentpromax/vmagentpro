@@ -240,6 +240,7 @@ class MigrationMixin:
                 "completed_count": self.migration_completed_moves,
                 "gpu_units_moved": self.migration_gpu_units_moved,
                 "gpu_pause_sec": self.migration_gpu_pause_sec,
+            "gpu_pause_accrued_sec": self.migration_pause_accrued,
                 "plans_started": self.migration_plans_considered,
                 "inflight_at_horizon": self.migration_current is not None,
                 "reserve_destination": self.reserve_destination,

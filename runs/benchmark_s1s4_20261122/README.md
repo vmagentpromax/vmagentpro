@@ -143,6 +143,37 @@ S1 / cheap_multi：3 个差异区间，每个恰好差 1.0 GPU，合计 28.8000 
 中间两行相等不是巧合：一头占与另一头占在总量上等价，这本身就是对实现的一次交叉校验。
 四个组合给出四个不同结果，说明 M11 要暴露的敏感性是真实的，而不是文档上的假设。
 
+## 6.5 主引擎现在能直接产出她那张结果表（2026-11-22 补充）
+
+`tools/benchmark_runner.py` 用主引擎跑 28 实例 × 2 放置 × 4 迁移模式 = 224 格，
+输出**与她 `baseline_results.csv` 完全相同的表头和列序**，落在
+`outputs/benchmark_main_engine/<候选>/<Sx>/main_engine_results.csv`，旁边一份
+`main_engine_results.notes.json` 说明哪些列是故意留空的。
+
+这样做的目的只有一个：**让她那份 `engine.py` 变成可以指向主引擎的引用，而不是唯一能重出现有数字的地方。**
+删不删她的代码是第二步（要她签字），但先把"删了也能重算"这件事做实。
+
+为此主引擎补了两个新指标（`4701249` 与本次提交）：
+
+| 新指标 | 含义 |
+|---|---|
+| `effective_gpu_ratio` | 她的 A_GPU：正在迁移的 Pod 在暂停期间**不计入有效分配**（它占着资源但没在算） |
+| `effective_gpu_ratio_full_horizon` | 同一积分按**整个 horizon** 而不是分配窗做分母 |
+| `migration.gpu_pause_accrued_sec` | 按时间积分的实际暂停量（与按计划登记的 `gpu_pause_sec` 只在"结束时仍有迁移在途"时不同） |
+
+`effective_gpu_ratio` 第一次实现时是错的，两个错误都是**靠比对发现的、不是靠看代码发现的**：
+只扣了 1 份 GPU（make-before-break 下账本其实计了 2 份），以及全 horizon 版用了"最后仿真时刻"而不是 horizon 做分母。
+修完后 `tools/compare_benchmark_engines.py`：**112 格、0 字段差异**（first_fit × 4 迁移模式 × 28 实例）。
+
+`tools/benchmark_runner.py` 全量跑完后与 28 份归档表逐格对比：
+
+| 放置 | 差异 |
+|---|---|
+| `first_fit` × 4 迁移模式 × 28 实例 = 112 格 | **0 个字段差异** |
+| `best_fit` × 同上 = 112 格 | **83 格有差异，共 643 个字段**；另外 29 格相同（两种规则在那格上恰好选了同一个节点）。差异范围从 `mean_wait` 几秒到 `migration_count` 31 对 35，原因见第 4 节：两套 best_fit 不是同一个算法 |
+
+也就是说：**在 best_fit 的定义定下来之前，主引擎可以完全替代她的引擎跑 first_fit 那一半；best_fit 那一半替代不了。** 这正是第 5 节那个决定为什么必须先做。
+
 ## 7. 复跑命令
 
 ```bash

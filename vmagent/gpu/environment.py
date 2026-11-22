@@ -215,6 +215,7 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             self.migration_completed_moves = 0
             self.migration_gpu_units_moved = 0.
             self.migration_gpu_pause_sec = 0.
+            self.migration_pause_accrued = 0.
             self.migration_plans_considered = 0
             self._bootstrap_initial()
             self.rng = random.Random(self.seed)

@@ -622,6 +622,22 @@ class ReactiveMigrationTests(unittest.TestCase):
         env._process_due()
         self.assertEqual(0, sum(1 for e in env.events[before:] if e["event"] == "migration_complete"))
 
+    def test_effective_allocation_discounts_the_paused_pod(self):
+        # A_GPU is the column her benchmark reports alongside the reserved ratio, and
+        # the two only differ while something is mid-migration. Under
+        # make-before-break the ledger counts the paused pod twice, so the discount
+        # must be two copies of it, not one.
+        moved = self.env(migration="one_move").run("first_fit")
+        still = self.env().run("first_fit")
+        self.assertEqual(still["reserved_gpu_ratio"], still["effective_gpu_ratio"])
+        self.assertLess(moved["effective_gpu_ratio"], moved["reserved_gpu_ratio"])
+        self.assertEqual(1, moved["migration"]["count"])
+        gap = (moved["reserved_gpu_ratio"]-moved["effective_gpu_ratio"]) \
+            * moved["gpu_capacity"] * moved["measurement_denominator_sec"]
+        self.assertAlmostEqual(gap, 2.*4.*self.PAUSE, places=6)
+
+
+
 
 
 

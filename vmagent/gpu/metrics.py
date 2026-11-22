@@ -39,9 +39,16 @@ class MetricsMixin:
         # the migrated GPU-seconds.
         paused = 0.
         if self.migration_current is not None:
+            in_flight_gpu = self.by_id[self.migration_current["pod_id"]].gpu
             counted = (1 if self.reserve_destination else 0) \
                 + (1 if self.release_source_when == "end" else 0)
-            paused = self.by_id[self.migration_current["pod_id"]].gpu*counted
+            paused = in_flight_gpu*counted
+            # Time-integrated, unlike gpu_pause_sec which is the planned figure booked
+            # at move start. They agree for every completed move and differ only when
+            # a move is still in flight at the horizon, which is the case her
+            # benchmark reports separately and a reader comparing the two engines
+            # needs to be able to see.
+            self.migration_pause_accrued += in_flight_gpu*max(0., target-self.current_time)
         self.gpu_area += reserved*overlap
         self.effective_gpu_area += max(0., reserved-paused)*overlap
         # The benchmark also reports the same integral over the whole horizon rather
