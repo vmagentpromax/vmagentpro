@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from .environment import DEFAULT_NODES, DEFAULT_TASKS, ROOT, GpuSchedEnv, load_initial_placement, load_nodes, load_workload
+from .spotgpu import CPU_AWARE_MODES, VARIANTS as SPOTGPU_VARIANTS, VICTIM_PREFIXES, VICTIM_SELECTIONS
 
 
 def environment_stamp():
@@ -74,11 +75,35 @@ def main():
                         help="keep admitting other tasks while a plan is executing")
     parser.add_argument("--no-reserve-destination", action="store_false", dest="reserve_destination",
                         help="break before make: book the destination only when the move lands")
+    parser.add_argument("--spotgpu-variant", choices=sorted(SPOTGPU_VARIANTS), default=None,
+                        help="load one of the five experiment policies as a knob bundle; "
+                             "explicit --spotgpu-* flags below override it")
+    parser.add_argument("--spotgpu-victim-selection", choices=VICTIM_SELECTIONS, default=None)
+    parser.add_argument("--spotgpu-victim-prefix", choices=VICTIM_PREFIXES, default=None,
+                        help="'gpu' is OSDI'26's literal prefix test sum(G_t)>=G_hp; "
+                             "'joint' is this engine's historical behaviour and the stricter one")
+    parser.add_argument("--spotgpu-hp-first-queue", action="store_true", default=None)
+    parser.add_argument("--spotgpu-placement-terms", default=None,
+                        help="comma separated prefix of packing,co_locate,history")
+    parser.add_argument("--spotgpu-cpu-aware", choices=CPU_AWARE_MODES, default=None,
+                        help="add CPU leftover to the packing term; 'none' is the paper")
+    parser.add_argument("--no-spotgpu-preemption", action="store_false", dest="spotgpu_preemption",
+                        default=None, help="keep SpotGPU's placement ranking but never evict")
     parser.add_argument("--output", type=Path, default=ROOT/"outputs/gpu/latest")
     args = parser.parse_args()
+    spotgpu = dict(SPOTGPU_VARIANTS[args.spotgpu_variant]) if args.spotgpu_variant else {}
+    for key, value in [("victim_selection", args.spotgpu_victim_selection),
+                       ("victim_prefix", args.spotgpu_victim_prefix),
+                       ("hp_first_queue", args.spotgpu_hp_first_queue or None),
+                       ("placement_cpu_aware", args.spotgpu_cpu_aware),
+                       ("preemption", args.spotgpu_preemption if args.spotgpu_preemption is not None else None)]:
+        if value is not None:
+            spotgpu[key] = value
+    if args.spotgpu_placement_terms is not None:
+        spotgpu["placement_terms"] = tuple(part.strip() for part in args.spotgpu_placement_terms.split(",") if part.strip())
     options = dict(clock=args.clock, speed=args.speed, queue_policy=args.queue_policy,
                    max_sim_time=args.max_sim_time, cpu_background_fraction=args.cpu_background_fraction,
-                   checkpoint_interval=args.checkpoint_interval, seed=args.seed,
+                   checkpoint_interval=args.checkpoint_interval, seed=args.seed, spotgpu=spotgpu,
                    migration=args.migration, migration_max_plan_moves=args.migration_max_plan_moves,
                    migration_max_total_moves=args.migration_max_total_moves,
                    migration_base_sec=args.migration_base_sec,

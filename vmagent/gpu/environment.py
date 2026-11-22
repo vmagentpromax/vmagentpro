@@ -50,6 +50,7 @@ from .migration import MigrationMixin
 from .placement import PlacementMixin
 from .preemption import PreemptionMixin
 from .queues import QueueMixin
+from .spotgpu import resolve
 
 
 class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, PreemptionMixin,
@@ -66,7 +67,8 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
                  migration="none", migration_base_sec=20., migration_per_gpu_sec=8.,
                  migration_per_cpu_core_sec=0.1, migration_max_plan_moves=6,
                  migration_max_total_moves=80, reserve_destination=True,
-                 release_source_when="end", pause_service=True, block_admission_during_plan=True):
+                 release_source_when="end", pause_service=True, block_admission_during_plan=True,
+                 spotgpu=None):
         if clock not in ("realtime", "fast") or queue_policy not in ("backfill", "fcfs"):
             raise ValueError("Unknown clock or queue policy")
         if migration not in ("none", "one_move", "cheap_multi", "first_multi"):
@@ -109,6 +111,14 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             raise ValueError("seed must be an integer")
         self.seed = int(seed_number)
         self.checkpoint_interval = number(checkpoint_interval, "checkpoint_interval", True)
+        # SpotGPU is a set of orthogonal knobs, not a family of named policies; see
+        # spotgpu.py for what each one means and which paper sentence it comes from.
+        self.spotgpu = resolve(spotgpu)
+        self.victim_selection = self.spotgpu["victim_selection"]
+        self.victim_prefix = self.spotgpu["victim_prefix"]
+        self.hp_first_queue = self.spotgpu["hp_first_queue"]
+        self.placement_terms = self.spotgpu["placement_terms"]
+        self.placement_cpu_aware = self.spotgpu["placement_cpu_aware"]
         self.migration_mode = migration
         self.migration_base_sec = number(migration_base_sec, "migration_base_sec")
         self.migration_per_gpu_sec = number(migration_per_gpu_sec, "migration_per_gpu_sec")
@@ -355,7 +365,7 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
 
     def run(self, policy="first_fit"):
         if policy == "spotgpu":
-            self.preempt_enabled = True
+            self.preempt_enabled = self.spotgpu["preemption"]
             self.reset()
             while not self.done:
                 self.step(self._spotgpu_choose_action())

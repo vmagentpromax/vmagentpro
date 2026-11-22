@@ -98,7 +98,45 @@ class QueueMixin:
             self._hp_gpu_wait_groups[index].append((sequence, pid))
             self._preempt_generation += 1
 
+    def _hp_candidates(self):
+        """Earliest still-waiting HP GPU task in each demand group."""
+        result = []
+        for index, group in enumerate(self._hp_gpu_wait_groups):
+            cursor = self._hp_gpu_wait_group_cursors[index]
+            while cursor < len(group):
+                sequence, pid = group[cursor]
+                if pid in self.waiting_set and self._queue_seq.get(pid) == sequence:
+                    break
+                cursor += 1
+            self._hp_gpu_wait_group_cursors[index] = cursor
+            if cursor < len(group):
+                result.append(group[cursor])
+        return sorted(result)
+
+    def _hp_first_ready(self):
+        """The experimental queue rule: try every HP GPU group head before anything else.
+
+        Placing an HP task here may evict on the spot, which is why this path and
+        `_try_preempt` must not both fire for the same decision. The paper gives no
+        global queue discipline, so this is a local rule and it is off by default.
+        """
+        for _, pid in self._hp_candidates():
+            task = self.by_id[pid]
+            if self._any_fits(task):
+                return pid
+            if self.preempt_enabled:
+                candidate = self._spotgpu_best_preemption(task)
+                if candidate:
+                    node, victims, _ = candidate
+                    self._evict(victims, node)
+                    return pid
+        return None
+
     def _next_ready(self):
+        if self.hp_first_queue:
+            pid = self._hp_first_ready()
+            if pid is not None:
+                return pid
         if self.queue_policy == "fcfs":
             pid = next(iter(self.waiting), None)
             if pid is not None:

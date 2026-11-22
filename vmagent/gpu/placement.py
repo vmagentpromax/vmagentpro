@@ -35,22 +35,42 @@ class PlacementMixin:
 
     def _spotgpu_choose_action(self):
         """Non-preemptive placement ranking: task packing, homogeneous
-        co-location, then eviction history (SpotGPU paper criteria 1-3)."""
+        co-location, then eviction history (SpotGPU paper criteria 1-3).
+
+        The terms are applied as a prefix, so `placement_terms=("packing",)` is the
+        paper's own ablation baseline and `("packing","co_locate")` removes only the
+        eviction-history preference.
+        """
         task = self.by_id[self.pending_id]
         priority = self.task_priority.get(self.pending_id, "Other")
         valid = [j for j in range(len(self.nodes)) if self._fits(task, j)]
         if not valid:
             raise RuntimeError("SpotGPU: pending task does not fit any node")
-        if priority == "HP":
-            def rank(j):
-                packing = self.free_gpu[j] - task.gpu
-                co_locate = 0 if self.node_hp_running[j] > 0 else 1
-                history = -self.node_evictions[j]
-                return (packing, co_locate, history, j)
-        else:
-            def rank(j):
-                packing = self.free_gpu[j] - task.gpu
-                co_locate = 0 if self.node_lp_running[j] > 0 else 1
-                history = self.node_evictions[j]
-                return (packing, co_locate, history, j)
+
+        def packing(j):
+            # The historical term is an absolute GPU count, and it stays that way when
+            # CPU is not consulted: normalising it would be a silent ordering change on
+            # any pool whose nodes differ in GPU capacity. Normalisation only appears
+            # once CPU enters the score, because a GPU count and a core count cannot be
+            # added without putting them on a common scale first.
+            leftover_gpu = self.free_gpu[j]-task.gpu
+            if self.placement_cpu_aware == "none":
+                return [leftover_gpu]
+            scaled = leftover_gpu/self.nodes[j].gpu_capacity
+            leftover_cpu = (self.free_cpu[j]-task.cpu)/self.nodes[j].cpu_capacity
+            if self.placement_cpu_aware == "lexicographic":
+                # GPU leftover decides first; CPU only breaks a GPU tie. This is the
+                # defragmentation benchmark's best_fit, transplanted here so the two
+                # definitions can be compared inside one policy.
+                return [scaled, leftover_cpu]
+            return [scaled + leftover_cpu]
+
+        def rank(j):
+            key = packing(j) if "packing" in self.placement_terms else [0.]
+            if "co_locate" in self.placement_terms:
+                resident = self.node_hp_running if priority == "HP" else self.node_lp_running
+                key.append(0 if resident[j] > 0 else 1)
+            if "history" in self.placement_terms:
+                key.append(-self.node_evictions[j] if priority == "HP" else self.node_evictions[j])
+            return tuple(key) + (j,)
         return min(valid, key=rank)

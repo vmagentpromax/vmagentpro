@@ -6,11 +6,13 @@ runs/spotgpu_demo_20261121 is the small scene that shows the feature, and these
 tests pin the contrast that makes it worth having: same data, no preemption
 without the SpotGPU policy and real preemption with it.
 """
+import sys
 import unittest
 from pathlib import Path
 
+from vmagent.gpu.compare import diff_summaries
 from vmagent.gpu.dashboard import BUILTIN_DATASETS
-from vmagent.gpu.environment import ROOT
+from vmagent.gpu.environment import GpuSchedEnv, ROOT, load_nodes, load_workload
 from vmagent.gpu.run import make_environment
 
 DEMO = ROOT / "runs/spotgpu_demo_20261121/inputs"
@@ -108,6 +110,57 @@ class SpotGpuPreemptionDemoTests(unittest.TestCase):
         self.assertGreater(frequent["wasted_gpu_sec"], 0.)
         self.assertEqual(hourly["completed"], frequent["completed"])
         self.assertEqual(0, frequent["rejected"])
+
+
+class SpotGpuVariantEquivalenceTests(unittest.TestCase):
+    """The knob bundle must produce the same run as the harness subclass it replaces.
+
+    tools/verify_spotgpu_variants.py does this on a 40,000-task slice; this is the
+    fast version on the 29-task demo, which does exercise the differences (no_preempt
+    preempts zero times, paper_baseline places elsewhere). Same claim, cheaper check.
+    """
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "experiments/preemption_20261107"))
+
+    def results(self, env, experiment=False):
+        # The harness entry point is run_experiment(), which is what sets
+        # preempt_enabled per variant; calling the base run() on it would silently
+        # re-enable preemption and make no_preempt look like a divergence.
+        summary = env.run_experiment() if experiment else env.run("spotgpu")
+        return summary, list(env.records.values()), list(env.events)
+
+    def test_engine_knobs_match_the_experiment_harness(self):
+        from vmagent.gpu.spotgpu import VARIANTS
+        from harness import ExperimentEnv
+        nodes = load_nodes(NODES)
+        tasks = load_workload(TASKS)[0]
+        settings = dict(clock="fast", queue_policy="backfill", seed=42,
+                        measurement_window=[86400., 129600.], max_sim_time=400000.)
+        for name, knobs in sorted(VARIANTS.items()):
+            reference = self.results(ExperimentEnv(nodes, list(tasks), variant=name, **settings),
+                                     experiment=True)
+            candidate = self.results(GpuSchedEnv(nodes, list(tasks), spotgpu=knobs, **settings))
+            self.assertEqual(reference[1:], candidate[1:], "%s records/events diverged" % name)
+            self.assertEqual(reference[0]["preemptions"], candidate[0]["preemptions"], name)
+            self.assertEqual([], diff_summaries(reference[0], candidate[0]), name)
+
+    def test_the_six_variants_are_not_all_the_same_policy(self):
+        # If every knob bundle collapsed to one behaviour, the decomposition would be
+        # decoration. The demo scene separates at least three of them.
+        from vmagent.gpu.spotgpu import VARIANTS
+        nodes = load_nodes(NODES)
+        outcomes = {}
+        for name in sorted(VARIANTS):
+            env = GpuSchedEnv(nodes, list(load_workload(TASKS)[0]), clock="fast",
+                              queue_policy="backfill", seed=42,
+                              measurement_window=[86400., 129600.], max_sim_time=400000.,
+                              spotgpu=VARIANTS[name])
+            summary = env.run("spotgpu")
+            outcomes[name] = (summary["preemptions"], round(summary["reserved_gpu_ratio"], 9),
+                              round(summary["mean_wait_sec_started"], 3))
+        self.assertEqual(0, outcomes["no_preempt"][0])
+        self.assertEqual(5, outcomes["legacy_spotgpu"][0])
+        self.assertGreater(len(set(outcomes.values())), 2, str(outcomes))
 
 
 if __name__ == "__main__":

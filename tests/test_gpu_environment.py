@@ -7,7 +7,7 @@ import time
 import unittest
 from pathlib import Path
 
-from vmagent.gpu.environment import GpuSchedEnv, NodeSpec, TaskSpec, DEFAULT_TASKS, load_workload, load_nodes
+from vmagent.gpu.environment import GpuSchedEnv, NodeSpec, TaskSpec, DEFAULT_TASKS, EPS, load_workload, load_nodes
 from vmagent.gpu.run import make_environment
 from vmagent.gpu.environment import DEFAULT_NODES
 
@@ -561,6 +561,106 @@ class ReactiveMigrationTests(unittest.TestCase):
             task.metadata["migratable"] = "False"
         result = env.run("first_fit")
         self.assertEqual(0, result["migration"]["count"])
+
+
+class SpotGpuKnobTests(unittest.TestCase):
+    """The six SpotGPU knobs each change one thing, and the defaults change nothing.
+
+    Staged directly on the ledger rather than through a full run: the prefix rule and
+    the ranking terms are decisions made at one instant, and a hand-built state shows
+    them without a scenario accidentally re-timing them.
+    """
+    def staged(self, **knobs):
+        node = NodeSpec("n1", "cluster", "H20", 8., 8.)
+        tasks = [TaskSpec("cheap_gpu", 6., 0.5, ("H20",), 0., 100., "LP"),
+                 TaskSpec("cheap_cpu", 2., 7., ("H20",), 0., 100., "LP"),
+                 TaskSpec("hp", 6., 3., ("H20",), 1., 1., "HP")]
+        env = GpuSchedEnv([node], tasks, clock="fast", measurement_window=(0., 10.),
+                          spotgpu=knobs or None)
+        env.reset()
+        env.current_time = 4.
+        env.free_gpu, env.free_cpu = [0.], [0.5]
+        env.node_gpu_used, env.node_cpu_used, env.node_running_count = [8.], [7.5], [2]
+        env.running = {pid: 0 for pid in ("cheap_gpu", "cheap_cpu")}
+        # cheap_gpu has run 0.1 s so its cost is 0.6; cheap_cpu has run 4 s so its cost
+        # is 8.0. The cost order therefore puts the GPU-heavy, CPU-light victim first,
+        # which is the only arrangement where the two prefix rules can disagree.
+        env.running_start = {"cheap_gpu": 3.9, "cheap_cpu": 0.}
+        env.node_spot_pids = [{"cheap_gpu", "cheap_cpu"}]
+        return env
+
+    def test_joint_prefix_keeps_evacuating_until_cpu_is_covered(self):
+        env = self.staged()
+        node, victims, cost = env._spotgpu_best_preemption(env.by_id["hp"])
+        self.assertEqual(["cheap_gpu", "cheap_cpu"], victims)
+        self.assertAlmostEqual(0.6 + 8.0, cost, places=9)
+
+    def test_gpu_prefix_stops_at_the_gpu_covering_prefix_and_then_refuses(self):
+        # OSDI'26 stops the prefix at sum(G_t) >= G_hp. Here that is one victim, whose
+        # CPU does not add up, so the node is refused rather than over-subscribed.
+        env = self.staged(victim_prefix="gpu")
+        self.assertIsNone(env._spotgpu_best_preemption(env.by_id["hp"]))
+
+    def test_prefix_rule_never_allows_a_cpu_oversubscribed_placement(self):
+        for prefix in ("joint", "gpu"):
+            env = self.staged(victim_prefix=prefix)
+            candidate = env._spotgpu_best_preemption(env.by_id["hp"])
+            if candidate:
+                _, victims, _ = candidate
+                freed = sum(env.by_id[pid].cpu for pid in victims)
+                self.assertGreaterEqual(env.free_cpu[0] + freed, env.by_id["hp"].cpu - EPS)
+
+    def stage_ranking(self, terms, free_gpu, lp_running, evictions, gpu=1., cpu=1.):
+        tasks = [TaskSpec("t", gpu, cpu, ("H20",), 0., 5., "LP")]
+        env = GpuSchedEnv([NodeSpec("n1", "cluster", "H20", 8., 8.),
+                           NodeSpec("n2", "cluster", "H20", 8., 8.)], tasks, clock="fast",
+                          measurement_window=(0., 10.), spotgpu={"placement_terms": terms})
+        env.reset()
+        env.free_gpu, env.free_cpu = list(free_gpu), list(free_gpu)
+        env.node_lp_running, env.node_hp_running = list(lp_running), [0, 0]
+        env.node_evictions = list(evictions)
+        env.pending_id = "t"
+        return env
+
+    def test_cpu_aware_packing_breaks_a_gpu_tie_that_the_paper_rule_leaves(self):
+        node = NodeSpec("n1", "cluster", "H20", 8., 8.)
+        other = NodeSpec("n2", "cluster", "H20", 8., 8.)
+        tasks = [TaskSpec("t", 4., 4., ("H20",), 0., 5., "Other")]
+        # Both nodes leave exactly 4 GPU after placing, so the paper's packing term
+        # ties and falls through to the node index. n2 has far less CPU headroom, and
+        # only a CPU-aware term can see that.
+        for mode, expected in (("none", 0), ("sum", 1), ("lexicographic", 1)):
+            env = GpuSchedEnv([node, other], tasks, clock="fast", measurement_window=(0., 10.),
+                              spotgpu={"placement_cpu_aware": mode, "placement_terms": ("packing",)})
+            env.reset()
+            env.free_gpu = [4., 4.]
+            env.free_cpu = [8., 4.5]
+            env.pending_id = "t"
+            self.assertEqual(expected, env._spotgpu_choose_action(), mode)
+
+    def test_placement_terms_are_a_prefix_of_the_paper_three(self):
+        # Each criterion only ever breaks the tie the previous one left, exactly as
+        # §4.2.1 words it, so dropping a trailing term can only make the choice less
+        # specific - never different on a pool where the kept terms already decide.
+        picked = self.stage_ranking(("packing",), [7., 8.], [0, 0], [0, 0])
+        self.assertEqual(0, picked._spotgpu_choose_action())
+        tied = self.stage_ranking(("packing",), [8., 8.], [0, 1], [0, 0])
+        self.assertEqual(0, tied._spotgpu_choose_action())          # tie falls to index
+        colocated = self.stage_ranking(("packing", "co_locate"), [8., 8.], [0, 1], [0, 0])
+        self.assertEqual(1, colocated._spotgpu_choose_action())     # LP joins the LP node
+        both = self.stage_ranking(("packing", "co_locate"), [8., 8.], [1, 1], [5, 0])
+        self.assertEqual(0, both._spotgpu_choose_action())          # still tied, index wins
+        historic = self.stage_ranking(("packing", "co_locate", "history"), [8., 8.], [1, 1], [5, 0])
+        self.assertEqual(1, historic._spotgpu_choose_action())      # spot avoids evicted node
+
+    def test_knob_validation_rejects_nonsense(self):
+        node = NodeSpec("n1", "cluster", "H20", 8., 8.)
+        tasks = [TaskSpec("t", 1., 1., ("H20",), 0., 5.)]
+        for knobs in ({"victim_prefix": "either"}, {"victim_selection": "cheapest"},
+                      {"placement_cpu_aware": "both"}, {"placement_terms": ("history",)},
+                      {"unknown": 1}):
+            with self.assertRaises(ValueError, msg=str(knobs)):
+                GpuSchedEnv([node], tasks, clock="fast", spotgpu=knobs)
 
 
 if __name__ == "__main__":

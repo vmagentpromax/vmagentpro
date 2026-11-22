@@ -55,6 +55,43 @@
 
 同一窗口下的 GPU 资源预留率：`first_fit` / `best_fit` **41.12%**，`spotgpu` **41.24%**；CPU 分别 13.15% 与 13.19%。抢占让利用率略升，来自被驱逐 LP 短暂空出的份额被 HP 立即顶上。
 
+### 六个 SpotGPU 开关预设在这份数据上的差别（2026-11-22 实测）
+
+`spotgpu` 现在是六个正交开关的一组取值，`experiments/preemption_20261107/harness.py` 的五个实验策略就是其中的六组预设（见 `README_GPU.md` 8.1 节）。同一份 29 任务数据、同一套参数，只换预设：
+
+| 预设 | 抢占次数 | `wasted_gpu_sec` | GPU 预留率 | HP 最大等待 | LP 平均等待 |
+|---|---:|---:|---:|---:|---:|
+| `legacy_spotgpu`（引擎默认） | 5 | **1,210.5** | 0.412394 | 0 s | 437.3 s |
+| `paper_cost` | 5 | 1,210.5 | 0.412394 | 0 s | 437.3 s |
+| `no_history` | 5 | 1,210.5 | 0.412394 | 0 s | 437.3 s |
+| `random_victim` | 5 | **9,906.1** | 0.420781 | 0 s | 437.3 s |
+| `paper_baseline` | 5 | 9,906.1 | 0.420781 | 0 s | 437.3 s |
+| `no_preempt` | 0 | 0 | 0.411227 | **8,352 s** | 0 s |
+
+**这份小数据把"成本感知受害者"的作用单独显示出来了**：随机挑受害者，抢占次数一样是 5、HP 一样 0 等待，但浪费的计算从 1,210.5 涨到 **9,906.1 GPU·秒（8.2 倍）**。这正是论文用合并基线测出 24% 的那件事，在这里只需要 0.003 秒就能看见。
+
+复现：
+
+```bash
+python -c "
+import sys; sys.path.insert(0,'.')
+from vmagent.gpu.contract import load_nodes, load_workload
+from vmagent.gpu.environment import GpuSchedEnv
+from vmagent.gpu.spotgpu import VARIANTS
+n=load_nodes('runs/spotgpu_demo_20261121/inputs/nodes.csv')
+t=load_workload('runs/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv')[0]
+for name in sorted(VARIANTS):
+    e=GpuSchedEnv(n,list(t),clock='fast',queue_policy='backfill',seed=42,
+                  measurement_window=[86400.,129600.],max_sim_time=400000.,spotgpu=VARIANTS[name])
+    s=e.run('spotgpu'); print(name,s['preemptions'],round(s['wasted_gpu_sec'],1))"
+```
+
+等价性核对（开关组合 == 原子类实现，逐字段比 records 与 events）：
+
+```bash
+python tools/verify_spotgpu_variants.py --limit 40000
+```
+
 ## 复跑命令
 
 ```bash

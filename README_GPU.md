@@ -299,6 +299,43 @@ env.export("outputs/gpu/my-policy")
 
 旧 `vmagent/train.py` 的网络维度和经验回放依赖旧状态接口。若后续接入 DQN/PPO/SAC，需要适配网络输入、N 个动作、掩码、终止转移和奖励，并重新训练；不能用原 NUMA 模型权重直接评估 H20 场景。
 
+## 8.1 SpotGPU 的六个开关
+
+`spotgpu` 不再是一个写死的策略，而是六个正交开关的一组取值（定义与出处都在 `vmagent/gpu/spotgpu.py`）。**默认值等于本仓库历史上那个 `spotgpu`**，所以不写任何开关时结果与以前逐位相同。
+
+| 开关 | 取值 | 默认 | 含义与依据 |
+|---|---|---|---|
+| `preemption` | 开 / 关 | 开 | HP 是否可以驱逐 LP。关掉就是"只用 SpotGPU 的放置排名、不抢占" |
+| `victim_selection` | `cost` / `random` | `cost` | 受害者按论文 §4.2 的损失成本 `C_t=G_t·(now−τ_ck)` 选，还是随机选。随机是论文自己用的对照 |
+| `victim_prefix` | `joint` / `gpu` | `joint` | 驱逐前缀的停止条件。`joint` 要求 GPU 与 CPU 都补足（本引擎历史行为）；`gpu` 是论文字面的 `Σ G_t ≥ G_hp`，只看 GPU 就停 |
+| `hp_first_queue` | 开 / 关 | 关 | 是否先扫各需求组的 HP 队首再走普通 backfill。论文没给全局队列规则，这是本地实验规则 |
+| `placement_terms` | `packing` / `co_locate` / `history` 的前缀 | 三者全开 | 论文 §4.2.1 的三项排序，按顺序只破上一项的平局。去掉尾部就是论文的消融基线 |
+| `placement_cpu_aware` | `none` / `sum` / `lexicographic` | `none` | 打包项要不要看 CPU。`none` 是论文（只看空闲 GPU）；`sum` 与本引擎 `best_fit` 同形（归一化求和）；`lexicographic` 与碎片整理 benchmark 同形（GPU 优先、CPU 只破平） |
+
+命令行用法：
+
+```bash
+python -m vmagent.gpu.run --policy spotgpu --spotgpu-variant paper_cost ... ^
+  --spotgpu-victim-prefix gpu --spotgpu-cpu-aware sum
+```
+
+`--spotgpu-variant` 先装入一组预设开关（`legacy_spotgpu` / `paper_cost` / `no_preempt` /
+`random_victim` / `paper_baseline` / `no_history`），后面的显式 `--spotgpu-*` 再逐项覆盖。
+这六个预设就是 `experiments/preemption_20261107/harness.py` 里那五个实验策略加原
+`spotgpu`；`tools/verify_spotgpu_variants.py` 逐字段核对过"开关组合 == 原来那份子类实现"。
+
+**为什么把论文字面读法做成非默认。** 论文的 `Σ G_t ≥ G_hp` 只提 GPU，但本引擎是建模 CPU 的：
+如果照字面只看 GPU 就停止驱逐，可能落到一个 CPU 根本放不下的节点。所以 `gpu` 选项**不会**允许超订，
+它改变的是"驱逐几个、代价多少"——`gpu` 驱逐更少然后可能放弃该节点，`joint` 继续驱逐直到 CPU 也够、
+付出更高代价但成功。在 CPU 已经 100% 预留、H20 池还有 38% GPU 空着的场景 F 上，这个区别不小，
+实测数字见 `tools/measure_spotgpu_cpu_axes.py` 的输出。
+
+## 8.2 迁移（碎片整理）开关
+
+`--migration {none,one_move,cheap_multi,first_multi}` 默认 `none`。四个语义开关
+`--reserve-destination` / `--release-source-when` / `--no-pause-service` / `--no-block-admission`
+的默认值等于合作者 benchmark 引擎的现行为，逐格核对见 `runs/benchmark_s1s4_20261122/README.md`。
+
 ## 9. 已做的验证和预期结果
 
 运行针对新增环境的验证：
