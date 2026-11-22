@@ -42,14 +42,17 @@ def metrics(env, cutoff):
     end = env.current_time
     segments = run_segments(env.events)
     moved = [pid for pid, parts in segments.items() if len(parts) > 1]
-    if moved:
+    migrated = sorted({event["pod_id"] for event in env.events
+                       if event["event"] == "migration_start"})
+    if moved or migrated:
         raise ValueError(
             "metrics() derives per-node free capacity from records[pid]['server_id'], "
-            "which is the node a task is on *now*; %d task(s) ran in %d separate "
-            "intervals, so that reading is no longer the node they were on *then*. "
-            "Add preemption or migration to POLICIES only after this loop moves onto a "
-            "per-interval placement, e.g. by recording the node in the start event."
-            % (len(moved), max(len(segments[pid]) for pid in moved)))
+            "which is the node a task is on *now*; %d task(s) ran in more than one "
+            "interval and %d task(s) were migrated, so that reading is no longer the "
+            "node they were on *then*. Add preemption or migration to POLICIES only "
+            "after this loop moves onto a per-interval placement, e.g. by recording the "
+            "node in the start event."
+            % (len(moved), len(migrated)))
     running, waiting = set(), set()
     frag_area = gpu_frag_area = pending_area = 0.
     post_frag = 0.
