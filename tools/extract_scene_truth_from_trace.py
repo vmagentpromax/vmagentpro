@@ -85,6 +85,9 @@ def main():
             print("    day=%03d hour=%02d rows_scanned=%d matched=%d"
                   % (day, hour, scanned, sum(len(f) for f in frames)), flush=True)
     observed = pd.concat(frames, ignore_index=True)
+    if observed.empty:
+        raise SystemExit("no trace row matched any server in %s - wrong day range, or "
+                         "the scene predates this trace?" % args.nodes)
     assert set(observed.cluster_id) <= clusters, "servers straddle clusters: %s" % (
         sorted(set(observed.cluster_id)))
 
