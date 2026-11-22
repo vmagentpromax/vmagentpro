@@ -168,7 +168,8 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
             self.node_gpu_used = [0.] * len(self.nodes)
             self.node_cpu_used = [0.] * len(self.nodes)
             self.node_running_count = [0] * len(self.nodes)
-            self.gpu_area = self.cpu_area = self.queue_area = 0.
+            self.gpu_area = self.cpu_area = self.queue_area = self.effective_gpu_area = 0.
+            self.gpu_area_full = self.effective_gpu_area_full = 0.
             self.peak_gpu = self.peak_cpu = self.peak_queue = 0.
             self.model_nodes = {}
             for j, node in enumerate(self.nodes):

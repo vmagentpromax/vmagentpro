@@ -28,7 +28,27 @@ class MetricsMixin:
         if target < self.current_time-EPS:
             raise RuntimeError("Clock moved backwards")
         overlap = max(0., min(target, self.measure_end)-max(self.current_time, self.measure_start))
-        self.gpu_area += (self.total_gpu-sum(self.free_gpu))*overlap
+        reserved = self.total_gpu-sum(self.free_gpu)
+        # Effective allocation discounts a pod that is mid-migration: her benchmark
+        # defines A_GPU as "computing allocated GPU", and a pod whose service is
+        # paused produces nothing. Discount it by however many times the ledger is
+        # currently counting it - two under make-before-break, where the source is
+        # still held and the destination is reserved, zero under a full
+        # break-before-make. Subtracting one copy, which this did first, leaves the
+        # pod counted once throughout its pause and reads A_GPU too high by exactly
+        # the migrated GPU-seconds.
+        paused = 0.
+        if self.migration_current is not None:
+            counted = (1 if self.reserve_destination else 0) \
+                + (1 if self.release_source_when == "end" else 0)
+            paused = self.by_id[self.migration_current["pod_id"]].gpu*counted
+        self.gpu_area += reserved*overlap
+        self.effective_gpu_area += max(0., reserved-paused)*overlap
+        # The benchmark also reports the same integral over the whole horizon rather
+        # than over its allocation window, so keep an unclipped pair as well.
+        span = max(0., target-self.current_time)
+        self.gpu_area_full += reserved*span
+        self.effective_gpu_area_full += max(0., reserved-paused)*span
         self.cpu_area += (self.total_cpu*(1-self.background)-sum(self.free_cpu))*overlap
         for model, idxs in self.model_nodes.items():
             self.model_gpu_area[model] += sum(self.nodes[j].gpu_capacity-self.free_gpu[j] for j in idxs)*overlap
@@ -217,6 +237,20 @@ class MetricsMixin:
                     "offered_cpu_ratio": offered_cpu/(self.total_cpu*duration)+self.background,
                     "reserved_gpu_ratio": gpu_area/(self.total_gpu*denominator_sec) if denominator_sec else 0.,
                     "reserved_cpu_ratio": cpu_area/(self.total_cpu*denominator_sec)+self.background if denominator_sec else 0.,
+                    # Her benchmark's A_GPU: allocated GPU with a mid-migration pod
+                    # discounted, because its service is paused while it holds two
+                    # slots. Equal to reserved_gpu_ratio whenever nothing is migrating,
+                    # which is why the two only diverge on the migration cells.
+                    "effective_gpu_ratio": (self.effective_gpu_area
+                                            / (self.total_gpu*denominator_sec) if denominator_sec else 0.),
+                    # Full-horizon, not full-episode: her denominator is the horizon
+                    # itself, so a run that drains early still divides by the whole
+                    # horizon. Dividing by the last simulated instant instead inflates
+                    # this ratio, which is how the first version of this field came out
+                    # 0.11 too high on a 10,800 s benchmark instance.
+                    "effective_gpu_ratio_full_horizon": (self.effective_gpu_area_full
+                                                         / (self.total_gpu*self.max_sim_time)
+                                                         if self.total_gpu else 0.),
                     "per_model": per_model,
                     "preemptions": sum(r["preemption_count"] for r in self.records.values()),
                     "preempted_task_count": sum(1 for r in self.records.values() if r["preemption_count"] > 0),

@@ -66,19 +66,26 @@ def engine_metrics(env, arrivals, horizon, deadline_sec, window_sec):
             "mean_wait_censored_sec": sum(waits)/len(waits) if waits else 0.,
             "start_within_deadline_rate": sum(1 for wait in waits if wait <= deadline_sec+1e-9)/len(arrivals),
             "gpu_reserved_allocation_rate": summary["reserved_gpu_ratio"],
+            "gpu_effective_allocation_rate": summary["effective_gpu_ratio"],
+            "gpu_effective_allocation_full_horizon_rate": summary["effective_gpu_ratio_full_horizon"],
             "migration_count": migration["count"],
             "migration_completed_count": migration["completed_count"],
             "gpu_units_moved": migration["gpu_units_moved"],
-            "migration_gpu_pause_sec": migration["gpu_pause_sec"],
-            "gpu_effective_allocation_full_horizon_rate": summary["reserved_gpu_ratio"]
-                if window_sec == horizon else None}
+            "migration_gpu_pause_sec": migration["gpu_pause_sec"]}
 
 
-# Her A_GPU excludes the GPU of a pod that is mid-migration; the engine's reserved
-# ratio double-books it (source still held, destination reserved). Until the engine
-# integrates an effective allocation as well, those two numbers are not the same
-# quantity, so the comparison reports them apart rather than forcing a match.
-NOT_COMPARABLE = {"gpu_effective_allocation_rate"}
+# Every column her baseline now has a counterpart, including A_GPU, which discounts a
+# pod whose service is paused mid-migration. The engine did not integrate that until
+# the comparison showed it was the last column with no equivalent.
+#
+# Not compared, on purpose: migration_gpu_pause_accrued_sec is her time-integrated
+# accrued pause, which equals the planned pause only when no move is still in flight
+# at the horizon, and first_attempt_classes / blocked_request_seconds are her
+# per-event re-classification of the whole queue, an O(queue x nodes) definition the
+# main engine deliberately replaced with a first-observed-per-task one.
+NOT_COMPARABLE = {"placement", "migration", "all_resource_checks_passed",
+                  "first_attempt_classes", "blocked_request_seconds",
+                  "migration_gpu_pause_accrued_sec", "migration_inflight_at_horizon"}
 
 
 def compare(instance, converted, rel_tol=REL_TOL):
