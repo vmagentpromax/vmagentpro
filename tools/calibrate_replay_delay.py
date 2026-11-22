@@ -111,16 +111,25 @@ def main():
 
     nodes = load_nodes(args.nodes)
     tasks, _ = load_workload(args.jobs)
-    tasks = [t for t in tasks if t.pod_id in set(jobs.pod_id)]
+    # Hoisted deliberately: this set used to be constructed inside the comprehension, so
+    # it rebuilt 119,495 pod ids once per task - quadratic, and it made the full-window
+    # run look like a hang for half an hour before anything printed.
+    wanted = set(jobs.pod_id)
+    tasks = [task for task in tasks if task.pod_id in wanted]
     observed_delay = delay.schedule_delay_sec.to_dict()
     table["policies"] = {}
     for policy in args.policies.split(","):
         name, _, queue = policy.partition(":")
+        name = name.strip()
+        queue = queue or "backfill"
+        # Scene F is 119,495 tasks and a single policy takes minutes, so say so first:
+        # a silent wait next to a hang looks identical otherwise.
+        print("    running %s/%s over %d tasks ..." % (name, queue, len(tasks)), flush=True)
         env = GpuSchedEnv(nodes, list(tasks), clock="fast",
-                          queue_policy=queue or "backfill", seed=42,
+                          queue_policy=queue, seed=42,
                           cpu_background_fraction=0., checkpoint_interval=3600.,
                           measurement_window=[0., 691200.], max_sim_time=4000000.)
-        summary = env.run(name.strip())
+        summary = env.run(name)
         waits = {pid: record["wait_sec"] for pid, record in env.records.items()}
         paired = [(waits[pid], observed_delay[pid]) for pid in set(waits) & set(observed_delay)
                   if observed_delay[pid] == observed_delay[pid]]
@@ -134,20 +143,30 @@ def main():
                 "simulated": quantiles([waits[pid] for pid in pods]),
                 "observed": quantiles([observed_delay[pid] for pid in pods
                                        if pid in observed_delay])}
-        row = {"queue_policy": queue or "backfill", "preemptions": summary["preemptions"],
+        def ratio(q):
+            """Simulated over observed at one quantile, or None where it is meaningless.
+
+            Observed p50 on this scene is exactly 0 s, and 0/0-style ratios printed as
+            2.1e13 read like a result. A ratio needs a denominator that is not the
+            truncation floor.
+            """
+            if not simulated or not actual:
+                return None
+            base = np.quantile(np.clip(actual, 0., CEILING), q)
+            if base <= 1.:
+                return None
+            return round(float(np.quantile(np.clip(simulated, 0., CEILING), q)/base), 3)
+        row = {"queue_policy": queue, "preemptions": summary["preemptions"],
                "paired_pods": len(paired),
                "simulated_all": quantiles(simulated), "observed_all": quantiles(actual),
-               "ratio_p50": round(float(np.quantile(np.clip(simulated, 0, CEILING), .5) /
-                                max(1e-9, np.quantile(np.clip(actual, 0, CEILING), .5))), 3)
-                           if simulated and actual else None,
-               "ratio_p99": round(float(np.quantile(np.clip(simulated, 0, CEILING), .99) /
-                                max(1e-9, np.quantile(np.clip(actual, 0, CEILING), .99))), 3)
-                           if simulated and actual else None,
+               "ratio_p90": ratio(.9), "ratio_p95": ratio(.95), "ratio_p99": ratio(.99),
                "by_priority": by_priority}
-        table["policies"][name.strip()+(":"+queue if queue else "")] = row
-        print("    %-10s paired=%d  simulated %s\n               observed  %s  ratio p50=%s p99=%s"
+        table["policies"][name+(":"+queue if queue else "")] = row
+        print("    %-10s paired=%d  simulated %s\n               observed  %s  "
+              "ratio p90=%s p95=%s p99=%s"
               % (name, len(paired), json.dumps(row["simulated_all"]),
-                 json.dumps(row["observed_all"]), row["ratio_p50"], row["ratio_p99"]))
+                 json.dumps(row["observed_all"]), row["ratio_p90"], row["ratio_p95"],
+                 row["ratio_p99"]), flush=True)
 
     print("\n%s" % json.dumps({k: v for k, v in table.items() if k != "policies"},
                               indent=2, ensure_ascii=False))

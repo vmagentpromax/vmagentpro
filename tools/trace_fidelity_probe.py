@@ -117,8 +117,15 @@ def main():
           % (float(gpu_hours[idle].sum()/gpu_hours.sum()),
              float(gpu_hours[per_gpu < 30.].sum()/gpu_hours.sum())))
     quantiles(gpu.avg_cpu_request_util, "GPU pods CPU request util")
-    print("    residency within the hour: mean used_gpu_hours/gpu_request = %.4f"
-          % float((gpu.used_gpu_hours/gpu.gpu_request).clip(upper=1.).mean()))
+    ratio = gpu.used_gpu_hours/gpu.gpu_request
+    print("    used_gpu_hours vs gpu_request: exactly equal %.4f, below %.4f, above %.4f. "
+          "It never exceeds the request, yet on scenario F's own 30 servers the "
+          "per-server-hour sum reaches twice the physical GPU count, so read this as a "
+          "per-pod-hour indicator (request, present) and not as a capacity-consistent "
+          "reservation integral - its column sum is not a number to calibrate a "
+          "reserved ratio against."
+          % (float((ratio - 1.).abs().le(1e-9).mean()),
+             float((ratio < 1-1e-9).mean()), float((ratio > 1+1e-9).mean())))
     whole = whole.assign(per_gpu=per_gpu)
     keep = whole.per_gpu.notna() & (whole.used_gpu_hours > 0)
     busy = whole[keep].copy()

@@ -1,0 +1,21 @@
+{
+  "archive_is_unusable_because": "recorded before the feature existed, and its victim order was process-dependent until the (cost, pod_id) fix",
+  "name": "F-spotgpu-fcfs",
+  "parameters": {
+    "options": {
+      "checkpoint_interval": 3600,
+      "clock": "fast",
+      "cpu_background_fraction": 0,
+      "max_sim_time": 4000000,
+      "measurement_window": [
+        0.0,
+        691200.0
+      ],
+      "queue_policy": "fcfs",
+      "seed": 42,
+      "speed": 1.0
+    },
+    "policy": "spotgpu"
+  },
+  "produced_by": "tools/verify_golden_runs.py --record-replacement"
+}

@@ -1,0 +1,107 @@
+{
+  "block_classification": {
+    "classification_is_instant_state_not_permanence": true,
+    "first_attempt_classes": {
+      "cpu_capacity_shortage": 941,
+      "direct": 115916,
+      "fragmentation": 2217,
+      "gpu_capacity_shortage": 218,
+      "model_unavailable": 0
+    },
+    "fragmentation_share_of_classified": 0.018584649431646717,
+    "task_count": 119495,
+    "tasks_classified": 119292,
+    "tasks_never_reaching_a_decision": 203
+  },
+  "clock": "fast",
+  "completed": 119495,
+  "cpu_background_fraction": 0.0,
+  "cpu_capacity_cores": 5760.0,
+  "effective_gpu_ratio": 0.8126878046031025,
+  "effective_gpu_ratio_full_horizon": 0.20876266902291588,
+  "end_reason": "drained",
+  "fragmentation": {
+    "node_count": 30,
+    "nodes_fully_occupied_end": 0,
+    "nodes_idle_end": 30,
+    "nodes_partially_occupied_end": 0,
+    "partial_node_time_ratio": 0.3847670018807866,
+    "partial_node_time_sec": 7978528.550999991,
+    "stranded_gpu_time_ratio": 0.1056055017240563,
+    "stranded_gpu_time_sec": 17518685.470000252
+  },
+  "gpu_capacity": 240.0,
+  "mean_wait_sec_started": 740282.544032235,
+  "measurement_denominator_sec": 691200.0,
+  "measurement_window_sec": [
+    0.0,
+    691200.0
+  ],
+  "migration": {
+    "block_admission_during_plan": true,
+    "completed_count": 0,
+    "count": 0,
+    "gpu_pause_accrued_sec": 0.0,
+    "gpu_pause_sec": 0.0,
+    "gpu_units_moved": 0.0,
+    "inflight_at_horizon": false,
+    "mode": "none",
+    "pause_service": true,
+    "plans_started": 0,
+    "release_source_when": "end",
+    "reserve_destination": true
+  },
+  "node_count": 30,
+  "not_arrived": 0,
+  "offered_cpu_ratio": 1.4389450130270514,
+  "offered_gpu_ratio": 0.961098173605083,
+  "p95_wait_sec_started": 947147.41,
+  "peak_cpu_reserved_cores": 5760.0,
+  "peak_gpu_reserved": 223.78,
+  "peak_queue_length": 109921,
+  "per_model": {
+    "H20": {
+      "cpu_capacity_cores": 1920.0,
+      "gpu_capacity": 80.0,
+      "offered_gpu_ratio": 0.8020616863787615,
+      "reserved_cpu_ratio": 0.5907372136049485,
+      "reserved_gpu_ratio": 0.5541642206850472
+    },
+    "XPU-A": {
+      "cpu_capacity_cores": 3840.0,
+      "gpu_capacity": 160.0,
+      "offered_gpu_ratio": 1.040616417218244,
+      "reserved_cpu_ratio": 0.7193249280026273,
+      "reserved_gpu_ratio": 0.941949596562163
+    }
+  },
+  "preempted_task_count": 234,
+  "preemptions": 244,
+  "rejected": 0,
+  "reservation_metrics_are_not_SM_or_CPU_execution_utilization": true,
+  "reserved_cpu_ratio": 0.6764623565367489,
+  "reserved_gpu_ratio": 0.8126878046031025,
+  "running": 0,
+  "sim_time_sec": 2729020.0,
+  "speed": 1.0,
+  "task_count": 119495,
+  "topology": {
+    "asw_span_histogram": {},
+    "gpu_entropy_nats_max": 0.0,
+    "gpu_entropy_nats_mean": 0.0,
+    "gpu_entropy_nats_p95": 0.0,
+    "gpu_on_nodes_without_asw": 0.0,
+    "nodes_with_asw": 0,
+    "task_count": 119495,
+    "tasks_with_workload_id": 0,
+    "topology_metrics_are_final_placement_not_coresidency": true,
+    "workload_gpu_in_measurable_groups": 0.0,
+    "workload_gpu_sec_in_multi_asw_workloads": 0.0,
+    "workloads_placed": 0,
+    "workloads_with_known_gpu_total": 0
+  },
+  "unfinished": 0,
+  "waiting": 0,
+  "wall_time_sec": 66.82799999974668,
+  "wasted_gpu_sec": 35641.26199999999
+}
