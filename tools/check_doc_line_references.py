@@ -45,6 +45,13 @@ REPO = Path(__file__).resolve().parents[1]
 CITATION = re.compile(r"(?:([0-9a-f]{7,40}):)?"
                       r"([A-Za-z0-9_\-./\u4e00-\u9fff]+\.py):(\d+)(?:-(\d+))?")
 
+# Superseded documents keep their original wording by policy - the numbers in them are
+# history, and rewriting them would quietly rewrite the reasoning too. What they must do
+# is say so: the marker below, inside the document's 时效性提示 block, turns its dead
+# pointers from "failure" into "declared". A new stale citation anywhere else still
+# turns this command red, which is the property worth keeping.
+EXEMPT = re.compile("行号引用已豁免")
+
 _rev_lines = {}
 
 
@@ -129,7 +136,7 @@ def main():
     roots = [REPO, REPO.parent/"vmagentpro调研与改进方案"]
     roots = [r for r in (args.root or roots) if r.exists()]
     sources = index_sources(roots)
-    problems = refs = 0
+    problems = refs = exempt_total = 0
     per_document = {}
     for document in markdown_files(roots):
         text = document.read_text(encoding="utf-8", errors="replace")
@@ -184,20 +191,26 @@ def main():
                                  + ("   ..   "+enclosing(candidates[0][1], high)
                                     if high != low else "")))
         live = [row for row in rows if row[1] not in ("BARE AMBIGUOUS (in range)", "explain")]
-        per_document[document] = (len(live),
-                                  sum(1 for row in rows if row[1].startswith("BARE")))
-        if args.quiet and not live:
+        declared = len(live) if EXEMPT.search("\n".join(text.splitlines()[:60])) else 0
+        soft_only = sum(1 for row in rows if row[1].startswith("BARE"))
+        per_document[document] = (len(live) - declared, soft_only, declared)
+        exempt_total += declared
+        if args.quiet and len(live) <= declared:
             continue
         for number, kind, target, extra in rows:
-            problems += 1 if kind not in ("BARE AMBIGUOUS (in range)", "explain") else 0
+            if declared:
+                kind = "declared (banner)"
+            problems += 1 if kind not in ("BARE AMBIGUOUS (in range)", "explain",
+                                          "declared (banner)") else 0
             print("%s:%d  %-22s %-30s %s" % (document, number, kind, target, extra))
     print("\n%d citation(s) checked against %d source file(s) in %s"
           % (refs, sum(len(v) for v in sources.values()), ", ".join(str(r) for r in roots)))
-    for document, (bad, soft) in sorted(per_document.items()):
-        if bad or soft:
-            print("  %-88s %d stale/unresolvable, %d bare-but-in-range"
-                  % (document.name, bad, soft))
-    print("%d stale or unresolvable" % problems)
+    for document, (bad, soft, declared) in sorted(per_document.items()):
+        if bad or soft or declared:
+            print("  %-88s %d stale/unresolvable, %d bare-but-in-range, %d declared"
+                  % (document.name, bad, soft, declared))
+    print("%d stale or unresolvable, %d declared by a 时效性提示 banner"
+          % (problems, exempt_total))
     return 1 if problems else 0
 
 
