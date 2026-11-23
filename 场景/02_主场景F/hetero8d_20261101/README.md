@@ -170,7 +170,7 @@ python -m vmagent.gpu.run --clock fast --seed 42 --policy spotgpu --queue-policy
 
 （`^` 是 Windows cmd 的续行符；PowerShell 用反引号，bash 用反斜杠。）
 
-**网页方式**：`打开前端.bat` → 点"异构 8 天场景 F 参数" → 上传本目录 `inputs/nodes.csv` 与 `inputs/jobs_F.csv`（任务表约 15.9 MB，上传上限 64 MiB）→ 选策略与队列规则 → 开始实验。
+**网页方式**：`launcher.bat` → 点"异构 8 天场景 F 参数" → 上传本目录 `inputs/nodes.csv` 与 `inputs/jobs_F.csv`（任务表约 15.9 MB，上传上限 64 MiB）→ 选策略与队列规则 → 开始实验。
 
 完整参数见 `python -m vmagent.gpu.run --help`。
 

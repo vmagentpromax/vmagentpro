@@ -87,7 +87,7 @@ python --version
 | 起不来 | 打印原因并 `pause`，不会静默失败 |
 
 也可以带参数：`launcher.bat dashboard`（与不带参数完全相同，给旧脚本和快捷方式用）。
-`打开前端.bat`、`启动器.bat`、`start_dashboard.bat` 都只是**一行转调 `launcher.bat` 的壳**，为的是桌面上已有的快捷方式继续能用；启动逻辑（解释器选择、端口探测、等待、报错文案）只在 `launcher.bat` 里有一份。
+`打开前端.bat`、`启动器.bat`、`start_dashboard.bat` 曾经只是**一行转调 `launcher.bat` 的壳**，2026-11-23 已删除（桌面上没有快捷方式指向它们，`git checkout HEAD~1 -- <名字>` 随时取回），现在已有的快捷方式继续能用；启动逻辑（解释器选择、端口探测、等待、报错文案）只在 `launcher.bat` 里有一份。
 
 > 以前这个启动器还有一个选项 [2] 去开原版 VMAgent 的 SchedVis 前端。**那条路已经不存在了**：
 > 上游那半棵树在 2026-11-22 被移除（§8.3）。要说明的是，SchedVis 本来也**读不到本项目任何一个

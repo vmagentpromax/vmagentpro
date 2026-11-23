@@ -1,9 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
 rem Launcher for this repository's GPU scheduling dashboard. This is the only
-rem implementation: the older launchers (two chinese-named ones and
-rem start_dashboard.bat) are one-line wrappers that call this file, so the port
-rem probing, interpreter selection and error text live in exactly one place.
+rem entry point and the only implementation: the three one-line wrappers
+rem (start_dashboard.bat and the two chinese-named ones) were removed on
+rem 2026-11-23 - no desktop shortcut pointed at them, and they are in git
+rem history if a shortcut somewhere still expects one. Port probing,
+rem interpreter selection and error text live in exactly one place.
 rem
 rem The original VMAgent frontends (SchedVis dashboard, schedgym CPU/NUMA
 rem environment, RL learners) were removed from this working tree; see
