@@ -1,6 +1,6 @@
 """M9: convert the defragmentation benchmark's parquet instances to the engine's CSV contract.
 
-The collaborator's benchmark under `benchmark任务/` runs on its own engine and takes
+The collaborator's benchmark under `场景/03_碎片整理与十场景/` runs on its own engine and takes
 `servers.parquet` + `initial_pods.parquet` + `arrivals.parquet` + `config.json`. The
 main engine takes `nodes.csv` + a jobs table. Until both sides can read the same
 thing there is no way to check that "one simulator" and "the other simulator" agree
@@ -10,7 +10,7 @@ Run it with an interpreter that has pandas and pyarrow:
 
     C:/Users/trw/anaconda3/python.exe tools/convert_benchmark_instances.py --all
     C:/Users/trw/anaconda3/python.exe tools/convert_benchmark_instances.py \
-        --instance 'benchmark任务/.../candidates/seed20261107_interval10/S2'
+        --instance '场景/03_碎片整理与十场景/.../candidates/seed20261107_interval10/S2'
 
 Field mapping, and why each choice is the only defensible one:
 
@@ -177,7 +177,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", type=Path,
-                        default=REPO/"benchmark任务/三指标数据评测工作文件_20261108/01_场景数据与构建/candidates")
+                        default=REPO/"场景/03_碎片整理与十场景/三指标数据评测工作文件_20261108/01_场景数据与构建/candidates")
     parser.add_argument("--instance", type=Path, action="append", default=None,
                         help="a specific S directory, repeatable")
     parser.add_argument("--all", action="store_true", help="convert every S directory of every candidate")

@@ -32,8 +32,8 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_NODES = ROOT / "runs/hetero8d_20261101/inputs/nodes.csv"
-SOURCE_JOBS = ROOT / "runs/hetero8d_20261101/inputs/jobs_F.csv"
+SOURCE_NODES = ROOT / "场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv"
+SOURCE_JOBS = ROOT / "场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv"
 FIELDS = ("pod_id", "gpu_spec_public", "gpu_request", "cpu_request_cores",
           "submit_time_sec", "service_sec", "cluster_id", "duration_match_status",
           "job_type_public", "priority_class", "workload_id")
@@ -101,7 +101,7 @@ def build(node_count, checkpoint_interval, max_tasks, hp_after_hours):
              "lp_gpu_committed": used, "checkpoint_interval_sec": checkpoint_interval,
              "hp_arrivals_in_window": len(arrivals),
              "victim_candidates_not_selected": len(victims)-len(lp_kept),
-             "source": "subset of runs/hetero8d_20261101/inputs/jobs_F.csv, values unmodified"}
+             "source": "subset of 场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv, values unmodified"}
     return pool, selected, stats
 
 
@@ -111,7 +111,7 @@ def main():
     parser.add_argument("--checkpoint-interval", type=float, default=3600.)
     parser.add_argument("--max-tasks", type=int, default=200)
     parser.add_argument("--hp-after-hours", type=float, default=2.)
-    parser.add_argument("--output", type=Path, default=ROOT / "runs/spotgpu_demo_20261121")
+    parser.add_argument("--output", type=Path, default=ROOT / "场景/04_演示场景/spotgpu_demo_20261121")
     args = parser.parse_args()
 
     nodes, jobs, stats = build(args.nodes, args.checkpoint_interval, args.max_tasks, args.hp_after_hours)

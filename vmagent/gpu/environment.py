@@ -100,7 +100,7 @@ class GpuSchedEnv(LedgerMixin, QueueMixin, ClockMixin, PlacementMixin, Preemptio
         self.nodes, self.tasks = list(nodes), list(tasks)
         # pod_id -> server_id for tasks that are already running at t=0. Absent means
         # the engine places everything itself, which is the behaviour every scenario in
-        # runs/ depends on.
+        # 场景/ depends on.
         self.initial_placement = dict(initial_placement or {})
         self.cpu_only_demands = sorted({task.cpu for task in self.tasks if task.gpu == 0})
         self.cpu_demand_index = {demand: index for index, demand in enumerate(self.cpu_only_demands)}

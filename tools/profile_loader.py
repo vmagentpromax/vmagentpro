@@ -36,7 +36,7 @@ def timed(label, fn):
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--tasks", type=Path, default=REPO/"runs/hetero8d_20261101/inputs/jobs_F.csv")
+    parser.add_argument("--tasks", type=Path, default=REPO/"场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv")
     parser.add_argument("--repeat", type=int, default=3)
     args = parser.parse_args()
 

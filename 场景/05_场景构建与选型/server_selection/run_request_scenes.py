@@ -136,7 +136,7 @@ def evaluate(source=OUT, output=ROOT / "outputs/gpu/request_scenes", sensitivity
                 # Sum(service)+last arrival is a conservative serial drain bound.
                 data = json.loads(path.read_text(encoding="utf-8"))
                 bound = max(t["submit_time_sec"] for t in data["tasks"])+sum(t["service_sec"] for t in data["tasks"])+1
-                env, meta = make_environment(ROOT / "docs/server_selection/servers_20_H20.csv", path,
+                env, meta = make_environment(ROOT / "场景/05_场景构建与选型/server_selection/servers_20_H20.csv", path,
                     clock="fast", queue_policy="backfill", max_sim_time=bound, seed=int(seq.seed))
                 capacities.add((env.total_gpu, env.total_cpu))
                 summary = env.run(policy)

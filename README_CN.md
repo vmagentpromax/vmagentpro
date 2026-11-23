@@ -13,7 +13,7 @@
 
 - [README.md](README.md)：英文原版说明
 - [README_GPU.md](README_GPU.md)：GPU/CPU 改造的详细中文说明（字段、网页、命令行、验证）
-- [docs/server_selection/README.md](docs/server_selection/README.md)：仓库内置 20 台 H20 与场景数据的来源说明
+- [场景/05_场景构建与选型/server_selection/README.md](场景/05_场景构建与选型/server_selection/README.md)：仓库内置 20 台 H20 与场景数据的来源说明
 
 ---
 
@@ -56,11 +56,12 @@ vmagentpro/
 │  ├─ run.py matrix.py compare.py    命令行入口 / 并行策略矩阵 / 容差对比
 │  ├─ dashboard.py static/   本机网页服务与前端
 │  └─ spotgpu.py             SpotGPU 六个开关的登记表与默认值
-├─ docs/server_selection/    场景构建脚本与选点证据（H20 节点、计时数据、来源审计）
+├─ 场景/                     所有场景数据，按用途分六类；`00_场景索引.md` 是总表
+│  ├─ 01_五场景A_E/  02_主场景F/  03_碎片整理与十场景/
+│  └─ 04_演示场景/  05_场景构建与选型/（含选点证据与构建脚本）  06_核对记录/
 ├─ tools/                    16 个核对与实测脚本（golden、等价性、公式断言、内存实测）
 ├─ tests/                    100 项测试
-├─ runs/                     五组场景：输入 + 归档指标 + README
-└─ experiments/              十场景与抢占实验存档
+└─ experiments/              十场景与抢占实验的构建与跑批脚本
 ```
 
 > **上游那半棵树已经移除**（`schedvis/` 前端、`schedgym/` 的 CPU-NUMA 环境、
@@ -101,8 +102,8 @@ python -m vmagent.gpu.run --clock fast --policy first_fit --output outputs/gpu/A
 
 默认使用：
 
-- 节点：`docs/server_selection/servers_20_H20.csv`（20 台 H20，8 卡/192 核）
-- 任务：`docs/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json`（50 个带时间的 Pod）
+- 节点：`场景/05_场景构建与选型/server_selection/servers_20_H20.csv`（20 台 H20，8 卡/192 核）
+- 任务：`场景/05_场景构建与选型/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json`（50 个带时间的 Pod）
 - 时钟：`realtime`（命令行默认；上面显式改成 `fast` 便于快速检查）
 
 查看全部参数：
@@ -243,7 +244,7 @@ JSON 可以是任务数组，也可以是 `{"tasks": [...], "measurement_window_
 ### 1. 数据位置
 
 ```text
-runs/allpods_20261025/
+场景/01_五场景A_E/allpods_20261025/
 ├─ prepare_inputs.py          场景转换脚本
 ├─ inputs/
 │  ├─ nodes.csv               20 台 H20，8 卡/224 核，共 160 GPU/4,480 核
@@ -266,14 +267,14 @@ runs/allpods_20261025/
 
 ```bash
 python -m vmagent.gpu.run \
-  --nodes runs/allpods_20261025/inputs/nodes.csv \
-  --tasks runs/allpods_20261025/inputs/jobs_A.csv \
+  --nodes 场景/01_五场景A_E/allpods_20261025/inputs/nodes.csv \
+  --tasks 场景/01_五场景A_E/allpods_20261025/inputs/jobs_A.csv \
   --clock fast \
   --policy first_fit \
   --queue-policy backfill \
   --measurement-seconds 21600 \
   --max-sim-time 150000 \
-  --output runs/allpods_20261025/outputs/A-first_fit
+  --output 场景/01_五场景A_E/allpods_20261025/outputs/A-first_fit
 ```
 
 B–E 只需把 `jobs_A.csv` / `A-first_fit` 换成对应场景。
@@ -340,7 +341,7 @@ B–E 只需把 `jobs_A.csv` / `A-first_fit` 换成对应场景。
 看 `tasks.csv` 的 `rejection_reason`。单任务必须能放进一台节点，不能只看 20 台的总容量。
 
 **B–E 能直接跑吗**
-本仓库的 `runs/allpods_20261025/inputs` 已经为五套场景生成好 `submit_time_sec` 和 `service_sec`，可以直接跑。仓库内置的 B–E 原始需求清单没有这两个字段，不能直接运行。
+本仓库的 `场景/01_五场景A_E/allpods_20261025/inputs` 已经为五套场景生成好 `submit_time_sec` 和 `service_sec`，可以直接跑。仓库内置的 B–E 原始需求清单没有这两个字段，不能直接运行。
 
 **为什么 fast 和 realtime 结果略有差异**
 fast 使用精确事件时刻；realtime 包含线程唤醒、调度计算和系统计时粒度，短任务会有毫秒级差异。
@@ -357,15 +358,15 @@ fast 使用精确事件时刻；realtime 包含线程唤醒、调度计算和系
 python -m unittest discover -s tests -p "test_gpu*.py" -v
 
 # 重新生成五场景输入
-python runs/allpods_20261025/prepare_inputs.py
+python 场景/01_五场景A_E/allpods_20261025/prepare_inputs.py
 
 # 运行五场景（示例：A）
 python -m vmagent.gpu.run \
-  --nodes runs/allpods_20261025/inputs/nodes.csv \
-  --tasks runs/allpods_20261025/inputs/jobs_A.csv \
+  --nodes 场景/01_五场景A_E/allpods_20261025/inputs/nodes.csv \
+  --tasks 场景/01_五场景A_E/allpods_20261025/inputs/jobs_A.csv \
   --clock fast --policy first_fit --queue-policy backfill \
   --measurement-seconds 21600 --max-sim-time 150000 \
-  --output runs/allpods_20261025/outputs/A-first_fit
+  --output 场景/01_五场景A_E/allpods_20261025/outputs/A-first_fit
 ```
 
 ---
@@ -389,4 +390,4 @@ python -m vmagent.gpu.run \
 - 初始版本基于 commit：`cb828fdd153afae208558d006acbc59ddb2e64c5`；后续中文文档与前端改版在 `main` 分支。
 - 许可证：MIT（见 [LICENSE](LICENSE)）
 
-本中文 README 由本次部署补充；`runs/allpods_20261025/` 中的 inputs 与转换脚本随仓库提供，outputs 为本地生成、未提交。原始 `README.md`、`README_GPU.md` 和 `docs/server_selection/` 中的说明仍然有效。
+本中文 README 由本次部署补充；`场景/01_五场景A_E/allpods_20261025/` 中的 inputs 与转换脚本随仓库提供，outputs 为本地生成、未提交。原始 `README.md`、`README_GPU.md` 和 `场景/05_场景构建与选型/server_selection/` 中的说明仍然有效。

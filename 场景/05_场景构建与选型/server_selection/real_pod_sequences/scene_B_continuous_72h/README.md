@@ -7,7 +7,7 @@
 ## 窗口、来源与去重
 
 - 窗口：day109/hour00 至 day111/hour23，时长 72 小时。
-- Server：完全沿用 `docs/server_selection/servers_20_H20.csv`，共 20 台，每台 8 GPU、192 CPU 核，总计 160 GPU、3,840 CPU 核。
+- Server：完全沿用 `场景/05_场景构建与选型/server_selection/servers_20_H20.csv`，共 20 台，每台 8 GPU、192 CPU 核，总计 160 GPU、3,840 CPU 核。
 - 从原始 Pod 小时 Parquet 按这 20 个 `server_id` 直接读取全部记录；没有因请求变化、与旧场景重复、观测中断而删除 Pod，也没有修改请求或补入任务。
 - 共 56,154 条 Pod 小时观测、19,774 个唯一 `pod_id`。其中 1,101 个有 GPU 正请求，型号标签全部为 H20；其余为 CPU-only Pod。
 - `unique_pods.csv`、`unique_gpu_pods.csv` 按 `pod_id` 一行一个任务。小时观测文件中同一 Pod 会跨小时出现，这是计算时间积分所需的记录，不表示重复提交任务。
@@ -74,7 +74,7 @@ CPU-only Pod 的部分为 78,976.75 CPU核·小时。全部 Pod 与 GPU Pod 两�
 - `all_pod_hourly_observations.csv` / `.parquet`：原始字段和窗口小时索引，共 56,154 行，用于分段积分及追溯。
 - `hourly_load_proxy.csv`：连续 72 个小时的请求总量和容量比例。
 - `audit.json`：数值结果、节点 ID、请求变化统计与旧场景 ID 交集。
-- 复现脚本：`docs/server_selection/audit_scene_B_continuous.py`，运行 `python docs/server_selection/audit_scene_B_continuous.py`。
+- 复现脚本：`场景/05_场景构建与选型/server_selection/audit_scene_B_continuous.py`，运行 `python 场景/05_场景构建与选型/server_selection/audit_scene_B_continuous.py`。
 
 保留全部任务还会与旧 A/C/D/E 分别重合 1/2/2/3 个 ID，具体 ID 见审计文件。因此当前同时保持“本次连续窗口全部任务”与“五场景全局 ID 无交集”也不可行；本次遵循保留全部任务的最新要求，没有静默剔除。
 

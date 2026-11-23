@@ -14,8 +14,8 @@
 
 # 方式二：命令行跑一次实验
 python -m vmagent.gpu.run --clock fast --policy spotgpu --queue-policy backfill `
-  --nodes runs/hetero8d_20261101/inputs/nodes.csv `
-  --tasks runs/hetero8d_20261101/inputs/jobs_F.csv `
+  --nodes 场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv `
+  --tasks 场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv `
   --measurement-start-seconds 86400 --measurement-seconds 691200 --max-sim-time 4000000 `
   --output outputs/gpu/F_spotgpu_backfill
 ```
@@ -49,7 +49,7 @@ python -m vmagent.gpu.run --clock fast --policy spotgpu --queue-policy backfill 
 python -m pytest tests/ -q                 # 100 项
 python tools/verify_metric_formulas.py     # 47 项：把文档里的公式当断言跑
 python tools/verify_spotgpu_variants.py    # 六开关实现 == 历史手写实现
-python tools/verify_golden_runs.py         # 14 组场景 F 归档结果逐字段复现（约 17 分钟）
+python tools/verify_golden_runs.py         # 14 组场景 F 全部复现：12 组对原归档，2 组 SpotGPU 对修复后参照
 python tools/check_doc_line_references.py --quiet   # 文档行号引用是否还有效
 ```
 

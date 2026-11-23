@@ -25,7 +25,7 @@ def main():
     for scene in (["relative_low", "relative_high"] if args.scene == "all" else [args.scene]):
         for policy in (["first_fit", "best_fit"] if args.policy == "all" else [args.policy]):
             path = DATA / scene / "tasks.json"
-            env, meta = make_environment(ROOT / "docs/server_selection/servers_20_H20.csv", path,
+            env, meta = make_environment(ROOT / "场景/05_场景构建与选型/server_selection/servers_20_H20.csv", path,
                 clock=args.clock, speed=args.speed, queue_policy="backfill", max_sim_time=600, seed=42)
             print(f"Running {scene} / {policy}: {len(env.tasks)} unique Pods", flush=True)
             env.run(policy)
@@ -67,7 +67,7 @@ def main():
                 statistically_stationary_state_claimed=False)
             (folder / "warmup_audit.json").write_text(json.dumps(warmup, indent=2), encoding="utf-8")
             (folder / "measurement_cohort_metrics.json").write_text(json.dumps(row, indent=2), encoding="utf-8")
-            manifest = dict(nodes=str(ROOT / "docs/server_selection/servers_20_H20.csv"), tasks=str(path),
+            manifest = dict(nodes=str(ROOT / "场景/05_场景构建与选型/server_selection/servers_20_H20.csv"), tasks=str(path),
                 policy=policy, clock=args.clock, speed=args.speed, queue_policy="backfill", seed=42,
                 workload_metadata=meta)
             (folder / "run_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")

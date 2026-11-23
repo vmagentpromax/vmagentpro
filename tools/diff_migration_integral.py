@@ -23,7 +23,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-BENCHMARK = REPO / "benchmark任务/三指标数据评测工作文件_20261108/01_场景数据与构建"
+BENCHMARK = REPO / "场景/03_碎片整理与十场景/三指标数据评测工作文件_20261108/01_场景数据与构建"
 
 
 def load_harness():

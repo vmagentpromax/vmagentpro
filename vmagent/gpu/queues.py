@@ -8,7 +8,7 @@ arrived still waiting" is answerable without scanning the queue:
   demand, which is a prefix-minimum query: a segment tree over demand buckets
   (`_cpu_wait_tree`), because scanning every waiting task per decision made the
   ~10^5-deep scenario F queue quadratic. Worst recorded cell: 119,164 waiting
-  tasks, `runs/hetero8d_20261101/metrics/summaries/F-worst_fit-fcfs`; even the
+  tasks, `场景/02_主场景F/hetero8d_20261101/metrics/summaries/F-worst_fit-fcfs`; even the
   best-placed first_fit+fcfs cell reaches 89,127.
 - GPU backfill groups tasks by identical (gpu, cpu, models) demand and keeps a
   cursor per group. A group's blocked head stays blocked while the resources are

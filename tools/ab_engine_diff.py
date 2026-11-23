@@ -33,34 +33,34 @@ POLICIES = ("first_fit", "best_fit", "worst_fit", "random", "spotgpu")
 QUEUES = ("fcfs", "backfill")
 
 SCENES = {
-    "scene_A": (REPO/"docs/server_selection/servers_20_H20.csv",
-                REPO/"docs/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json",
+    "scene_A": (REPO/"场景/05_场景构建与选型/server_selection/servers_20_H20.csv",
+                REPO/"场景/05_场景构建与选型/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json",
                 {"measurement_window": [0., 120.], "max_sim_time": 150000.}),
-    "spotgpu_demo": (REPO/"runs/spotgpu_demo_20261121/inputs/nodes.csv",
-                     REPO/"runs/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv",
+    "spotgpu_demo": (REPO/"场景/04_演示场景/spotgpu_demo_20261121/inputs/nodes.csv",
+                     REPO/"场景/04_演示场景/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv",
                      {"measurement_window": [86400., 129600.], "max_sim_time": 400000.}),
-    "F_mini": (REPO/"runs/hetero8d_20261101/inputs/nodes.csv",
-               REPO/"runs/hetero8d_20261101/inputs/jobs_F.csv",
+    "F_mini": (REPO/"场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv",
+               REPO/"场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv",
                {"measurement_window": [0., 691200.], "max_sim_time": 4000000., "limit": 4000}),
-    "F_full": (REPO/"runs/hetero8d_20261101/inputs/nodes.csv",
-               REPO/"runs/hetero8d_20261101/inputs/jobs_F.csv",
+    "F_full": (REPO/"场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv",
+               REPO/"场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv",
                {"measurement_window": [0., 691200.], "max_sim_time": 4000000.}),
     # The five-scene suite is the only input with CPU-only pods and permanent
     # rejections, so it exercises _cpu_wait_candidate and _rejection_reason, which
     # the GPU-only scenes never reach.
-    "allpods_A": (REPO/"runs/allpods_20261025/inputs/nodes.csv",
-                  REPO/"runs/allpods_20261025/inputs/jobs_A.csv",
+    "allpods_A": (REPO/"场景/01_五场景A_E/allpods_20261025/inputs/nodes.csv",
+                  REPO/"场景/01_五场景A_E/allpods_20261025/inputs/jobs_A.csv",
                   {"measurement_window": [0., 21600.], "max_sim_time": 200000.}),
-    "allpods_C": (REPO/"runs/allpods_20261025/inputs/nodes.csv",
-                  REPO/"runs/allpods_20261025/inputs/jobs_C.csv",
+    "allpods_C": (REPO/"场景/01_五场景A_E/allpods_20261025/inputs/nodes.csv",
+                  REPO/"场景/01_五场景A_E/allpods_20261025/inputs/jobs_C.csv",
                   {"measurement_window": [0., 21600.], "max_sim_time": 200000.}),
-    "allpods_D": (REPO/"runs/allpods_20261025/inputs/nodes.csv",
-                  REPO/"runs/allpods_20261025/inputs/jobs_D.csv",
+    "allpods_D": (REPO/"场景/01_五场景A_E/allpods_20261025/inputs/nodes.csv",
+                  REPO/"场景/01_五场景A_E/allpods_20261025/inputs/jobs_D.csv",
                   {"measurement_window": [0., 21600.], "max_sim_time": 200000.}),
     # A background fraction shrinks every node's usable CPU, which changes both the
     # fit tests and the clamping in release(); it is not covered by any other scene.
-    "allpods_D_bg30": (REPO/"runs/allpods_20261025/inputs/nodes.csv",
-                       REPO/"runs/allpods_20261025/inputs/jobs_D.csv",
+    "allpods_D_bg30": (REPO/"场景/01_五场景A_E/allpods_20261025/inputs/nodes.csv",
+                       REPO/"场景/01_五场景A_E/allpods_20261025/inputs/jobs_D.csv",
                        {"measurement_window": [0., 21600.], "max_sim_time": 200000.,
                         "cpu_background_fraction": 0.3}),
 }

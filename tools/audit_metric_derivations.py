@@ -5,7 +5,7 @@ measurement that decided how: the same quantity, computed from the same run by f
 different pieces of code, does not come out the same.
 
 A. `legacy_rederivation` - a transcription of what
-   `docs/server_selection/run_request_scenes.py:metrics()` did until this audit fixed
+   `场景/05_场景构建与选型/server_selection/run_request_scenes.py:metrics()` did until this audit fixed
    it. It rebuilds per-node free capacity from `records[pid]["server_id"]` for
    everything in its reconstructed `running` set. Two silent assumptions: a task never
    changes node, and an evicted task stops running. Preemption breaks both - it
@@ -33,21 +33,21 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
-sys.path.insert(0, str(REPO / "docs/server_selection"))
+sys.path.insert(0, str(REPO / "场景/05_场景构建与选型/server_selection"))
 
 from vmagent.gpu.contract import load_nodes, load_workload
 from vmagent.gpu.environment import GpuSchedEnv
 from vmagent.gpu.metrics import integrate_events, run_segments
 
 SCENES = {
-    "scene_A": (REPO/"docs/server_selection/servers_20_H20.csv",
-                REPO/"docs/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json",
+    "scene_A": (REPO/"场景/05_场景构建与选型/server_selection/servers_20_H20.csv",
+                REPO/"场景/05_场景构建与选型/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json",
                 {"measurement_window": [0., 120.], "max_sim_time": 150000.}),
-    "spotgpu_demo": (REPO/"runs/spotgpu_demo_20261121/inputs/nodes.csv",
-                     REPO/"runs/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv",
+    "spotgpu_demo": (REPO/"场景/04_演示场景/spotgpu_demo_20261121/inputs/nodes.csv",
+                     REPO/"场景/04_演示场景/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv",
                      {"measurement_window": [86400., 129600.], "max_sim_time": 400000.}),
-    "F_slice_8k": (REPO/"runs/hetero8d_20261101/inputs/nodes.csv",
-                    REPO/"runs/hetero8d_20261101/inputs/jobs_F.csv",
+    "F_slice_8k": (REPO/"场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv",
+                    REPO/"场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv",
                     {"measurement_window": [0., 691200.], "max_sim_time": 4000000., "limit": 8000}),
 }
 

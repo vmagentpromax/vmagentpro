@@ -95,7 +95,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--candidates", type=Path,
-                        default=REPO/"benchmark任务/三指标数据评测工作文件_20261108/01_场景数据与构建/candidates")
+                        default=REPO/"场景/03_碎片整理与十场景/三指标数据评测工作文件_20261108/01_场景数据与构建/candidates")
     parser.add_argument("--converted", type=Path, default=REPO/"outputs/benchmark_csv")
     parser.add_argument("--instance", default=None, help="only this S directory, e.g. S1")
     parser.add_argument("--output", type=Path, default=REPO/"outputs/benchmark_main_engine")
@@ -133,7 +133,7 @@ def main():
                             "per task; hers re-classifies the whole queue at every event",
             "expected_divergence": "best_fit rows differ from the archived table because the "
                                    "two engines' best_fit are different algorithms; see "
-                                   "runs/benchmark_s1s4_20261122/README.md section 4",
+                                   "场景/03_碎片整理与十场景/benchmark_s1s4_20261122/README.md section 4",
         }, ensure_ascii=False, indent=2), encoding="utf-8")
         print("[ok] %-40s %d cells in %5.1fs" % (instance.parent.name+"/"+instance.name,
                                                  len(rows), time.monotonic()-started))

@@ -70,7 +70,7 @@ GPU 任务受机型约束，只能放到 `allowed_gpu_types` / `gpu_spec_public`
 ## 2. 目录内容
 
 ```text
-runs/hetero8d_20261101/
+场景/02_主场景F/hetero8d_20261101/
 ├── README.md                          本文
 ├── inputs/
 │   ├── nodes.csv              2,417 B   30 台，引擎格式（server_id,cluster_id,gpu_spec_public,gpu_count,cpu_capacity_cores）
@@ -91,11 +91,11 @@ pod_id, gpu_spec_public, gpu_request, cpu_request_cores, submit_time_sec,
 service_sec, cluster_id, duration_match_status, job_type_public, priority_class
 ```
 
-**该表头与 `runs/allpods_20261025/inputs/jobs_A.csv` 逐字相同**，`nodes.csv` 表头也与 `runs/allpods_20261025/inputs/nodes.csv` 逐字相同——两套场景输入是同一格式，可共用加载与评价代码。
+**该表头与 `场景/01_五场景A_E/allpods_20261025/inputs/jobs_A.csv` 逐字相同**，`nodes.csv` 表头也与 `场景/01_五场景A_E/allpods_20261025/inputs/nodes.csv` 逐字相同——两套场景输入是同一格式，可共用加载与评价代码。
 
 ### 关于 sha256 核对（跨平台必读）
 
-本机 `core.autocrlf=true`，所以**工作副本是 CRLF，而 git blob 里存的是归一化后的 LF**。`metrics/provenance.json` 的 `input_sha256` 记录的是**工作副本（CRLF）**口径——这与仓库既有的 `runs/allpods_20261025/metrics/provenance.json` 口径一致（我核对过，那份记录的三个哈希全部匹配工作副本而非 blob）。
+本机 `core.autocrlf=true`，所以**工作副本是 CRLF，而 git blob 里存的是归一化后的 LF**。`metrics/provenance.json` 的 `input_sha256` 记录的是**工作副本（CRLF）**口径——这与仓库既有的 `场景/01_五场景A_E/allpods_20261025/metrics/provenance.json` 口径一致（我核对过，那份记录的三个哈希全部匹配工作副本而非 blob）。
 
 后果：在 Linux/macOS 上 clone，或在 Windows 上把 `core.autocrlf` 设为 `input`/`false` 时检出，得到的是 LF 版本，`sha256_working_copy_crlf` **不会匹配**。这不是数据损坏。`provenance.json` 的 `hash_convention.files` 段为每个输入同时记录了两种哈希：
 
@@ -123,13 +123,13 @@ service_sec, cluster_id, duration_match_status, job_type_public, priority_class
 
 | 节点表 | cluster_id | 构成 | 每台核数 | 总 GPU | 总 CPU 核 |
 |---|---|---|---:|---:|---:|
-| `docs/server_selection/servers_20_H20.csv` | `1f28e063...` | 20 × H20 | **192** | 160 | **3,840** |
-| `runs/allpods_20261025/inputs/nodes.csv` | `9089d80b...` | 20 × H20 | **224** | 160 | **4,480** |
-| `runs/hetero8d_20261101/inputs/nodes.csv`（场景 F） | `1f28e063...` | 20 × XPU-A + 10 × H20 | 192 | **240** | **5,760** |
+| `场景/05_场景构建与选型/server_selection/servers_20_H20.csv` | `1f28e063...` | 20 × H20 | **192** | 160 | **3,840** |
+| `场景/01_五场景A_E/allpods_20261025/inputs/nodes.csv` | `9089d80b...` | 20 × H20 | **224** | 160 | **4,480** |
+| `场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv`（场景 F） | `1f28e063...` | 20 × XPU-A + 10 × H20 | 192 | **240** | **5,760** |
 
-前两行**都是"20 台 H20、160 GPU"，但 cluster 不同、每台核数不同（192 vs 224）、总 CPU 容量差 640 核**。这不是笔误，是两个不同的节点池：前者来自 `docs/server_selection/` 的首轮选型（论文 §3.3 举例的 8-GPU H20 / 192 核），后者来自五场景（allpods）工作，`conversion_manifest.json` 里记的是 `capacity_cpu: 4480`。
+前两行**都是"20 台 H20、160 GPU"，但 cluster 不同、每台核数不同（192 vs 224）、总 CPU 容量差 640 核**。这不是笔误，是两个不同的节点池：前者来自 `场景/05_场景构建与选型/server_selection/` 的首轮选型（论文 §3.3 举例的 8-GPU H20 / 192 核），后者来自五场景（allpods）工作，`conversion_manifest.json` 里记的是 `capacity_cpu: 4480`。
 
-**这是脆弱性，不是已发生的错误。** 逐个脚本核对后确认当前结果都正确：`docs/server_selection/run_request_scenes.py:113` 读的正是 `servers_20_H20.csv`（192 核 / 3,840），与它 `:123`/`:125` 写死的 `160`/`3840` 匹配；`runs/allpods_20261025/metrics/reproduce_metrics.py:67` 与 `experiments/preemption_20261107/harness.py:164` 都用 `env.total_gpu` 动态取，写法本来就正确。**本场景 F 的指标不受影响**——`summary.json` 里 `gpu_capacity 240.0 / cpu_capacity_cores 5760.0`，四个比率全按本目录 `inputs/nodes.csv` 的实际容量计算。
+**这是脆弱性，不是已发生的错误。** 逐个脚本核对后确认当前结果都正确：`场景/05_场景构建与选型/server_selection/run_request_scenes.py:113` 读的正是 `servers_20_H20.csv`（192 核 / 3,840），与它 `:123`/`:125` 写死的 `160`/`3840` 匹配；`场景/01_五场景A_E/allpods_20261025/metrics/reproduce_metrics.py:67` 与 `experiments/preemption_20261107/harness.py:164` 都用 `env.total_gpu` 动态取，写法本来就正确。**本场景 F 的指标不受影响**——`summary.json` 里 `gpu_capacity 240.0 / cpu_capacity_cores 5760.0`，四个比率全按本目录 `inputs/nodes.csv` 的实际容量计算。
 
 风险只在于：`run_request_scenes.py` 是三者里唯一把容量写成字面量的，**一旦有人把它的输入换成上表另外两个池之一，那两条断言会静默给出错误数字或直接误报失败**，而且不会有人注意到。
 
@@ -156,15 +156,15 @@ service_sec, cluster_id, duration_match_status, job_type_public, priority_class
 # 单组：First Fit + FCFS（约 42 秒）
 python -m vmagent.gpu.run --clock fast --seed 42 --policy first_fit --queue-policy fcfs ^
   --measurement-seconds 691200 --max-sim-time 4000000 --cpu-background-fraction 0 ^
-  --nodes runs/hetero8d_20261101/inputs/nodes.csv ^
-  --tasks runs/hetero8d_20261101/inputs/jobs_F.csv ^
+  --nodes 场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv ^
+  --tasks 场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv ^
   --output outputs/hetero8d/F-first_fit-fcfs
 
 # SpotGPU 抢占（checkpoint 间隔 3600 秒）
 python -m vmagent.gpu.run --clock fast --seed 42 --policy spotgpu --queue-policy fcfs ^
   --checkpoint-interval 3600 --measurement-seconds 691200 --max-sim-time 4000000 ^
-  --nodes runs/hetero8d_20261101/inputs/nodes.csv ^
-  --tasks runs/hetero8d_20261101/inputs/jobs_F.csv ^
+  --nodes 场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv ^
+  --tasks 场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv ^
   --output outputs/hetero8d/F-spotgpu-fcfs
 ```
 
@@ -232,8 +232,8 @@ python -m vmagent.gpu.run --clock fast --seed 42 --policy spotgpu --queue-policy
 python tools/verify_golden_runs.py --only spotgpu   # 会报 DIFF，DIFF 就是当前正确值
 python -m vmagent.gpu.run --clock fast --seed 42 --policy spotgpu --queue-policy fcfs ^
   --measurement-seconds 691200 --max-sim-time 4000000 --checkpoint-interval 3600 ^
-  --nodes runs/hetero8d_20261101/inputs/nodes.csv ^
-  --tasks runs/hetero8d_20261101/inputs/jobs_F.csv --output outputs/gpu/F-spotgpu-fcfs
+  --nodes 场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv ^
+  --tasks 场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv --output outputs/gpu/F-spotgpu-fcfs
 ```
 
 ### 收录后的复现校验（2026-11-12，本机实测）
@@ -278,7 +278,7 @@ python -m vmagent.gpu.run --clock fast --seed 42 --policy spotgpu --queue-policy
 
 | 文件 | 入库 | 说明 |
 |---|---|---|
-| `truth/pod_hourly_observed.parquet` | 否（`.gitignore` 忽略 `runs/*/truth/*.parquet`） | 403,983 行 × 17 列，15,898,863 B；可由脚本从 D 盘重建，约 25 分钟 |
+| `truth/pod_hourly_observed.parquet` | 否（`.gitignore` 忽略 `场景/*/*/truth/*.parquet`） | 403,983 行 × 17 列，15,898,863 B；可由脚本从 D 盘重建，约 25 分钟 |
 | `truth/extraction_summary.json` | **是** | 行数、扫描量、分位数、覆盖率——文档引用的数字以它为准 |
 | `truth/replay_delay_calibration.json` | **是** | 仿真 `wait_sec` vs trace `schedule_delay_sec` 的分位数对比 |
 
@@ -314,16 +314,16 @@ trace 的 24 h 截断上限，未截断中位数 **230,428 s（2.7 天）**，FC
 ```bash
 # 1) 取回观测层（需要 D 盘 + pandas/pyarrow，约 25 分钟）
 C:/Users/trw/anaconda3/python.exe tools/extract_scene_truth_from_trace.py ^
-  --nodes runs/hetero8d_20261101/inputs/nodes.csv --start-day 108 --last-hour 23 --end-day 116
+  --nodes 场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv --start-day 108 --last-hour 23 --end-day 116
 
 # 2) 仿真 vs 实测的延迟对比（三个策略各跑一次全量，约 30 分钟）
 C:/Users/trw/anaconda3/python.exe tools/calibrate_replay_delay.py ^
-  --out runs/hetero8d_20261101/truth/replay_delay_calibration.json
+  --out 场景/02_主场景F/hetero8d_20261101/truth/replay_delay_calibration.json
 ```
 
 **已知缺口（三条，都不要掩盖）：**
 
-1. **转换脚本未保留。** raw 层 → `sim_inputs/` 层的转换脚本在 D 盘不存在（`ls *.py` 为空）。对照 `runs/allpods_20261025/prepare_inputs.py` 的做法，这一步本应有脚本入库。因此 `jobs_F.csv` 目前**不能从 raw 层自动重建**，只能靠 sha256 核对身份。
+1. **转换脚本未保留。** raw 层 → `sim_inputs/` 层的转换脚本在 D 盘不存在（`ls *.py` 为空）。对照 `场景/01_五场景A_E/allpods_20261025/prepare_inputs.py` 的做法，这一步本应有脚本入库。因此 `jobs_F.csv` 目前**不能从 raw 层自动重建**，只能靠 sha256 核对身份。
 2. **`allowed_gpu_types` 在转换中丢失。** raw 层用的是引擎推荐的 `allowed_gpu_types`（JSON 数组，见 `异构场景支持修改说明.md:150`），引擎格式却退回单机型字符串 `gpu_spec_public`。CPU-only 行在 raw 层是 `[]`，转换后成为字符串 `"[]"`（实测 113,585 行取值为字面量 `[]`）。功能上等价，但**丢失了"一个任务允许多种机型"的表达能力**。
 3. **`outputs/` 明细只在 D 盘单机。** 1.2 GB 运行明细无备份、无版本控制。`metrics/summaries/` 里的 14 组 `summary.json` 是本次收录后仓库内唯一的数值留存。
 

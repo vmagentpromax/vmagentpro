@@ -63,10 +63,10 @@ FirstFit / BestFit / WorstFit 共 **1,080 轮**；各条件共用30个种子。�
 在仓库根目录执行（Python需numpy/pandas/pyarrow/scipy）：
 
 ```powershell
-python docs/server_selection/rebuild_request_scenes.py --workers 4
-python docs/server_selection/construct_request_scenes.py
-python docs/server_selection/run_request_scenes.py --sensitivity
-python docs/server_selection/write_request_scene_report.py
+python 场景/05_场景构建与选型/server_selection/rebuild_request_scenes.py --workers 4
+python 场景/05_场景构建与选型/server_selection/construct_request_scenes.py
+python 场景/05_场景构建与选型/server_selection/run_request_scenes.py --sensitivity
+python 场景/05_场景构建与选型/server_selection/write_request_scene_report.py
 ```
 
 扫描支持逐日缓存续跑。原始数据不修改。完整方法与指标定义见 [METHOD.md](METHOD.md)；`scan_audit.json`、`window_selection_audit.json`、`selected_windows.json`、`construction_audit.json` 串联保留来源证据。旧 `two_gpu_scenes/relative_low` 与 `relative_high` 仅作历史留存，不再作为本流程的合格高低场景。

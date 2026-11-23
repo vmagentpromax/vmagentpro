@@ -32,5 +32,5 @@
 从仓库根目录运行：
 
 ```powershell
-python runs/allpods_20261025/metrics/reproduce_metrics.py
+python 场景/01_五场景A_E/allpods_20261025/metrics/reproduce_metrics.py
 ```

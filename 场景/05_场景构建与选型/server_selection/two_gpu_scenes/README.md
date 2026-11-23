@@ -4,7 +4,7 @@
 
 ## 1. 已完成的内容
 
-沿用 `docs/server_selection/servers_20_H20.csv` 的原 20 台 H20，容量始终为 **160 GPU、3,840 CPU 核**。两组都保留所选节点在连续预热段、正式测量段出现的全部唯一 Pod，包括 CPU-only Pod；没有为了凑比例删除任务。
+沿用 `场景/05_场景构建与选型/server_selection/servers_20_H20.csv` 的原 20 台 H20，容量始终为 **160 GPU、3,840 CPU 核**。两组都保留所选节点在连续预热段、正式测量段出现的全部唯一 Pod，包括 CPU-only Pod；没有为了凑比例删除任务。
 
 - **相对低 `relative_low`**：正式窗口 day167/00～23；源 GPU 资源时间占比 **93.3671%**。24,171 个 Pod，其中预热任务 4,478 个、正式窗口新增 19,693 个，GPU 正请求任务 543 个。
 - **相对高 `relative_high`**：正式窗口 day110/00～23；源 GPU 资源时间占比 **99.2957%**。4,307 个 Pod，其中预热任务 613 个、正式窗口新增 3,694 个，GPU 正请求任务 638 个。
@@ -51,14 +51,14 @@ PowerShell 在仓库根目录执行。运行器只依赖 Python 标准库；重�
 cd 'D:\一般文件\VMAgent'
 
 # 两组 × FirstFit、BestFit，共4轮；默认快速事件模式
-python docs/server_selection/run_two_gpu_scenes.py
+python 场景/05_场景构建与选型/server_selection/run_two_gpu_scenes.py
 
 # 只运行一轮
-python docs/server_selection/run_two_gpu_scenes.py --scene relative_low --policy best_fit
-python docs/server_selection/run_two_gpu_scenes.py --scene relative_high --policy first_fit
+python 场景/05_场景构建与选型/server_selection/run_two_gpu_scenes.py --scene relative_low --policy best_fit
+python 场景/05_场景构建与选型/server_selection/run_two_gpu_scenes.py --scene relative_high --policy first_fit
 
 # 需要观看较快实时回放时：speed=2将回放墙钟再加快2倍
-python docs/server_selection/run_two_gpu_scenes.py --scene relative_high --policy first_fit --clock realtime --speed 2
+python 场景/05_场景构建与选型/server_selection/run_two_gpu_scenes.py --scene relative_high --policy first_fit --clock realtime --speed 2
 ```
 
 FirstFit 选第一个同时满足 GPU/CPU 容量的节点；BestFit 在可放节点中最小化 `(剩余GPU/节点GPU容量)+(剩余CPU/节点CPU容量)`，相同时按节点顺序选。两者均用 backfill 队列、相同输入和预热规则，其他配置相同。
@@ -93,7 +93,7 @@ python -m vmagent.gpu.dashboard --port 8766
 
 ```powershell
 # 从原始Parquet生成（有缓存时复用本地提取结果）
-python docs/server_selection/prepare_two_gpu_scenes.py
+python 场景/05_场景构建与选型/server_selection/prepare_two_gpu_scenes.py
 
 # 环境与HTTP接口检查
 python -m unittest discover -s tests -p 'test_gpu*.py' -v

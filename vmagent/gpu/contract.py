@@ -22,8 +22,8 @@ from pathlib import Path
 
 EPS = 1e-9
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_NODES = ROOT / "docs/server_selection/servers_20_H20.csv"
-DEFAULT_TASKS = ROOT / "docs/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json"
+DEFAULT_NODES = ROOT / "场景/05_场景构建与选型/server_selection/servers_20_H20.csv"
+DEFAULT_TASKS = ROOT / "场景/05_场景构建与选型/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json"
 
 
 def number(value, name, positive=False):

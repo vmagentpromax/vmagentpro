@@ -13,7 +13,7 @@ DAY = 86400
 P0_WARMUP_SEC = 3600
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Scene F inputs are versioned in the repository; override VMAGENTPRO_SCENE_F to read elsewhere.
-SOURCE = Path(os.environ.get('VMAGENTPRO_SCENE_F', REPO_ROOT / 'runs/hetero8d_20261101/inputs'))
+SOURCE = Path(os.environ.get('VMAGENTPRO_SCENE_F', REPO_ROOT / '场景/02_主场景F/hetero8d_20261101/inputs'))
 # Derived scenarios are regenerable outputs, so they stay out of version control (/outputs/gpu/ is gitignored).
 DEFAULT_OUT = Path(os.environ.get('VMAGENTPRO_PREEMPTION_OUT', REPO_ROOT / 'outputs/gpu/preemption_20261107'))
 

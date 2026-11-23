@@ -2,7 +2,7 @@
 
 Scenario A has no priority_class at all, so the preemption path never fires there;
 scenario F does, but at 119,495 tasks it is not something a visitor clicks first.
-runs/spotgpu_demo_20261121 is the small scene that shows the feature, and these
+场景/04_演示场景/spotgpu_demo_20261121 is the small scene that shows the feature, and these
 tests pin the contrast that makes it worth having: same data, no preemption
 without the SpotGPU policy and real preemption with it.
 """
@@ -15,7 +15,7 @@ from vmagent.gpu.dashboard import BUILTIN_DATASETS
 from vmagent.gpu.environment import GpuSchedEnv, ROOT, load_nodes, load_workload
 from vmagent.gpu.run import make_environment
 
-DEMO = ROOT / "runs/spotgpu_demo_20261121/inputs"
+DEMO = ROOT / "场景/04_演示场景/spotgpu_demo_20261121/inputs"
 NODES = DEMO / "nodes.csv"
 TASKS = DEMO / "jobs_spotgpu_demo.csv"
 # The window and cap used by the reproduction commands in the scene README. These

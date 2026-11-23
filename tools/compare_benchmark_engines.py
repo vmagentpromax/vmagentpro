@@ -10,7 +10,7 @@ defragmentation semantics in a9eb231, and the residual that made 31 of the 112
 migration cells disagree was located with tools/diff_migration_integral.py and fixed
 in 87b9f2a. `first_fit` now agrees on 112/112 cells with zero field differences.
 `best_fit` does not, because the two engines' "best fit" are different algorithms
-(runs/benchmark_s1s4_20261122/README.md section 4): 112 cells, 29 identical, 83 differing.
+(场景/03_碎片整理与十场景/benchmark_s1s4_20261122/README.md section 4): 112 cells, 29 identical, 83 differing.
 
 The default is `--placements first_fit`, so a plain run is the regression check and
 returns 0. The best_fit divergence is a measurement, not a failure to fix, and reproducing
@@ -157,7 +157,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", type=Path,
-                        default=REPO/"benchmark任务/三指标数据评测工作文件_20261108/01_场景数据与构建/candidates")
+                        default=REPO/"场景/03_碎片整理与十场景/三指标数据评测工作文件_20261108/01_场景数据与构建/candidates")
     parser.add_argument("--converted", type=Path, default=REPO/"outputs/benchmark_csv")
     parser.add_argument("--rel-tol", type=float, default=REL_TOL)
     parser.add_argument("--placements", default="first_fit",

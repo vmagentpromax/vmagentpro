@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 from vmagent.gpu.run import make_environment
 
 HERE = Path(__file__).resolve().parent
-INPUTS = ROOT / 'runs/allpods_20261025/inputs'
+INPUTS = ROOT / '场景/01_五场景A_E/allpods_20261025/inputs'
 OUT = HERE / 'reproduced_runs'
 
 

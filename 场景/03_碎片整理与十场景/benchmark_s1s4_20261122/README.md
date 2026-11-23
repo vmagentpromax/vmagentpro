@@ -3,7 +3,7 @@
 时间：2026-11-22
 转换器：`tools/convert_benchmark_instances.py`
 跨引擎核对：`tools/compare_benchmark_engines.py`
-对象：`benchmark任务/三指标数据评测工作文件_20261108/01_场景数据与构建/candidates/`（7 组候选 × S1–S4 = 28 个实例）
+对象：`场景/03_碎片整理与十场景/三指标数据评测工作文件_20261108/01_场景数据与构建/candidates/`（7 组候选 × S1–S4 = 28 个实例）
 
 ## 1. 这一节解决什么问题
 
@@ -228,8 +228,8 @@ python -m vmagent.gpu.run --clock fast --policy first_fit --queue-policy backfil
 | `decision_interval_sec=30`（她的引擎每 30 秒决策一次，主引擎事件驱动） | 会影响迁移触发时机 | **仍然是语义差异，但在这些实例上没有产生任何可观测差异**：112 格（含开启迁移的格子）迁移次数、搬运 GPU 数、暂停 GPU·秒全部逐格相同。所以这是一个"潜在差异、实测未触发"，不是"已知偏差" |
 | `migratable` 列被丢弃 | 丢弃不改变现状 | **不再丢弃**。转换器写出该列（`convert_benchmark_instances.py:102`），引擎从 `task.metadata` 读取并解析文本 `"False"`。**注意**：这些实例里所有 Pod 仍是 `migratable=True`（她的 config 里 `all_pods_assumed_migratable`），所以这条修复目前不改变任何数字，它改变的是"引入部分可迁移时必须回头改转换器"这件事 |
 | `asw_id` 全为空，拓扑/熵指标覆盖率 0 | 不能评价拓扑感知策略 | **仍然成立**，未变 |
-| 她的 `engine.py` 本体 | 归档在 `benchmark任务/…` | **仍未处置**，删除需要她签字。但"删了会丢能力"这个理由已经不成立：`tools/benchmark_runner.py` 能在 her 的表头、her 的列序上产出 first_fit 112 格 0 差异、best_fit 83 格有差异（差异来源是两套 best_fit 定义不同，见第 4 节，不是能力缺失） |
+| 她的 `engine.py` 本体 | 归档在 `场景/03_碎片整理与十场景/…` | **仍未处置**，删除需要她签字。但"删了会丢能力"这个理由已经不成立：`tools/benchmark_runner.py` 能在 her 的表头、her 的列序上产出 first_fit 112 格 0 差异、best_fit 83 格有差异（差异来源是两套 best_fit 定义不同，见第 4 节，不是能力缺失） |
 
 一句话结论：**能力差异已经清零，剩下的全是"定义还没统一"和"数字对不对得上"两类。**
-前者是 best_fit 的权威定义（需她定），后者是 `runs/old_gpu_only_20261025/` 与十场景表这类
+前者是 best_fit 的权威定义（需她定），后者是 `场景/01_五场景A_E/old_gpu_only_20261025/` 与十场景表这类
 已汇报数字是否要用主引擎重出（需你点头）。

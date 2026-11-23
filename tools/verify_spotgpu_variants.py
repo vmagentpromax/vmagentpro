@@ -59,8 +59,8 @@ def diff(a, b, path=""):
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--nodes", type=Path, default=REPO/"runs/hetero8d_20261101/inputs/nodes.csv")
-    parser.add_argument("--tasks", type=Path, default=REPO/"runs/hetero8d_20261101/inputs/jobs_F.csv")
+    parser.add_argument("--nodes", type=Path, default=REPO/"场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv")
+    parser.add_argument("--tasks", type=Path, default=REPO/"场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv")
     parser.add_argument("--limit", type=int, default=40000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--variant", action="append", default=None)

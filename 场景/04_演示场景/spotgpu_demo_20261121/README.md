@@ -2,7 +2,7 @@
 
 生成时间：2026-11-21
 构建脚本：`experiments/spotgpu_demo/build_demo_scene.py`
-数据来源：`runs/hetero8d_20261101/inputs/jobs_F.csv` 的**子集**，所有字段值未经修改
+数据来源：`场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv` 的**子集**，所有字段值未经修改
 
 ## 这个场景解决什么问题
 
@@ -78,8 +78,8 @@ import sys; sys.path.insert(0,'.')
 from vmagent.gpu.contract import load_nodes, load_workload
 from vmagent.gpu.environment import GpuSchedEnv
 from vmagent.gpu.spotgpu import VARIANTS
-n=load_nodes('runs/spotgpu_demo_20261121/inputs/nodes.csv')
-t=load_workload('runs/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv')[0]
+n=load_nodes('场景/04_演示场景/spotgpu_demo_20261121/inputs/nodes.csv')
+t=load_workload('场景/04_演示场景/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv')[0]
 for name in sorted(VARIANTS):
     e=GpuSchedEnv(n,list(t),clock='fast',queue_policy='backfill',seed=42,
                   measurement_window=[86400.,129600.],max_sim_time=400000.,spotgpu=VARIANTS[name])
@@ -99,16 +99,16 @@ python tools/verify_spotgpu_variants.py --limit 40000
 python -m vmagent.gpu.run --clock fast --seed 42 --policy first_fit --queue-policy backfill ^
   --measurement-start-seconds 86400 --measurement-seconds 43200 ^
   --max-sim-time 400000 --checkpoint-interval 3600 ^
-  --nodes runs/spotgpu_demo_20261121/inputs/nodes.csv ^
-  --tasks runs/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv ^
+  --nodes 场景/04_演示场景/spotgpu_demo_20261121/inputs/nodes.csv ^
+  --tasks 场景/04_演示场景/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv ^
   --output outputs/gpu/demo-first_fit
 
 # 抢占（HP 立刻插入，LP 被驱逐后按 checkpoint 恢复）
 python -m vmagent.gpu.run --clock fast --seed 42 --policy spotgpu --queue-policy backfill ^
   --measurement-start-seconds 86400 --measurement-seconds 43200 ^
   --max-sim-time 400000 --checkpoint-interval 3600 ^
-  --nodes runs/spotgpu_demo_20261121/inputs/nodes.csv ^
-  --tasks runs/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv ^
+  --nodes 场景/04_演示场景/spotgpu_demo_20261121/inputs/nodes.csv ^
+  --tasks 场景/04_演示场景/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv ^
   --output outputs/gpu/demo-spotgpu
 ```
 
@@ -125,7 +125,7 @@ python experiments/spotgpu_demo/build_demo_scene.py --nodes 3 --hp-after-hours 2
 ## 文件
 
 ```text
-runs/spotgpu_demo_20261121/
+场景/04_演示场景/spotgpu_demo_20261121/
 ├── README.md                              本文
 └── inputs/
     ├── nodes.csv                          3 台 XPU-A

@@ -1,6 +1,6 @@
 # VMAgent H20 / CPU 调度版：修改步骤与详细使用说明
 
-新增两组连续窗口及预热实验：见 [两个GPU场景跑通说明](docs/server_selection/two_gpu_scenes/README.md)。支持原20台节点上的 FirstFit / BestFit；网页现可设置非零测量开始时间，并在上传 JSON 时读取其测量窗口。
+新增两组连续窗口及预热实验：见 [两个GPU场景跑通说明](场景/05_场景构建与选型/server_selection/two_gpu_scenes/README.md)。支持原20台节点上的 FirstFit / BestFit；网页现可设置非零测量开始时间，并在上传 JSON 时读取其测量窗口。
 
 这版接入了已选的 20 台 H20 服务器和场景 A 的 50 个 Pod，支持按提交时间到达、按 CPU/GPU 需求放置、等待资源、按服务时间完成并释放资源。提供命令行和本地网页两种入口；网页可以上传数据、查看运行过程和下载结果。
 
@@ -128,8 +128,8 @@ python -m vmagent.gpu.dashboard --port 8766
 内置数据实际路径：
 
 ```text
-docs/server_selection/servers_20_H20.csv
-docs/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json
+场景/05_场景构建与选型/server_selection/servers_20_H20.csv
+场景/05_场景构建与选型/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.json
 ```
 
 ### 3.3 仓库自带的另外两组数据（不用手动选文件）
@@ -138,14 +138,14 @@ docs/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.js
 
 | 按钮 | 数据 | 规模 | 用途 |
 |---|---|---|---|
-| SpotGPU 抢占演示数据 | `runs/spotgpu_demo_20261121/inputs/` | 3 台 XPU-A（24 GPU）· 29 个 Pod | 看 HP 驱逐 LP。策略自动设为 SpotGPU，测量窗自动从 86,400 秒起（这批 Pod 都在 87,000 秒后才到达），几毫秒跑完 |
-| 异构 8 天场景 F 数据 | `runs/hetero8d_20261101/inputs/` | 30 台 XPU-A+H20（240 GPU）· 119,495 个 Pod | 最接近真实负载的评测场景，导入约 2 秒、单组 25–280 秒 |
+| SpotGPU 抢占演示数据 | `场景/04_演示场景/spotgpu_demo_20261121/inputs/` | 3 台 XPU-A（24 GPU）· 29 个 Pod | 看 HP 驱逐 LP。策略自动设为 SpotGPU，测量窗自动从 86,400 秒起（这批 Pod 都在 87,000 秒后才到达），几毫秒跑完 |
+| 异构 8 天场景 F 数据 | `场景/02_主场景F/hetero8d_20261101/inputs/` | 30 台 XPU-A+H20（240 GPU）· 119,495 个 Pod | 最接近真实负载的评测场景，导入约 2 秒、单组 25–280 秒 |
 
 “只设 8 天参数（不加载数据）”是纯参数预设，只改测量窗与上限，不动已选数据——上传自己的同规模数据时用得上。
 
 命令行也有对应开关：`--measurement-seconds` 只给长度，起点默认 0；起点非 0 时再加 `--measurement-start-seconds`。
 
-抢占演示的对比做法：先用默认参数跑一次（策略 SpotGPU，事件表出现“抢占驱逐”，汇总里 `preemptions` 为 5），再把策略换成 First Fit 重跑（`preemptions` 为 0，HP 最大等待从 0 秒变成约 8,352 秒）。同一份数据，差别只在要不要抢占。场景构造规则与被否决的两种选法见 `runs/spotgpu_demo_20261121/README.md`。
+抢占演示的对比做法：先用默认参数跑一次（策略 SpotGPU，事件表出现“抢占驱逐”，汇总里 `preemptions` 为 5），再把策略换成 First Fit 重跑（`preemptions` 为 0，HP 最大等待从 0 秒变成约 8,352 秒）。同一份数据，差别只在要不要抢占。场景构造规则与被否决的两种选法见 `场景/04_演示场景/spotgpu_demo_20261121/README.md`。
 
 新增一组内置数据只需要在 `BUILTIN_DATASETS` 里加一项；`tests/test_spotgpu_demo_scene.py` 会检查每条路径是否还在，避免留下失效按钮。
 
@@ -158,14 +158,14 @@ docs/server_selection/real_pod_sequences/scene_A_timing/scene_A_50_pods_timed.js
 服务器选择：
 
 ```text
-docs\server_selection\servers_20_H20.csv
+场景\05_场景构建与选型\server_selection\servers_20_H20.csv
 ```
 
 任务选择 JSON 或对应的 timed CSV，两者都可以：
 
 ```text
-docs\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.json
-docs\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.csv
+场景\05_场景构建与选型\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.json
+场景\05_场景构建与选型\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.csv
 ```
 
 操作步骤：
@@ -216,7 +216,7 @@ pod_02,H20,2,8,0.3,12.5
 
 50 个 Pod 的 GPU/CPU 需求来自真实记录，执行时长来自真实执行汇总，统一压缩 36,480 倍。24 个 Pod 有多个执行段，采用较长段作为服务时间代理并明确标记；不能宣称精确还原了对应历史执行实例。
 
-到达时间采用均值 0.3 秒的指数间隔，种子 42，是合成仿真输入。环境直接使用文件中已生成的时间，**不再次缩放或随机生成**。详情见 `docs/server_selection/real_pod_sequences/scene_A_timing/README.md`。
+到达时间采用均值 0.3 秒的指数间隔，种子 42，是合成仿真输入。环境直接使用文件中已生成的时间，**不再次缩放或随机生成**。详情见 `场景/05_场景构建与选型/server_selection/real_pod_sequences/scene_A_timing/README.md`。
 
 ## 5. 可视化界面怎么看
 
@@ -282,7 +282,7 @@ python -m vmagent.gpu.run --clock fast --policy best_fit --output outputs/gpu/A-
 指定自己的文件，路径有空格或中文时加引号：
 
 ```powershell
-python -m vmagent.gpu.run --nodes "docs\server_selection\servers_20_H20.csv" --tasks "docs\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.csv" --clock realtime --policy first_fit --output "outputs/gpu/A-csv"
+python -m vmagent.gpu.run --nodes "场景\05_场景构建与选型\server_selection\servers_20_H20.csv" --tasks "场景\05_场景构建与选型\server_selection\real_pod_sequences\scene_A_timing\scene_A_50_pods_timed.csv" --clock realtime --policy first_fit --output "outputs/gpu/A-csv"
 ```
 
 严格 FCFS：
@@ -333,7 +333,7 @@ env.export("outputs/gpu/my-policy")
 | `docs/source/`、`docs/{Makefile,make.bat,requirements.docs.txt}` | 上游 sphinx 文档（讲的就是上面那些） |
 | `conda_env.yml`、`require_sched.txt`、`setup.py` | 上游训练环境依赖清单（`numpy==1.16.5`、`gym==0.10.9` 等）与打包脚本 |
 
-**没有删的**：`LICENSE`、`.gitignore`、`docs/server_selection/`（我们自己的场景构建脚本与数据）；`README.md` 改成本仓库的首页说明。
+**没有删的**：`LICENSE`、`.gitignore`、`场景/05_场景构建与选型/server_selection/`（我们自己的场景构建脚本与数据）；`README.md` 改成本仓库的首页说明。
 
 **这只是一次普通提交，不是历史重写**——111 个文件全在 git 里，随时取回：
 
@@ -384,7 +384,7 @@ python -m vmagent.gpu.run --policy spotgpu --spotgpu-variant paper_cost ... ^
 
 `--migration {none,one_move,cheap_multi,first_multi}` 默认 `none`。四个语义开关
 `--reserve-destination` / `--release-source-when` / `--no-pause-service` / `--no-block-admission`
-的默认值等于合作者 benchmark 引擎的现行为，逐格核对见 `runs/benchmark_s1s4_20261122/README.md`。
+的默认值等于合作者 benchmark 引擎的现行为，逐格核对见 `场景/03_碎片整理与十场景/benchmark_s1s4_20261122/README.md`。
 
 ## 9. 已做的验证和预期结果
 
@@ -398,9 +398,9 @@ python -m unittest discover -s tests -v
 
 `tests/test_spotgpu_demo_scene.py` 把抢占演示钉住：同一份 29 任务数据下 SpotGPU 抢占 5 次、HP 最大等待 0 秒，First Fit 抢占 0 次、HP 最大等待 8,000 秒以上；换策略、改 checkpoint 间隔或把演示数据改坏都会立刻失败。`tests/test_gpu_matrix.py` 校验并行策略矩阵与串行逐字段一致。
 
-`test_request_scenes.py` 用到 numpy 和 pandas（只有 `docs/server_selection/` 的场景构建脚本需要），本机没装时会自动跳过——GPU 引擎与它的其余测试只用标准库。
+`test_request_scenes.py` 用到 numpy 和 pandas（只有 `场景/05_场景构建与选型/server_selection/` 的场景构建脚本需要），本机没装时会自动跳过——GPU 引擎与它的其余测试只用标准库。
 
-**指标口径已经收敛，并且收敛的依据是实测。** 仓库里一度有四段代码各自计算"预留 GPU·秒"：引擎的增量账本、`docs/server_selection/run_request_scenes.py` 的重建、`experiments/preemption_20261107/harness.py` 的区间重建、以及对比工具里的换算。`tools/audit_metric_derivations.py` 在同一批运行上把它们并排跑了一遍，结论是**从 `records[pid]["server_id"]` 反推节点空闲这一种在抢占下会多算**：不抢占时与引擎逐位相同，一旦 SpotGPU 真抢占就多算 10,494.678 GPU·秒（演示场景，+2.5%）和 582,374.015 GPU·秒（场景 F 切片，+0.5%），而且不会报错。原因是抢占会改写 `server_id`，而被驱逐的任务仍留在它重建出的 `running` 集合里。
+**指标口径已经收敛，并且收敛的依据是实测。** 仓库里一度有四段代码各自计算"预留 GPU·秒"：引擎的增量账本、`场景/05_场景构建与选型/server_selection/run_request_scenes.py` 的重建、`experiments/preemption_20261107/harness.py` 的区间重建、以及对比工具里的换算。`tools/audit_metric_derivations.py` 在同一批运行上把它们并排跑了一遍，结论是**从 `records[pid]["server_id"]` 反推节点空闲这一种在抢占下会多算**：不抢占时与引擎逐位相同，一旦 SpotGPU 真抢占就多算 10,494.678 GPU·秒（演示场景，+2.5%）和 582,374.015 GPU·秒（场景 F 切片，+0.5%），而且不会报错。原因是抢占会改写 `server_id`，而被驱逐的任务仍留在它重建出的 `running` 集合里。
 
 因此现在统一走事件流：`vmagent/gpu/metrics.py` 提供 `run_segments()`（按 `start` / `complete` / `preempt` 重建每个 Pod 真正占用资源的区间）和 `integrate_events()`（对 `_record` 在每次状态转移时快照下来的账本总量做时间积分）。`tools/audit_metric_derivations.py` 的四张表与 `tests/test_gpu_environment.py`、`tests/test_request_scenes.py` 一起把这件事钉住：这两种原语在有抢占的运行上也与引擎完全一致，而 `run_request_scenes.metrics()` 中确实需要逐节点状态的那一半（AFR、碎片率）现在会在检测到任务换过节点时**直接报错**，而不是给一个看起来正常的数字。
 
@@ -465,7 +465,12 @@ tests/test_gpu_matrix.py      并行矩阵与串行结果逐字段一致性
 tests/test_spotgpu_demo_scene.py 抢占演示场景的行为契约
 tests/test_request_scenes.py  场景构建与指标口径（需要 numpy/pandas，缺了就跳过）
 experiments/spotgpu_demo/     演示场景构建脚本
-runs/hetero8d_20261101/       异构 8 天场景 F 输入与指标
-runs/spotgpu_demo_20261121/   抢占演示场景输入与说明
+场景/00_场景索引.md             所有场景数据的总表：是什么、多大、来源、谁在读、怎么重跑
+场景/01_五场景A_E/              两套 A–E 五场景（新全真实 pod 套件 + 旧 GPU-only 套件）
+场景/02_主场景F/hetero8d_20261101/       异构 8 天场景 F 输入、14 组 golden 与观测层
+场景/03_碎片整理与十场景/         合作者的基准归档、十场景抢占存档、跨引擎逐格核对文档
+场景/04_演示场景/spotgpu_demo_20261121/   抢占演示场景输入与说明
+场景/05_场景构建与选型/           20 台 H20 选型证据、场景 A 计时数据、构建脚本
+场景/06_核对记录/               golden 复跑日志（*.log 被忽略，本机留档）
 README_GPU.md                本文：修改步骤与详细使用说明
 ```

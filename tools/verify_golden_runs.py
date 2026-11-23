@@ -10,7 +10,7 @@ the in-repo copies, not the D: drive paths the manifests still name.
 
     python tools/verify_golden_runs.py                      # all 14 scenario F runs
     python tools/verify_golden_runs.py --only fcfs          # the five fcfs cells
-    python tools/verify_golden_runs.py --root runs/allpods_20261025/metrics
+    python tools/verify_golden_runs.py --root 场景/01_五场景A_E/allpods_20261025/metrics
 
 Fields the reference predates (fragmentation, topology, block_classification) are
 reported as additions rather than differences; a field the reference has and the
@@ -23,7 +23,7 @@ recorded on 2026-11-01, a week before SpotGPU preemption existed in the engine
 (`d20f8b1`), and the implementation that produced them sorted victims over a set of
 pod_id strings - so ties came out differently per process until `2315feb` replaced that
 with a `(cost, pod_id)` total order. Their archived numbers are a single draw from a
-flipped coin; `runs/hetero8d_20261101/README.md` documents the spread it measured
+flipped coin; `场景/02_主场景F/hetero8d_20261101/README.md` documents the spread it measured
 (232 vs 242 preemptions, GPU reservation 3.2 points apart). So a bare DIFF on those two
 cells is expected, and expecting it is worthless as a safety net: a real regression
 would hide among the two known ones. `--record-replacement` writes the current
@@ -33,7 +33,7 @@ a genuine `[DIFF]` and still fails.
 
     python tools/verify_golden_runs.py                      # all 14 scenario F runs
     python tools/verify_golden_runs.py --only fcfs          # the five fcfs cells
-    python tools/verify_golden_runs.py --root runs/allpods_20261101/metrics
+    python tools/verify_golden_runs.py --root 场景/02_主场景F/hetero8d_20261101/metrics/summaries
     python tools/verify_golden_runs.py --record-replacement --only spotgpu
 """
 import argparse
@@ -72,13 +72,13 @@ def load_golden(root):
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--root", type=Path, default=REPO/"runs/hetero8d_20261101/metrics/summaries")
-    parser.add_argument("--nodes", type=Path, default=REPO/"runs/hetero8d_20261101/inputs/nodes.csv")
-    parser.add_argument("--tasks", type=Path, default=REPO/"runs/hetero8d_20261101/inputs/jobs_F.csv")
+    parser.add_argument("--root", type=Path, default=REPO/"场景/02_主场景F/hetero8d_20261101/metrics/summaries")
+    parser.add_argument("--nodes", type=Path, default=REPO/"场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv")
+    parser.add_argument("--tasks", type=Path, default=REPO/"场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv")
     parser.add_argument("--only", default="", help="keep golden runs whose name contains this")
     parser.add_argument("--rel-tol", type=float, default=1e-12)
     parser.add_argument("--replacement-root", type=Path,
-                        default=REPO/"runs/hetero8d_20261101/metrics/post_fix_summaries",
+                        default=REPO/"场景/02_主场景F/hetero8d_20261101/metrics/post_fix_summaries",
                         help="summaries recorded after the victim-ordering fix, for runs "
                              "whose archive predates the feature being tested")
     parser.add_argument("--record-replacement", action="store_true",

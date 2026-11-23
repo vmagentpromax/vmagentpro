@@ -20,7 +20,7 @@
 
 候选集先按连续 72 小时配置一致性筛选，再按 `SHA256('42:' + server_id)` 升序取前 20 台。不以负载高低挑选节点。ID 是发布方提供的匿名标识，不能解释为真实主机名。
 
-运行 `python docs/server_selection/select_servers.py` 可复算清单及 [selection_evidence.json](selection_evidence.json)。脚本仅需 pandas、pyarrow；可用 `--data` 指定数据根目录、`--out` 指定输出目录。
+运行 `python 场景/05_场景构建与选型/server_selection/select_servers.py` 可复算清单及 [selection_evidence.json](selection_evidence.json)。脚本仅需 pandas、pyarrow；可用 `--data` 指定数据根目录、`--out` 指定输出目录。
 
 所选 20 台在基准小时上关联到 458 个去重 Pod，其中 118 个 GPU 请求大于 0；这仅验证节点和 Pod 关联，并未提取任务序列或推断实时占用。
 

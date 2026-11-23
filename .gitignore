@@ -135,10 +135,10 @@ dmypy.json
 # Everything under outputs/ is regenerable from versioned inputs plus run parameters,
 # so the whole directory is ignored rather than only the dashboard subfolder.
 /outputs/
-runs/*/outputs/
+场景/*/*/outputs/
 
 # The observed-trace slice a scene is calibrated against. Tens of MB, and regenerable
 # by tools/extract_scene_truth_from_trace.py from the upstream table on D:. The small
 # extraction_summary.json written beside it stays tracked, because that is the
 # provenance record - row counts, join sizes and the numbers quoted in the docs.
-runs/*/truth/*.parquet
+场景/*/*/truth/*.parquet

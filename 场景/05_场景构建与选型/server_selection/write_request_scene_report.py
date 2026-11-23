@@ -102,10 +102,10 @@ def main():
                 lines.append(f"- {label}/{policy}：平均JCT {sub.loc['mean_jct_sec','mean']:.6f}秒，等待 {sub.loc['mean_wait_sec','mean']:.6f}秒，makespan {sub.loc['makespan_sec','mean']:.6f}秒，AGU {sub.loc['agu_reserved','mean']:.4%}，AFR {sub.loc['afr_joint','mean']:.4%}。")
         lines += ["", "每个指标的双侧Student-t 95%置信区间见 [validation/metrics_mean_ci95.csv](validation/metrics_mean_ci95.csv)，同种子算法配对差值及区间见 [validation/paired_differences_ci95.csv](validation/paired_differences_ci95.csv)。所有种子的原始统计与瞬态截点后的次级指标也保存在 `validation/`。seed42 的详细事件与资源日志见仓库 `outputs/gpu/request_scenes/`。", ""]
     lines += ["## 复现", "", "在仓库根目录执行（Python需numpy/pandas/pyarrow/scipy）：", "", "```powershell",
-        "python docs/server_selection/rebuild_request_scenes.py --workers 4",
-        "python docs/server_selection/construct_request_scenes.py",
-        "python docs/server_selection/run_request_scenes.py --sensitivity",
-        "python docs/server_selection/write_request_scene_report.py", "```", "",
+        "python 场景/05_场景构建与选型/server_selection/rebuild_request_scenes.py --workers 4",
+        "python 场景/05_场景构建与选型/server_selection/construct_request_scenes.py",
+        "python 场景/05_场景构建与选型/server_selection/run_request_scenes.py --sensitivity",
+        "python 场景/05_场景构建与选型/server_selection/write_request_scene_report.py", "```", "",
         "扫描支持逐日缓存续跑。原始数据不修改。完整方法与指标定义见 [METHOD.md](METHOD.md)；`scan_audit.json`、`window_selection_audit.json`、`selected_windows.json`、`construction_audit.json` 串联保留来源证据。旧 `two_gpu_scenes/relative_low` 与 `relative_high` 仅作历史留存，不再作为本流程的合格高低场景。", ""]
     (OUT / "README.md").write_text("\n".join(lines),encoding="utf-8")
     print(OUT / "README.md")

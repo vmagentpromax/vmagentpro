@@ -36,7 +36,7 @@ import pandas as pd
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
-SCENE = REPO/"runs/hetero8d_20261101"
+SCENE = REPO/"场景/02_主场景F/hetero8d_20261101"
 CEILING = 86399.  # the release truncates schedule_delay_sec at 24h-1s
 QUANTILES = (.5, .9, .95, .99)
 

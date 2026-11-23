@@ -162,7 +162,7 @@ def human(n):
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--tasks", type=Path, default=REPO/"runs/hetero8d_20261101/inputs/jobs_F.csv")
+    parser.add_argument("--tasks", type=Path, default=REPO/"场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv")
     parser.add_argument("--sizes", default="10000,40000,119495",
                         help="comma separated task counts to measure")
     parser.add_argument("--extrapolate", type=int, default=16260000,
@@ -170,7 +170,7 @@ def main():
     parser.add_argument("--run", action="store_true",
                         help="also run one full episode over the whole input and report "
                              "wall time, event count and resident memory while running")
-    parser.add_argument("--nodes", type=Path, default=REPO/"runs/hetero8d_20261101/inputs/nodes.csv")
+    parser.add_argument("--nodes", type=Path, default=REPO/"场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv")
     parser.add_argument("--placement", default="first_fit")
     parser.add_argument("--queue-policy", default="fcfs", choices=("fcfs", "backfill"))
     parser.add_argument("--max-sim-time", type=float, default=4000000.,

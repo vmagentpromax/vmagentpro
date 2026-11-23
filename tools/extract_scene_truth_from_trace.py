@@ -25,7 +25,7 @@ Reads one partition at a time and filters immediately; the whole scan is bounded
 servers in `nodes.csv`, not by the trace size.
 
     C:/Users/trw/anaconda3/python.exe tools/extract_scene_truth_from_trace.py \
-        --nodes runs/hetero8d_20261101/inputs/nodes.csv --start-day 108 --end-day 116
+        --nodes 场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv --start-day 108 --end-day 116
 """
 import argparse
 import json

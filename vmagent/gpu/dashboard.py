@@ -25,9 +25,9 @@ BUILTIN_DATASETS = {
         "label": "SpotGPU 抢占演示数据（3 台 XPU-A · 29 个 Pod）",
         "note": "场景 F 的真子集：24 个 LP 恰好填满 24 GPU，5 个 HP 随后到达。"
                 "策略 spotgpu 会驱逐 LP，first_fit / best_fit 只能让 HP 等待。"
-                "见 runs/spotgpu_demo_20261121/README.md。",
-        "nodes": ROOT/"runs/spotgpu_demo_20261121/inputs/nodes.csv",
-        "tasks": ROOT/"runs/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv",
+                "见 场景/04_演示场景/spotgpu_demo_20261121/README.md。",
+        "nodes": ROOT/"场景/04_演示场景/spotgpu_demo_20261121/inputs/nodes.csv",
+        "tasks": ROOT/"场景/04_演示场景/spotgpu_demo_20261121/inputs/jobs_spotgpu_demo.csv",
         # The pods in this scene arrive around 87,000 s (they are a slice of scenario F
         # in the middle of its 8 days), so the measurement window has to start there:
         # with [0, 43200] the run drains correctly but every offered/reserved ratio reads 0%.
@@ -38,9 +38,9 @@ BUILTIN_DATASETS = {
     "hetero_8d_scene_f": {
         "label": "异构 8 天场景 F 数据（30 台 XPU-A+H20 · 119,495 个 Pod）",
         "note": "仓库内最接近真实负载的场景，单组 25–280 秒。任务表约 15.9 MB，导入需要几秒。"
-                "场景定义、构造假设与复跑预期见 runs/hetero8d_20261101/README.md。",
-        "nodes": ROOT/"runs/hetero8d_20261101/inputs/nodes.csv",
-        "tasks": ROOT/"runs/hetero8d_20261101/inputs/jobs_F.csv",
+                "场景定义、构造假设与复跑预期见 场景/02_主场景F/hetero8d_20261101/README.md。",
+        "nodes": ROOT/"场景/02_主场景F/hetero8d_20261101/inputs/nodes.csv",
+        "tasks": ROOT/"场景/02_主场景F/hetero8d_20261101/inputs/jobs_F.csv",
         "run": {"policy": "first_fit", "clock": "fast", "queue_policy": "backfill",
                 "measurement_start_seconds": 0., "measurement_seconds": 691200.,
                 "max_sim_time": 4000000., "cpu_background_fraction": 0., "checkpoint_interval": 3600.},

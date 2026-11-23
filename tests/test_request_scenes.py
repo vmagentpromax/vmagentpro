@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "docs/server_selection"))
+sys.path.insert(0, str(ROOT / "场景/05_场景构建与选型/server_selection"))
 
 try:
     import numpy as np
@@ -17,9 +17,9 @@ try:
     MISSING_DEPENDENCY = None
 except ImportError as exc:
     # The GPU engine and its tests are standard-library only; numpy and pandas enter
-    # solely through the docs/server_selection scenario builders. Without this guard a
+    # solely through the 场景/05_场景构建与选型/server_selection scenario builders. Without this guard a
     # plain "python -m unittest discover" turned red on a fresh clone.
-    MISSING_DEPENDENCY = "needs numpy and pandas, imported only by docs/server_selection ({})".format(exc)
+    MISSING_DEPENDENCY = "needs numpy and pandas, imported only by 场景/05_场景构建与选型/server_selection ({})".format(exc)
 
 
 @unittest.skipIf(MISSING_DEPENDENCY, MISSING_DEPENDENCY or "")
