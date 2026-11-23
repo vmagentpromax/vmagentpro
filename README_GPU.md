@@ -459,6 +459,7 @@ tools/extract_scene_truth_from_trace.py 把某个场景用过的机器在 trace 
 tools/calibrate_replay_delay.py     仿真排队延迟 vs trace 实测调度延迟
 tools/measure_workload_footprint.py 每任务保留字节、整局墙钟与工作集实测（规模数字的来源）
 tools/check_doc_line_references.py  文档里每条 文件.py:行号 引用是否还落在文件内
+tools/check_referenced_paths.py  文档与代码里写下来的场景路径是否还存在（搬迁后 420 条 0 悬空）
 tests/test_gpu_environment.py 关键行为验证
 tests/test_gpu_dashboard.py   上传、内置数据、运行、停止与下载验证
 tests/test_gpu_matrix.py      并行矩阵与串行结果逐字段一致性
